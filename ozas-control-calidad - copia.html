@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OZÀS – Control de Calidad</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&family=DM+Mono:wght@400;500&display=swap');
+:root {
+  --azul:    #0a2342; --azul2: #0d6efd; --azul3: #38b6ff;
+  --blanco:  #ffffff; --gris1: #f0f6ff; --gris2: #cce0f5;
+  --verde:   #1db954; --verde-bg: #d4f5e2;
+  --rojo:    #e02020; --rojo-bg:  #fde8e8;
+  --amarillo:#f59e0b; --amarillo-bg: #fef3c7;
+  --sombra:  0 4px 24px rgba(10,35,66,.10);
+  --r: 14px; --rs: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Montserrat',sans-serif;background:linear-gradient(135deg,#e8f4ff,#f5faff 60%,#d0eeff);min-height:100vh;color:var(--azul)}
+
+/* ── HEADER ── */
+header{background:var(--azul);position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(10,35,66,.25)}
+.hi{max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-icon{width:48px;height:48px;background:linear-gradient(135deg,var(--azul3),var(--azul2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.brand h1{font-size:1.7rem;font-weight:900;color:#fff;letter-spacing:2px;line-height:1}
+.brand h1 span{color:var(--azul3)}
+.brand p{font-size:.65rem;color:rgba(255,255,255,.5);letter-spacing:3px;text-transform:uppercase;margin-top:3px}
+.hmeta{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mf{display:flex;flex-direction:column;gap:3px}
+.mf label{font-size:.6rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:2px;font-weight:600}
+.mf input{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:6px 10px;color:#fff;font-family:'DM Mono',monospace;font-size:.78rem;outline:none;width:185px}
+.mf input:focus{border-color:var(--azul3);background:rgba(255,255,255,.15)}
+
+/* ── MAIN ── */
+main{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
+
+/* ── BANNER ── */
+.banner{border-radius:var(--r);padding:14px 22px;margin-bottom:22px;display:flex;align-items:center;gap:14px;font-weight:700;font-size:1rem;letter-spacing:1px;transition:all .3s;border:2px solid transparent}
+.banner.neutro   {background:var(--gris1);border-color:var(--gris2);color:#6b7c9a}
+.banner.aprobado {background:var(--verde-bg);border-color:var(--verde);color:#0a6630}
+.banner.rechazado{background:var(--rojo-bg);border-color:var(--rojo);color:var(--rojo)}
+.banner.revision {background:var(--amarillo-bg);border-color:var(--amarillo);color:#7c5200}
+.dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;animation:pulso 2s infinite}
+.neutro   .dot{background:#6b7c9a;animation:none}
+.aprobado .dot{background:var(--verde)}
+.rechazado .dot{background:var(--rojo)}
+.revision .dot{background:var(--amarillo)}
+@keyframes pulso{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.7}}
+
+/* ── GRID ── */
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:14px}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:540px){.grid{grid-template-columns:1fr}}
+.card{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra);overflow:hidden;border:1.5px solid var(--gris2);transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 8px 32px rgba(13,110,253,.13)}
+.ch{background:linear-gradient(135deg,var(--azul),#163a6e);padding:12px 16px;display:flex;align-items:center;gap:10px}
+.cnum{width:26px;height:26px;background:var(--azul3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;color:var(--azul);flex-shrink:0}
+.ch h3{color:#fff;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;line-height:1.35}
+.cb{padding:14px;display:flex;flex-direction:column;gap:11px}
+
+/* ── PARAMS ── */
+.pg{display:flex;flex-direction:column;gap:4px}
+.pl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#6b7c9a;display:flex;justify-content:space-between;align-items:center}
+.pl .rng{font-weight:400;color:#a0b4c8;font-style:italic;font-size:.57rem}
+.pw{position:relative}
+.pw input{width:100%;padding:8px 46px 8px 12px;border:1.5px solid var(--gris2);border-radius:var(--rs);font-family:'DM Mono',monospace;font-size:.86rem;font-weight:500;color:var(--azul);outline:none;transition:border-color .2s,background .2s;background:var(--gris1)}
+.pw input:focus  {border-color:var(--azul2);background:var(--blanco)}
+.pw input.ok     {border-color:var(--verde);background:var(--verde-bg)}
+.pw input.mal    {border-color:var(--rojo);background:var(--rojo-bg)}
+.pw input.optimo {border-color:var(--amarillo);background:var(--amarillo-bg)}
+.pu{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.55rem;color:#a0b4c8;font-weight:600;pointer-events:none}
+.pi{position:absolute;right:28px;top:50%;transform:translateY(-50%);font-size:.72rem;pointer-events:none;display:none;font-weight:900}
+
+/* ── NOTA ── */
+.nota{font-size:.67rem;color:#7c5200;background:var(--amarillo-bg);border:1px solid #f0c060;border-radius:8px;padding:9px 14px;margin-bottom:18px;font-weight:600;line-height:1.6}
+
+/* ── BOTONES ── */
+.acciones{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px}
+.btn{padding:11px 20px;border-radius:var(--rs);border:none;font-family:'Montserrat',sans-serif;font-weight:700;font-size:.78rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px}
+.btn-p{background:linear-gradient(135deg,var(--azul2),var(--azul3));color:#fff;box-shadow:0 4px 14px rgba(13,110,253,.3)}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(13,110,253,.4)}
+.btn-o{background:var(--blanco);color:var(--azul);border:1.5px solid var(--gris2)}
+.btn-o:hover{border-color:var(--azul2);color:var(--azul2)}
+.btn-g{background:var(--blanco);color:#0a6630;border:1.5px solid #b2e8c8}
+.btn-g:hover{background:var(--verde-bg)}
+.btn-pdf{background:var(--blanco);color:#7c2d00;border:1.5px solid #fdd5b0}
+.btn-pdf:hover{background:#fff3e8}
+.btn-d{background:var(--blanco);color:var(--rojo);border:1.5px solid var(--rojo-bg)}
+.btn-d:hover{background:var(--rojo-bg)}
+@media(max-width:540px){.acciones{flex-direction:column}.btn{width:100%;justify-content:center}}
+
+/* ── GRÁFICAS ── */
+.gsec{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra);border:1.5px solid var(--gris2);margin-bottom:24px;overflow:hidden}
+.ghdr{background:var(--azul);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ghdr h2{color:#fff;font-size:.82rem;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Montserrat',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;transition:all .2s;background:rgba(255,255,255,.12);color:rgba(255,255,255,.65)}
+.tab.activo{background:var(--azul3);color:var(--azul)}
+.gbody{padding:20px}
+.cwrap{position:relative;height:290px}
+
+/* ── HISTORIAL ── */
+.hsec{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra);border:1.5px solid var(--gris2);overflow:hidden}
+.hhdr{background:var(--azul);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hhdr h2{color:#fff;font-size:.82rem;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.hcount{background:var(--azul3);color:var(--azul);font-size:.68rem;font-weight:900;padding:3px 10px;border-radius:20px}
+.hbody{overflow-x:auto;max-height:420px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:.72rem;min-width:820px}
+thead{background:var(--gris1);position:sticky;top:0;z-index:2}
+thead th{padding:9px 11px;text-align:left;font-weight:700;font-size:.58rem;text-transform:uppercase;letter-spacing:1.5px;color:#6b7c9a;border-bottom:2px solid var(--gris2);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--gris2);transition:background .15s}
+tbody tr:hover{background:rgba(13,110,253,.05)}
+tbody td{padding:8px 11px;color:var(--azul);font-family:'DM Mono',monospace;white-space:nowrap}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.b-ap{background:var(--verde-bg);color:#0a6630}
+.b-re{background:var(--rojo-bg);color:var(--rojo)}
+.b-rv{background:var(--amarillo-bg);color:#7c5200}
+.v-ok {color:var(--verde);font-weight:700}
+.v-mal{color:var(--rojo);font-weight:700}
+.v-opt{color:#b07000;font-weight:700}
+.v-na {color:#cce0f5}
+.vacío{text-align:center;padding:48px 24px;color:#a0b4c8}
+.vacío .ico{font-size:2.5rem;margin-bottom:8px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--azul);color:#fff;padding:13px 20px;border-radius:var(--rs);font-size:.8rem;font-weight:600;box-shadow:0 8px 24px rgba(10,35,66,.25);transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);z-index:999;display:flex;align-items:center;gap:10px}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ── PRINT ── */
+@media print{
+  body{background:#fff!important}
+  header{position:relative!important;box-shadow:none!important}
+  .acciones,.toast,.tabs,.pdf-aviso{display:none!important}
+  .gsec,.hsec,.card{box-shadow:none!important;page-break-inside:avoid}
+  main{padding:10px!important}
+  .cwrap{height:220px!important}
+  .grid{grid-template-columns:repeat(2,1fr)!important}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="hi">
+    <div class="brand">
+      <div class="brand-icon">💧</div>
+      <div>
+        <h1>OZ<span>À</span>S</h1>
+        <p>Control de Calidad · Agua Alcalina sin Gas</p>
+      </div>
+    </div>
+    <div class="hmeta">
+      <div class="mf">
+        <label>Fecha y Hora</label>
+        <input type="datetime-local" id="fecha-hora">
+      </div>
+      <div class="mf">
+        <label>Operario</label>
+        <input type="text" id="operario" placeholder="Nombre del operario" style="width:195px">
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- BANNER DE ESTADO -->
+  <div class="banner neutro" id="banner">
+    <div class="dot"></div>
+    <span id="banner-txt">Ingrese los parámetros para ver el estado del lote</span>
+  </div>
+
+  <!-- ── 4 PUNTOS DE CONTROL ── -->
+  <div class="grid">
+
+    <!-- P1: Ingreso Tanque Agua Cruda -->
+    <div class="card">
+      <div class="ch"><div class="cnum">1</div><h3>Ingreso Tanque<br>Agua Cruda</h3></div>
+      <div class="cb">
+        <div class="pg">
+          <div class="pl">Cloro Residual <span class="rng">0.5 – 2.5 mg/L (D.S.031-2010)</span></div>
+          <div class="pw">
+            <input type="number" step="0.01" min="0" placeholder="0.00"
+                   data-p="0" data-k="cloro" data-min="0.5" data-max="2.5"
+                   oninput="validar(this);estado()">
+            <span class="pu">mg/L</span><span class="pi" id="i0-cloro"></span>
+          </div>
+        </div>
+        <div class="pg">
+          <div class="pl">pH <span class="rng">6.5 – 8.5 (D.S.031-2010)</span></div>
+          <div class="pw">
+            <input type="number" step="0.01" min="0" placeholder="0.00"
+                   data-p="0" data-k="ph" data-min="6.5" data-max="8.5"
+                   oninput="validar(this);estado()">
+            <span class="pu">pH</span><span class="pi" id="i0-ph"></span>
+          </div>
+        </div>
+        <div class="pg">
+          <div class="pl">TDS <span class="rng">máx 1000 · óptimo 20–30 mg/L</span></div>
+          <div class="pw">
+            <input type="number" step="1" min="0" placeholder="0"
+                   data-p="0" data-k="tds"
+                   oninput="validarTDS(this);estado()">
+            <span class="pu">mg/L</span><span class="pi" id="i0-tds"></span>
+          </div>
+        </div>
+        <div class="pg">
+          <div class="pl">CE <span class="rng">máx 1500 µmho/cm</span></div>
+          <div class="pw">
+            <input type="number" step="0.1" min="0" placeholder="0.0"
+                   data-p="0" data-k="ce"
+                   oninput="validarCE(this);estado()">
+            <span class="pu">µmho/cm</span><span class="pi" id="i0-ce"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- P2: Salida Ósmosis -->
+    <div class="card">
+      <div class="ch"><div class="cnum">2</div><h3>Salida de<br>Ósmosis</h3></div>
+      <div class="cb">
+        <div class="pg">
+          <div class="pl">pH <span class="rng">5.8 – 6.4 (ligeramente ácido)</span></div>
+          <div class="pw">
+            <input type="number" step="0.01" min="0" placeholder="0.00"
+                   data-p="1" data-k="ph" data-min="5.8" data-max="6.4"
+                   oninput="validar(this);estado()">
+            <span class="pu">pH</span><span class="pi" id="i1-ph"></span>
+          </div>
+        </div>
+        <div class="pg">
+          <div class="pl">TDS <span class="rng">máx 1000 · óptimo 20–30 mg/L</span></div>
+          <div class="pw">
+            <input type="number" step="1" min="0" placeholder="0"
+                   data-p="1" data-k="tds"
+                   oninput="validarTDS(this);estado()">
+            <span class="pu">mg/L</span><span class="pi" id="i1-tds"></span>
+          </div>
+        </div>
+        <div class="pg">
+          <div class="pl">CE <span class="rng">máx 1500 µmho/cm</span></div>
+          <div class="pw">
+            <input type="number" step="0.1" min="0" placeholder="0.0"
+                   data-p="1" data-k="ce"
+                   oninput="validarCE(this);estado()">
+            <span class="pu">µmho/cm</span><span class="pi" id="i1-ce"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- P3: Salida Calcita -->
+    <div class="card">
+      <div class="ch"><div class="cnum">3</div><h3>Salida de<br>Calcita</h3></div>
+      <div class="cb">
+        <div class="pg">
+          <div class="pl">pH <span class="rng">8.0 – 8.5 ★ óptimo</span></div>
+          <div class="pw">
+            <input type="number" step="0.01" min="0" placeholder="0.00"
+                   data-p="2" data-k="ph" data-min="8.0" data-max="8.5"
+                   oninput="validar(this);estado()">
+            <span class="pu">pH</span><span class="pi" id="i2-ph"></span>
+          </div>
+        </div>
+        <div class="pg">
+          <div class="pl">TDS <span class="rng">máx 1000 · óptimo 20–30 mg/L</span></div>
+          <div class="pw">
+            <input type="number" step="1" min="0" placeholder="0"
+                   data-p="2" data-k="tds"
+                   oninput="validarTDS(this);estado()">
+            <span class="pu">mg/L</span><span class="pi" id="i2-tds"></span>
+          </div>
+        </div>
+        <div class="pg">
+          <div class="pl">CE <span class="rng">máx 1500 µmho/cm</span></div>
+          <div class="pw">
+            <input type="number" step="0.1" min="0" placeholder="0.0"
+                   data-p="2" data-k="ce"
+                   oninput="validarCE(this);estado()">
+            <span class="pu">µmho/cm</span><span class="pi" id="i2-ce"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- P4: Salida Tanque Producto -->
+    <div class="card">
+      <div class="ch"><div class="cnum">4</div><h3>Salida Tanque<br>Agua Producto</h3></div>
+      <div class="cb">
+        <div class="pg">
+          <div class="pl">pH <span class="rng">8.0 – 8.5 ★ óptimo</span></div>
+          <div class="pw">
+            <input type="number" step="0.01" min="0" placeholder="0.00"
+                   data-p="3" data-k="ph" data-min="8.0" data-max="8.5"
+                   oninput="validar(this);estado()">
+            <span class="pu">pH</span><span class="pi" id="i3-ph"></span>
+          </div>
+        </div>
+        <div class="pg">
+          <div class="pl">TDS <span class="rng">máx 1000 · óptimo 20–30 mg/L</span></div>
+          <div class="pw">
+            <input type="number" step="1" min="0" placeholder="0"
+                   data-p="3" data-k="tds"
+                   oninput="validarTDS(this);estado()">
+            <span class="pu">mg/L</span><span class="pi" id="i3-tds"></span>
+          </div>
+        </div>
+        <div class="pg">
+          <div class="pl">CE <span class="rng">máx 1500 µmho/cm</span></div>
+          <div class="pw">
+            <input type="number" step="0.1" min="0" placeholder="0.0"
+                   data-p="3" data-k="ce"
+                   oninput="validarCE(this);estado()">
+            <span class="pu">µmho/cm</span><span class="pi" id="i3-ce"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /grid -->
+
+  <p class="nota">
+    ★ <strong>pH óptimo OZÀS (P3 y P4): 8.0–8.5</strong> &nbsp;|&nbsp;
+    P1 D.S.031-2010-SA: Cloro <strong>0.5–2.5 mg/L</strong>, pH <strong>6.5–8.5</strong> &nbsp;|&nbsp;
+    P2 pH ósmosis: <strong>5.8–6.4</strong> (ligeramente ácido) &nbsp;|&nbsp;
+    TDS: máx <strong>1000 mg/L</strong>, rango óptimo <strong>20–30 mg/L</strong> (★ dorado) &nbsp;|&nbsp;
+    CE: máx <strong>1500 µmho/cm</strong> &nbsp;|&nbsp;
+    Cloro solo se mide en el Punto 1
+  </p>
+
+  <!-- BOTONES -->
+  <div class="acciones">
+    <button class="btn btn-p"   onclick="guardar()">💾 Guardar Registro</button>
+    <button class="btn btn-o"   onclick="exportCSV()">📊 Exportar CSV</button>
+    <button class="btn btn-pdf" onclick="exportPDF()">📄 Exportar PDF</button>
+    <button class="btn btn-g"   onclick="window.print()">🖨 Imprimir</button>
+    <button class="btn btn-d"   onclick="limpiar()">🗑 Limpiar Formulario</button>
+  </div>
+
+  <!-- GRÁFICAS -->
+  <div class="gsec">
+    <div class="ghdr">
+      <h2>📈 Gráficas de Tendencia</h2>
+      <div class="tabs">
+        <button class="tab activo" onclick="cambiarTab('cloro',this)">Cloro</button>
+        <button class="tab"        onclick="cambiarTab('ph',this)">pH</button>
+        <button class="tab"        onclick="cambiarTab('tds',this)">TDS</button>
+        <button class="tab"        onclick="cambiarTab('ce',this)">CE</button>
+      </div>
+    </div>
+    <div class="gbody">
+      <div class="cwrap"><canvas id="grafica"></canvas></div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="hsec">
+    <div class="hhdr">
+      <h2>📋 Historial de Registros</h2>
+      <span class="hcount" id="hcount">0 registros</span>
+    </div>
+    <div class="hbody"><div id="tabla"></div></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast">
+  <span id="t-ico">✅</span><span id="t-msg"></span>
+</div>
+
+<script>
+// ══ CONSTANTES ══
+const PUNTOS  = ['Ingreso Tanque Crudo','Salida Ósmosis','Salida Calcita','Salida Tanque Producto'];
+const COLORES = ['#0d6efd','#38b6ff','#1db954','#f59e0b'];
+const TDS_MAX = 1000, TDS_OPT_MIN = 20, TDS_OPT_MAX = 30, CE_MAX = 1500;
+
+// ══ FECHA ══
+(function(){
+  const n=new Date(), z=x=>String(x).padStart(2,'0');
+  document.getElementById('fecha-hora').value =
+    `${n.getFullYear()}-${z(n.getMonth()+1)}-${z(n.getDate())}T${z(n.getHours())}:${z(n.getMinutes())}`;
+})();
+
+// ══ HELPERS ICONO ══
+function setIcon(id, tipo) {
+  // tipo: 'ok' | 'mal' | 'opt' | 'vacio'
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (tipo === 'vacio') { el.textContent=''; el.style.display='none'; return; }
+  el.style.display = 'block';
+  if (tipo === 'ok')  { el.textContent='✓'; el.style.color='var(--verde)'; }
+  if (tipo === 'mal') { el.textContent='✗'; el.style.color='var(--rojo)'; }
+  if (tipo === 'opt') { el.textContent='★'; el.style.color='var(--amarillo)'; }
+}
+
+// ══ VALIDACIONES ══
+function validar(inp) {
+  const v=parseFloat(inp.value), mn=parseFloat(inp.dataset.min), mx=parseFloat(inp.dataset.max);
+  const p=inp.dataset.p, k=inp.dataset.k;
+  if (inp.value==='') { inp.className=''; setIcon('i'+p+'-'+k,'vacio'); return; }
+  const ok = v>=mn && v<=mx;
+  inp.className = ok ? 'ok' : 'mal';
+  setIcon('i'+p+'-'+k, ok ? 'ok' : 'mal');
+}
+
+function validarTDS(inp) {
+  const v=parseFloat(inp.value), p=inp.dataset.p;
+  if (inp.value==='') { inp.className=''; setIcon('i'+p+'-tds','vacio'); return; }
+  if (v > TDS_MAX)              { inp.className='mal'; setIcon('i'+p+'-tds','mal'); }
+  else if (v>=TDS_OPT_MIN && v<=TDS_OPT_MAX) { inp.className='optimo'; setIcon('i'+p+'-tds','opt'); }
+  else                          { inp.className='ok';  setIcon('i'+p+'-tds','ok'); }
+}
+
+function validarCE(inp) {
+  const v=parseFloat(inp.value), p=inp.dataset.p;
+  if (inp.value==='') { inp.className=''; setIcon('i'+p+'-ce','vacio'); return; }
+  const ok = v <= CE_MAX;
+  inp.className = ok ? 'ok' : 'mal';
+  setIcon('i'+p+'-ce', ok ? 'ok' : 'mal');
+}
+
+// ══ ESTADO GENERAL ══
+function estado() {
+  const all = document.querySelectorAll('.cb input');
+  let total=0, mal=0, bien=0;
+  all.forEach(i => {
+    if (i.value !== '') {
+      total++;
+      if (i.classList.contains('mal'))    mal++;
+      if (i.classList.contains('ok') || i.classList.contains('optimo')) bien++;
+    }
+  });
+  const b=document.getElementById('banner'), t=document.getElementById('banner-txt');
+  if (total===0) { b.className='banner neutro'; t.textContent='Ingrese los parámetros para ver el estado del lote'; return; }
+  if (mal===0)   { b.className='banner aprobado';  t.textContent='✅ APROBADO — Todos los parámetros dentro del rango aceptable'; }
+  else if (bien===0) { b.className='banner rechazado'; t.textContent='🚫 RECHAZADO — Parámetros fuera de rango detectados'; }
+  else           { b.className='banner revision';  t.textContent='⚠️ EN REVISIÓN — Algunos parámetros fuera de rango'; }
+}
+
+// ══ LEER FORM ══
+function leerForm() {
+  const g = (p,k) => { const el=document.querySelector(`[data-p="${p}"][data-k="${k}"]`); return el ? el.value : ''; };
+  return [0,1,2,3].map(p => ({ cloro:g(p,'cloro'), ph:g(p,'ph'), tds:g(p,'tds'), ce:g(p,'ce') }));
+}
+
+function calcEstado() {
+  const all=document.querySelectorAll('.cb input');
+  let total=0,mal=0,bien=0;
+  all.forEach(i=>{ if(i.value!==''){total++;if(i.classList.contains('mal'))mal++;if(i.classList.contains('ok')||i.classList.contains('optimo'))bien++; }});
+  if(total===0) return '—';
+  if(mal===0)   return 'APROBADO';
+  if(bien===0)  return 'RECHAZADO';
+  return 'EN REVISIÓN';
+}
+
+// ══ GUARDAR ══
+function guardar() {
+  const op=document.getElementById('operario').value.trim();
+  const fh=document.getElementById('fecha-hora').value;
+  if(!op){ toast('⚠️','Ingrese el nombre del operario'); return; }
+  if(!fh){ toast('⚠️','Ingrese la fecha y hora'); return; }
+  const reg={ id:Date.now(), fecha:fh, operario:op, datos:leerForm(), estado:calcEstado() };
+  const h=JSON.parse(localStorage.getItem('ozas_h')||'[]');
+  h.unshift(reg);
+  localStorage.setItem('ozas_h', JSON.stringify(h));
+  renderTabla();
+  dibujarGrafica(tabActual);
+  toast('✅','Registro guardado correctamente');
+}
+
+// ══ LIMPIAR ══
+function limpiar() {
+  document.querySelectorAll('.cb input').forEach(i=>{ i.value=''; i.className=''; });
+  document.querySelectorAll('.pi').forEach(ic=>{ ic.textContent=''; ic.style.display='none'; });
+  document.getElementById('operario').value='';
+  const n=new Date(), z=x=>String(x).padStart(2,'0');
+  document.getElementById('fecha-hora').value=`${n.getFullYear()}-${z(n.getMonth()+1)}-${z(n.getDate())}T${z(n.getHours())}:${z(n.getMinutes())}`;
+  estado();
+  toast('🗑','Formulario limpiado');
+}
+
+// ══ TABLA HISTORIAL ══
+function renderTabla() {
+  const h=JSON.parse(localStorage.getItem('ozas_h')||'[]');
+  document.getElementById('hcount').textContent=`${h.length} registro${h.length!==1?'s':''}`;
+  const wrap=document.getElementById('tabla');
+  if(!h.length){ wrap.innerHTML='<div class="vacío"><div class="ico">📭</div><p>Aún no hay registros guardados.</p></div>'; return; }
+
+  let htm=`<table><thead><tr>
+    <th>Fecha / Hora</th><th>Operario</th><th>Punto</th>
+    <th>Cloro (mg/L)</th><th>pH</th><th>TDS (mg/L)</th><th>CE (µmho/cm)</th><th>Estado</th>
+  </tr></thead><tbody>`;
+
+  h.forEach(reg => {
+    const bc = {'APROBADO':'b-ap','RECHAZADO':'b-re','EN REVISIÓN':'b-rv'}[reg.estado]||'';
+    reg.datos.forEach((d,i) => {
+      // Cloro (solo P1)
+      const tieneCloro = i===0;
+      const cVal = parseFloat(d.cloro);
+      const cOk  = tieneCloro && d.cloro!=='' && cVal>=0.5 && cVal<=2.5;
+      const cCls = tieneCloro && d.cloro!=='' ? (cOk?'v-ok':'v-mal') : '';
+
+      // pH
+      const phMin=[6.5,5.8,8.0,8.0][i], phMax=[8.5,6.4,8.5,8.5][i];
+      const pVal=parseFloat(d.ph), pOk=d.ph!==''&&pVal>=phMin&&pVal<=phMax;
+      const pCls=d.ph!==''?(pOk?'v-ok':'v-mal'):'';
+
+      // TDS
+      const tVal=parseFloat(d.tds);
+      const tOk=d.tds!==''&&tVal<=TDS_MAX;
+      const tOpt=tOk&&tVal>=TDS_OPT_MIN&&tVal<=TDS_OPT_MAX;
+      const tCls=d.tds!==''?(tOpt?'v-opt':tOk?'v-ok':'v-mal'):'';
+      const tTxt=d.tds!==''?(tOpt?d.tds+' ★':d.tds):'—';
+
+      // CE
+      const eVal=parseFloat(d.ce), eOk=d.ce!==''&&eVal<=CE_MAX;
+      const eCls=d.ce!==''?(eOk?'v-ok':'v-mal'):'';
+
+      htm+=`<tr>
+        ${i===0?`<td rowspan="4" style="font-family:'DM Mono',monospace;font-size:.68rem;vertical-align:top;padding-top:10px">${reg.fecha.replace('T',' ')}</td>
+                 <td rowspan="4" style="vertical-align:top;padding-top:10px;font-weight:600">${reg.operario}</td>`:''}
+        <td style="font-size:.63rem;font-weight:700;color:#6b7c9a;text-transform:uppercase">${PUNTOS[i]}</td>
+        <td class="${cCls}">${tieneCloro?(d.cloro||'—'):'<span class="v-na">N/A</span>'}</td>
+        <td class="${pCls}">${d.ph||'—'}</td>
+        <td class="${tCls}">${tTxt}</td>
+        <td class="${eCls}">${d.ce||'—'}</td>
+        ${i===0?`<td rowspan="4" style="vertical-align:middle;text-align:center"><span class="badge ${bc}">${reg.estado}</span></td>`:''}
+      </tr>`;
+    });
+  });
+
+  htm+='</tbody></table>';
+  wrap.innerHTML=htm;
+}
+
+// ══ GRÁFICA ══
+let chart=null, tabActual='cloro';
+
+function dibujarGrafica(tipo) {
+  const h=JSON.parse(localStorage.getItem('ozas_h')||'[]');
+  const labels=h.map(r=>r.fecha.slice(0,16).replace('T',' ')).reverse();
+  const ds=[];
+
+  // Series de datos por punto
+  const puntosAMostrar = tipo==='cloro' ? [0] : [0,1,2,3];
+  puntosAMostrar.forEach(p=>{
+    if(tipo==='cloro' && p!==0) return; // solo P1 tiene cloro
+    const vals=h.map(r=>{
+      const v = tipo==='cloro'?r.datos[p].cloro : tipo==='ph'?r.datos[p].ph : tipo==='tds'?r.datos[p].tds : r.datos[p].ce;
+      return v!==''?parseFloat(v):null;
+    }).reverse();
+    ds.push({ label:PUNTOS[p], data:vals, borderColor:COLORES[p], backgroundColor:COLORES[p]+'28',
+      pointBackgroundColor:COLORES[p], borderWidth:2.5, pointRadius:5, pointHoverRadius:7,
+      tension:0.38, fill:false, spanGaps:true });
+  });
+
+  // Líneas de referencia
+  if(labels.length>0){
+    if(tipo==='cloro'){
+      ds.push({label:'Mín (0.5)',data:labels.map(()=>0.5),borderColor:'#1db95488',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false});
+      ds.push({label:'Máx (2.5)',data:labels.map(()=>2.5),borderColor:'#e0202088',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false});
+    }
+    if(tipo==='ph'){
+      ds.push({label:'P1 min (6.5)',data:labels.map(()=>6.5),borderColor:'#0d6efd66',borderDash:[4,4],borderWidth:1.2,pointRadius:0,fill:false});
+      ds.push({label:'P2 min (5.8)',data:labels.map(()=>5.8),borderColor:'#a855f766',borderDash:[4,4],borderWidth:1.2,pointRadius:0,fill:false});
+      ds.push({label:'P2 max (6.4)',data:labels.map(()=>6.4),borderColor:'#a855f766',borderDash:[4,4],borderWidth:1.2,pointRadius:0,fill:false});
+      ds.push({label:'P3-P4 min (8.0)',data:labels.map(()=>8.0),borderColor:'#1db95488',borderDash:[4,4],borderWidth:1.5,pointRadius:0,fill:false});
+      ds.push({label:'P3-P4 max (8.5)',data:labels.map(()=>8.5),borderColor:'#f59e0b88',borderDash:[4,4],borderWidth:1.5,pointRadius:0,fill:false});
+    }
+    if(tipo==='tds'){
+      ds.push({label:'Óptimo min (20)',data:labels.map(()=>20),borderColor:'#f59e0b88',borderDash:[4,4],borderWidth:1.5,pointRadius:0,fill:false});
+      ds.push({label:'Óptimo max (30)',data:labels.map(()=>30),borderColor:'#f59e0b88',borderDash:[4,4],borderWidth:1.5,pointRadius:0,fill:false});
+      ds.push({label:'Límite máx (1000)',data:labels.map(()=>1000),borderColor:'#e0202088',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false});
+    }
+    if(tipo==='ce'){
+      ds.push({label:'Límite máx (1500)',data:labels.map(()=>1500),borderColor:'#e0202088',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false});
+    }
+  }
+
+  if(chart) chart.destroy();
+  const ctx=document.getElementById('grafica').getContext('2d');
+  const unidad={cloro:'mg/L',ph:'Unidades pH',tds:'mg/L',ce:'µmho/cm'};
+  chart=new Chart(ctx,{
+    type:'line', data:{labels,datasets:ds},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{position:'bottom',labels:{font:{family:'Montserrat',size:10},padding:14,usePointStyle:true}},
+        tooltip:{backgroundColor:'#0a2342',titleFont:{family:'Montserrat',size:11},bodyFont:{family:'DM Mono',size:11},padding:10,cornerRadius:8}
+      },
+      scales:{
+        x:{grid:{color:'rgba(204,224,245,.5)'},ticks:{font:{family:'DM Mono',size:9},maxRotation:30,color:'#6b7c9a'}},
+        y:{grid:{color:'rgba(204,224,245,.5)'},ticks:{font:{family:'DM Mono',size:10},color:'#6b7c9a'},
+           title:{display:true,text:unidad[tipo],font:{family:'Montserrat',size:10},color:'#6b7c9a'}}
+      }
+    }
+  });
+}
+
+function cambiarTab(tipo,btn){
+  tabActual=tipo;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('activo'));
+  btn.classList.add('activo');
+  dibujarGrafica(tipo);
+}
+
+// ══ EXPORTAR CSV ══
+function exportCSV(){
+  const h=JSON.parse(localStorage.getItem('ozas_h')||'[]');
+  if(!h.length){ toast('⚠️','No hay registros para exportar'); return; }
+  let csv='Fecha,Operario,Punto de Control,Cloro Residual (mg/L),pH,TDS (mg/L),CE (µmho/cm),Estado\n';
+  h.forEach(r=>r.datos.forEach((d,i)=>{
+    csv+=`"${r.fecha}","${r.operario}","${PUNTOS[i]}","${i===0?d.cloro:'N/A'}","${d.ph}","${d.tds}","${d.ce}","${r.estado}"\n`;
+  }));
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`OZAS_CalidadAgua_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  toast('📊','CSV exportado correctamente');
+}
+
+// ══ EXPORTAR PDF ══
+function exportPDF(){
+  const orig=document.title;
+  document.title=`OZAS_ControlCalidad_${new Date().toISOString().slice(0,10)}`;
+  const aviso=document.createElement('div');
+  aviso.className='pdf-aviso';
+  aviso.style.cssText='position:fixed;top:0;left:0;right:0;background:#0d6efd;color:#fff;text-align:center;padding:11px;font-size:.8rem;font-weight:700;z-index:9999;font-family:sans-serif';
+  aviso.innerHTML='📄 En el diálogo que se abrirá, elige <strong>"Guardar como PDF"</strong> como destino.';
+  document.body.prepend(aviso);
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{ document.title=orig; aviso.remove(); },600);
+  },250);
+}
+
+// ══ TOAST ══
+function toast(ico,msg){
+  document.getElementById('t-ico').textContent=ico;
+  document.getElementById('t-msg').textContent=msg;
+  const t=document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+// ══ INICIO ══
+renderTabla();
+dibujarGrafica('cloro');
+</script>
+</body>
+</html>

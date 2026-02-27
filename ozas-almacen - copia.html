@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OZÀS – Almacén de Materiales</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --az:#0a2342;--az2:#0d6efd;--az3:#38b6ff;
+  --w:#fff;--g1:#f0f6ff;--g2:#cce0f5;--g3:#6b7c9a;
+  --vr:#1db954;--vr2:#d4f5e2;
+  --rj:#e02020;--rj2:#fde8e8;
+  --am:#f59e0b;--am2:#fef3c7;
+  --sh:0 4px 24px rgba(10,35,66,.10);
+  --r:14px;--rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Montserrat',sans-serif;background:linear-gradient(135deg,#e8f4ff,#f0f8ff 60%,#d0eeff);min-height:100vh;color:var(--az)}
+
+/* HEADER */
+header{background:var(--az);box-shadow:0 2px 20px rgba(10,35,66,.3);position:sticky;top:0;z-index:200}
+.hdr{max-width:1300px;margin:0 auto;padding:0 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px;padding:14px 0}
+.logo-ico{width:44px;height:44px;background:linear-gradient(135deg,var(--az3),var(--az2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.logo h1{font-size:1.4rem;font-weight:900;color:#fff;letter-spacing:2px;line-height:1}
+.logo h1 span{color:var(--az3)}
+.logo p{font-size:.56rem;color:rgba(255,255,255,.45);letter-spacing:3px;text-transform:uppercase;margin-top:2px}
+.sync-bar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(255,255,255,.08);border-radius:20px;font-size:.65rem;color:rgba(255,255,255,.7);font-weight:600}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#6b7c9a;flex-shrink:0;transition:background .3s}
+.sync-dot.ok{background:var(--vr)}.sync-dot.carg{background:var(--am);animation:blink 1s infinite}.sync-dot.err{background:var(--rj)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+nav{display:flex;gap:4px;padding:8px 0;flex-wrap:wrap;margin-left:auto}
+.ntab{padding:8px 16px;border-radius:var(--rs);border:none;cursor:pointer;font-family:'Montserrat',sans-serif;font-weight:700;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;transition:all .2s;background:rgba(255,255,255,.08);color:rgba(255,255,255,.6)}
+.ntab:hover{background:rgba(255,255,255,.15);color:#fff}
+.ntab.on{background:var(--az3);color:var(--az)}
+
+/* LOADING */
+.load-ov{position:fixed;inset:0;background:rgba(10,35,66,.72);z-index:900;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.load-ov.show{display:flex}
+.spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,.2);border-top-color:var(--az3);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{color:#fff;font-size:.85rem;font-weight:600}
+
+main{max-width:1300px;margin:0 auto;padding:24px 20px 60px}
+.mod{display:none}.mod.on{display:block}
+
+/* CARDS */
+.card{background:var(--w);border-radius:var(--r);box-shadow:var(--sh);border:1.5px solid var(--g2);overflow:hidden;margin-bottom:20px}
+.ch{background:linear-gradient(135deg,var(--az),#163a6e);padding:13px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ch h2{color:#fff;font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.cb{padding:20px}
+
+/* STATS */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px}
+.stat{background:var(--w);border-radius:var(--r);box-shadow:var(--sh);border:1.5px solid var(--g2);padding:16px;text-align:center;transition:transform .2s}
+.stat:hover{transform:translateY(-3px)}
+.stat-ico{font-size:1.8rem;margin-bottom:6px}
+.stat-val{font-size:1.6rem;font-weight:900;color:var(--az2);font-family:'DM Mono',monospace}
+.stat-lbl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--g3);margin-top:3px}
+
+/* MATERIAL CARDS GRID */
+.mat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.mat-card{background:var(--w);border-radius:var(--r);box-shadow:var(--sh);border:1.5px solid var(--g2);padding:16px;transition:transform .2s,border-color .2s;position:relative;overflow:hidden}
+.mat-card:hover{transform:translateY(-3px)}
+.mat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--az2),var(--az3))}
+.mat-card.alerta-rj{border-color:var(--rj);background:linear-gradient(135deg,#fff,#fff8f8)}
+.mat-card.alerta-rj::before{background:linear-gradient(90deg,var(--rj),#ff6b6b)}
+.mat-card.alerta-am{border-color:var(--am);background:linear-gradient(135deg,#fff,#fffbf0)}
+.mat-card.alerta-am::before{background:linear-gradient(90deg,var(--am),#ffd97d)}
+.mat-card.ok::before{background:linear-gradient(90deg,var(--vr),#52d68a)}
+.mat-cat{font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--g3);margin-bottom:6px}
+.mat-nom{font-size:.8rem;font-weight:700;color:var(--az);margin-bottom:10px;line-height:1.3}
+.mat-stock{font-size:2rem;font-weight:900;color:var(--az2);font-family:'DM Mono',monospace;line-height:1}
+.mat-unid{font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--g3)}
+.mat-min{font-size:.65rem;margin-top:8px;padding:4px 10px;border-radius:6px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.mat-min.ok{background:var(--vr2);color:#0a6630}
+.mat-min.warn{background:var(--am2);color:#7c5200}
+.mat-min.danger{background:var(--rj2);color:var(--rj)}
+.mat-min.sin{background:var(--g1);color:var(--g3)}
+.mat-acciones{display:flex;gap:6px;margin-top:10px}
+.mat-btn{flex:1;padding:6px 8px;border-radius:6px;border:none;font-family:'Montserrat',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.5px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.mat-btn.entrada{background:var(--vr2);color:#0a6630;border:1px solid #b2e8c8}
+.mat-btn.entrada:hover{background:#c5f0d8}
+.mat-btn.salida{background:var(--rj2);color:var(--rj);border:1px solid #f5c0c0}
+.mat-btn.salida:hover{background:#fcd5d5}
+.mat-btn.cfg{background:var(--am2);color:#7c5200;border:1px solid #f0c060}
+.mat-btn.cfg:hover{background:#fde68a}
+
+/* FORMULAS */
+.formula-card{background:var(--g1);border:1.5px solid var(--g2);border-radius:var(--rs);padding:14px;margin-bottom:12px}
+.formula-prod{font-size:.75rem;font-weight:700;color:var(--az);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.formula-prod span{background:var(--az2);color:#fff;border-radius:20px;padding:2px 10px;font-size:.6rem}
+.formula-items{display:flex;flex-wrap:wrap;gap:6px}
+.fi{display:flex;align-items:center;gap:4px;background:var(--w);border:1px solid var(--g2);border-radius:6px;padding:4px 10px;font-size:.68rem}
+.fi .qty{font-weight:900;color:var(--az2);font-family:'DM Mono',monospace}
+.fi .nom{color:var(--g3)}
+.fi-edit{cursor:pointer;color:var(--az2);font-size:.75rem;margin-left:4px}
+
+/* HISTORIAL */
+.htbl-wrap{overflow-x:auto;max-height:400px;overflow-y:auto}
+table.htbl{width:100%;border-collapse:collapse;font-size:.72rem;min-width:600px}
+table.htbl thead{background:var(--g1);position:sticky;top:0;z-index:2}
+table.htbl th{padding:9px 11px;text-align:left;font-weight:700;font-size:.58rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--g3);border-bottom:2px solid var(--g2);white-space:nowrap}
+table.htbl tbody tr{border-bottom:1px solid var(--g2);transition:background .15s}
+table.htbl tbody tr:hover{background:rgba(13,110,253,.04)}
+table.htbl td{padding:8px 11px;color:var(--az);font-family:'DM Mono',monospace;white-space:nowrap;font-size:.7rem}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.b-vr{background:var(--vr2);color:#0a6630}
+.b-rj{background:var(--rj2);color:var(--rj)}
+.b-am{background:var(--am2);color:#7c5200}
+.b-az{background:#dbeafe;color:var(--az2)}
+.b-gy{background:var(--g1);color:var(--g3)}
+.empty{text-align:center;padding:40px;color:#a0b4c8;font-size:.82rem}
+
+/* FORMS */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.fg label{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--g3)}
+.fg input,.fg select,.fg textarea{padding:9px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-family:'DM Mono',monospace;font-size:.84rem;color:var(--az);background:var(--g1);outline:none;transition:border-color .2s;width:100%}
+.fg input:focus,.fg select:focus{border-color:var(--az2);background:var(--w)}
+.fg input[readonly]{background:#f8f9fb;color:var(--g3)}
+.form-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:600px){.form-2,.form-3{grid-template-columns:1fr}}
+
+/* BTN */
+.btn{padding:10px 20px;border-radius:var(--rs);border:none;font-family:'Montserrat',sans-serif;font-weight:700;font-size:.76rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-p{background:linear-gradient(135deg,var(--az2),var(--az3));color:#fff;box-shadow:0 4px 14px rgba(13,110,253,.3)}
+.btn-p:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(13,110,253,.4)}
+.btn-o{background:var(--w);color:var(--az);border:1.5px solid var(--g2)}
+.btn-o:hover{border-color:var(--az2);color:var(--az2)}
+.btn-vr{background:var(--w);color:#0a6630;border:1.5px solid #b2e8c8}
+.btn-vr:hover{background:var(--vr2)}
+.btn-rj{background:var(--w);color:var(--rj);border:1.5px solid #f5c0c0}
+.btn-rj:hover{background:var(--rj2)}
+.btn-sm{padding:6px 14px;font-size:.66rem}
+.btns-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:20px}
+.modal-ov.open{display:flex}
+.modal-box{background:var(--w);border-radius:var(--r);max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-hdr{background:linear-gradient(135deg,var(--az),#163a6e);padding:14px 22px;display:flex;align-items:center;justify-content:space-between}
+.modal-hdr h3{color:#fff;font-size:.8rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+.modal-hdr button{background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center}
+.modal-body{padding:22px}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--g2);display:flex;gap:10px;justify-content:flex-end;background:var(--g1)}
+
+/* ALERTA BANNER */
+.alert-strip{background:var(--rj2);border:1.5px solid var(--rj);border-radius:var(--rs);padding:12px 18px;margin-bottom:18px;display:flex;align-items:flex-start;gap:12px;font-size:.75rem;font-weight:600;color:var(--rj)}
+.alert-strip.warn{background:var(--am2);border-color:var(--am);color:#7c5200}
+.alert-strip ul{list-style:none;margin-top:4px;display:flex;flex-direction:column;gap:3px}
+.alert-strip li::before{content:'• '}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--az);color:#fff;padding:13px 20px;border-radius:var(--rs);font-size:.8rem;font-weight:600;box-shadow:0 8px 24px rgba(10,35,66,.25);transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);z-index:999;display:flex;align-items:center;gap:10px;max-width:380px}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* CONSUMO PREVIEW */
+.consumo-preview{background:var(--g1);border:1.5px solid var(--g2);border-radius:var(--rs);padding:14px;margin-top:14px}
+.consumo-preview h4{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--g3);margin-bottom:10px}
+.cp-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--g2);font-size:.75rem}
+.cp-row:last-child{border-bottom:none}
+.cp-nom{color:var(--az);font-weight:600}
+.cp-qty{font-family:'DM Mono',monospace;font-weight:700}
+.cp-qty.ok{color:var(--vr)}
+.cp-qty.warn{color:var(--am)}
+.cp-qty.danger{color:var(--rj)}
+
+@media print{header,.btns-row,.mat-acciones,.modal-ov,.load-ov,.toast{display:none!important}}
+</style>
+</head>
+<body>
+
+<div class="load-ov" id="loading">
+  <div class="spinner"></div>
+  <div class="load-txt" id="load-txt">Cargando almacén...</div>
+</div>
+
+<header>
+  <div class="hdr">
+    <div class="logo">
+      <div class="logo-ico">🏪</div>
+      <div>
+        <h1>OZ<span>À</span>S</h1>
+        <p>Almacén de Materiales</p>
+      </div>
+    </div>
+    <div class="sync-bar">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-txt">Conectando...</span>
+    </div>
+    <nav>
+      <button class="ntab on"  onclick="ir(0,this)">🏠 Dashboard</button>
+      <button class="ntab"     onclick="ir(1,this)">📦 Stock</button>
+      <button class="ntab"     onclick="ir(2,this)">🔄 Movimientos</button>
+      <button class="ntab"     onclick="ir(3,this)">⚗️ Fórmulas</button>
+      <button class="ntab"     onclick="ir(4,this)">⚙️ Configuración</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ══ DASHBOARD ══ -->
+<div class="mod on" id="m0">
+  <div class="stat-row" id="dash-stats"></div>
+  <div id="dash-alertas-rj"></div>
+  <div id="dash-alertas-am"></div>
+  <div class="card">
+    <div class="ch"><h2>📋 Últimos Movimientos</h2><button class="btn btn-o btn-sm" onclick="cargar()">🔄 Actualizar</button></div>
+    <div class="cb"><div class="htbl-wrap"><div id="dash-movs"><p class="empty">Cargando...</p></div></div></div>
+  </div>
+</div>
+
+<!-- ══ STOCK ══ -->
+<div class="mod" id="m1">
+  <div class="card">
+    <div class="ch">
+      <h2>📦 Stock de Materiales</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-o btn-sm" onclick="cargar()">🔄 Actualizar</button>
+        <button class="btn btn-vr btn-sm" onclick="abrirEntrada()">➕ Ingreso</button>
+        <button class="btn btn-rj btn-sm" onclick="abrirSalida()">➖ Salida</button>
+        <button class="btn btn-o btn-sm" onclick="exportCSV()">📊 CSV</button>
+      </div>
+    </div>
+    <div class="cb"><div class="mat-grid" id="mat-grid"><p class="empty">Cargando...</p></div></div>
+  </div>
+</div>
+
+<!-- ══ MOVIMIENTOS ══ -->
+<div class="mod" id="m2">
+  <div class="card">
+    <div class="ch">
+      <h2>🔄 Historial de Movimientos</h2>
+      <button class="btn btn-o btn-sm" onclick="exportCSVMovs()">📊 CSV</button>
+    </div>
+    <div class="cb">
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <select id="filtro-mat" onchange="renderMovs()" style="padding:7px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-family:'Montserrat',sans-serif;font-size:.72rem;background:var(--g1);color:var(--az);outline:none">
+          <option value="">— Todos los materiales —</option>
+        </select>
+        <select id="filtro-tipo" onchange="renderMovs()" style="padding:7px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-family:'Montserrat',sans-serif;font-size:.72rem;background:var(--g1);color:var(--az);outline:none">
+          <option value="">— Todos los tipos —</option>
+          <option value="Ingreso">Ingreso</option>
+          <option value="Producción">Producción (automático)</option>
+          <option value="Salida">Salida manual</option>
+          <option value="Ajuste">Ajuste</option>
+        </select>
+      </div>
+      <div class="htbl-wrap"><div id="hist-movs"><p class="empty">Cargando...</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FÓRMULAS ══ -->
+<div class="mod" id="m3">
+  <div class="card">
+    <div class="ch"><h2>⚗️ Fórmulas de Producción</h2><small style="color:rgba(255,255,255,.5);font-size:.65rem">Materiales consumidos por unidad producida</small></div>
+    <div class="cb">
+      <p style="font-size:.75rem;color:var(--g3);margin-bottom:16px">Estas fórmulas se aplican <strong>automáticamente</strong> al registrar producción en el Sistema de Gestión. Puede editar las cantidades según sus necesidades.</p>
+      <div id="formulas-lista"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONFIGURACIÓN ══ -->
+<div class="mod" id="m4">
+  <div class="card">
+    <div class="ch"><h2>⚙️ Gestión de Materiales</h2></div>
+    <div class="cb">
+      <p style="font-size:.75rem;color:var(--g3);margin-bottom:16px">Agregue, edite o configure los materiales del almacén. El stock mínimo predeterminado es <strong>50 unidades</strong>.</p>
+      <div class="btns-row" style="margin-bottom:20px">
+        <button class="btn btn-p" onclick="abrirNuevoMat()">➕ Agregar Material</button>
+      </div>
+      <div class="htbl-wrap">
+        <div id="cfg-lista"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- MODAL INGRESO -->
+<div class="modal-ov" id="modal-entrada">
+  <div class="modal-box">
+    <div class="modal-hdr"><h3>➕ Ingreso de Material</h3><button onclick="cerrar('modal-entrada')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label>Material</label><select id="ent-mat" onchange="actualizarUnidad('ent')"></select></div>
+      <div class="form-2">
+        <div class="fg"><label>Cantidad</label><input type="number" id="ent-cant" min="1" placeholder="0"></div>
+        <div class="fg"><label>Unidad</label><input type="text" id="ent-unid" readonly></div>
+      </div>
+      <div class="fg"><label>Proveedor (opcional)</label><input type="text" id="ent-prov" placeholder="Nombre del proveedor"></div>
+      <div class="fg"><label>N° Documento / Referencia</label><input type="text" id="ent-ref" placeholder="Ej: OC-001, Factura 123..."></div>
+      <div class="fg"><label>Observaciones</label><input type="text" id="ent-obs" placeholder="Notas adicionales..."></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-p" id="btn-ent" onclick="registrarEntrada()">✅ Registrar Ingreso</button>
+      <button class="btn btn-o" onclick="cerrar('modal-entrada')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SALIDA -->
+<div class="modal-ov" id="modal-salida">
+  <div class="modal-box">
+    <div class="modal-hdr"><h3>➖ Salida de Material</h3><button onclick="cerrar('modal-salida')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label>Material</label><select id="sal-mat" onchange="actualizarUnidad('sal')"></select></div>
+      <div class="form-2">
+        <div class="fg"><label>Cantidad</label><input type="number" id="sal-cant" min="1" placeholder="0"></div>
+        <div class="fg"><label>Unidad</label><input type="text" id="sal-unid" readonly></div>
+      </div>
+      <div class="fg"><label>Motivo</label>
+        <select id="sal-motivo">
+          <option value="Merma">Merma / Daño</option>
+          <option value="Devolución">Devolución</option>
+          <option value="Ajuste">Ajuste de inventario</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="fg"><label>Observaciones</label><input type="text" id="sal-obs" placeholder="Notas adicionales..."></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-rj" id="btn-sal" onclick="registrarSalida()">➖ Registrar Salida</button>
+      <button class="btn btn-o" onclick="cerrar('modal-salida')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO MATERIAL -->
+<div class="modal-ov" id="modal-mat">
+  <div class="modal-box">
+    <div class="modal-hdr"><h3 id="modal-mat-titulo">➕ Nuevo Material</h3><button onclick="cerrar('modal-mat')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label>Nombre del material</label><input type="text" id="mat-nom" placeholder="Ej: Tapas para bidón 20L"></div>
+      <div class="fg"><label>Categoría</label>
+        <select id="mat-cat">
+          <option value="Envases">Envases</option>
+          <option value="Tapas">Tapas y Cierres</option>
+          <option value="Empaques">Empaques y Bolsas</option>
+          <option value="Etiquetas">Etiquetas</option>
+          <option value="Accesorios">Accesorios</option>
+          <option value="Otros">Otros</option>
+        </select>
+      </div>
+      <div class="form-2">
+        <div class="fg"><label>Unidad de medida</label>
+          <select id="mat-unid">
+            <option value="unidades">unidades</option>
+            <option value="piezas">piezas</option>
+            <option value="rollos">rollos</option>
+            <option value="metros">metros</option>
+            <option value="kg">kg</option>
+            <option value="cajas">cajas</option>
+          </select>
+        </div>
+        <div class="fg"><label>Stock mínimo alerta</label><input type="number" id="mat-min" value="50" min="0" placeholder="50"></div>
+      </div>
+      <div class="fg"><label>Stock inicial</label><input type="number" id="mat-stock" value="0" min="0" placeholder="0"></div>
+      <input type="hidden" id="mat-id">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-p" id="btn-mat" onclick="guardarMaterial()">✅ Guardar</button>
+      <button class="btn btn-o" onclick="cerrar('modal-mat')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FORMULA EDITAR -->
+<div class="modal-ov" id="modal-formula">
+  <div class="modal-box">
+    <div class="modal-hdr"><h3 id="form-titulo">Editar Fórmula</h3><button onclick="cerrar('modal-formula')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:.75rem;color:var(--g3);margin-bottom:14px">Cantidad de material consumido al producir <strong>1 unidad</strong> de este producto.</p>
+      <div id="form-items"></div>
+      <button class="btn btn-o btn-sm" onclick="addFormulaItem()" style="margin-top:10px">➕ Agregar material</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-p" onclick="guardarFormula()">✅ Guardar Fórmula</button>
+      <button class="btn btn-o" onclick="cerrar('modal-formula')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="t-i"></span><span id="t-m"></span></div>
+
+<script>
+// ══ CONFIG ══
+const API = 'https://script.google.com/macros/s/AKfycbwPa0dN4D2MfZMok-L1erxBOxz5An-f8bPheBnt01kz-A4qVEV0pybC1Dnu1cIXm39FrQ/exec';
+const STOCK_MIN_DEFAULT = 50;
+
+// Categorías de colores
+const CAT_ICO = {
+  'Envases':'🫙','Tapas y Cierres':'🔩','Empaques y Bolsas':'🛍️',
+  'Etiquetas':'🏷️','Accesorios':'🔧','Otros':'📦'
+};
+
+// Materiales iniciales predefinidos
+const MATS_INICIALES = [
+  // ── ENVASES ──
+  {id:'b20v',   nom:'Envase PET Bidón 20L vacío',                  cat:'Envases',          unid:'unidades', min:50},
+  {id:'b87v',   nom:'Envase PET Botellón de 8.7L vacío',                 cat:'Envases',          unid:'unidades', min:50},
+  {id:'bt625',  nom:'Botella PET 625ml vacía',                      cat:'Envases',          unid:'unidades', min:50},
+  {id:'bt1l',   nom:'Botella PET 1L vacía',                         cat:'Envases',          unid:'unidades', min:50},
+  {id:'btril',  nom:'Bolsa laminada aluminio con válvula (Bag in Box)', cat:'Envases',      unid:'unidades', min:50},
+  // ── TAPAS Y CIERRES ──
+  {id:'tp20',   nom:'Tapa propia bidón 20L',                        cat:'Tapas y Cierres',  unid:'unidades', min:50},
+  {id:'tp87',   nom:'Tapa propia botellón 8.7L',                       cat:'Tapas y Cierres',  unid:'unidades', min:50},
+  {id:'tp625',  nom:'Tapa botella 625ml',                           cat:'Tapas y Cierres',  unid:'unidades', min:50},
+  {id:'tpros',  nom:'Tapa rosca 1L',                                cat:'Tapas y Cierres',  unid:'unidades', min:50},
+  {id:'tpspt',  nom:'Tapa sport 1L',                                cat:'Tapas y Cierres',  unid:'unidades', min:50},
+  // ── ACCESORIOS ──
+  {id:'canio',  nom:'Caño / Canilla para bidón 20L',                cat:'Accesorios',       unid:'unidades', min:50},
+  // ── MANGAS / PRECINTOS DE SEGURIDAD ──
+  {id:'mang20', nom:'Manga / Precinto seguridad — tapa bidón 20L',  cat:'Empaques y Bolsas',unid:'unidades', min:50},
+  {id:'mang87', nom:'Manga / Precinto seguridad — tapa botellón 8.7L', cat:'Empaques y Bolsas',unid:'unidades', min:50},
+  {id:'mangcan',nom:'Manga / Precinto seguridad — caño bidón 20L',  cat:'Empaques y Bolsas',unid:'unidades', min:50},
+  // ── EMPAQUES PACK Y CAJA ──
+  {id:'bterm15',nom:'Bolsa termocontraíble pack x15 (625ml)',       cat:'Empaques y Bolsas',unid:'unidades', min:50},
+  {id:'bterm12',nom:'Bolsa termocontraíble pack x12 (1L)',          cat:'Empaques y Bolsas',unid:'unidades', min:50},
+  {id:'btermbb',nom:'Bolsa termocontraíble exterior caja Bag in Box',cat:'Empaques y Bolsas',unid:'unidades',min:50},
+  {id:'caja',   nom:'Caja de cartón Bag in Box 20L',                cat:'Empaques y Bolsas',unid:'unidades', min:50},
+  // ── ETIQUETAS ──
+  {id:'etiq',   nom:'Etiquetas autoadhesivas (todos los productos)', cat:'Etiquetas',        unid:'unidades', min:100},
+];
+
+// Fórmulas de consumo por producto — cantidad por unidad producida
+const FORMULAS_DEFAULT = {
+  // Botellas: envase + tapa + etiqueta
+  'Botella 625 ml':         [{id:'bt625', q:1},{id:'tp625', q:1},{id:'etiq',   q:1}],
+  'Botella 1 L tapa rosca': [{id:'bt1l',  q:1},{id:'tpros', q:1},{id:'etiq',   q:1}],
+  'Botella 1 L tapa sport': [{id:'bt1l',  q:1},{id:'tpspt', q:1},{id:'etiq',   q:1}],
+  // Bidón 8.7L: envase + tapa propia + manga seguridad tapa + etiqueta
+  'Bidón 8.7 L':            [{id:'b87v',  q:1},{id:'tp87',  q:1},{id:'mang87', q:1},{id:'etiq',   q:1}],
+  // Bidón 20L CON CAÑO: envase + tapa propia + manga tapa + caño + manga caño + etiqueta
+  'Bidón 20 L con caño':    [{id:'b20v',  q:1},{id:'tp20',  q:1},{id:'mang20', q:1},{id:'canio',  q:1},{id:'mangcan',q:1},{id:'etiq',q:1}],
+  // Bidón 20L SIN CAÑO: envase + tapa propia + manga tapa + etiqueta (sin caño ni manga caño)
+  'Bidón 20 L sin caño':    [{id:'b20v',  q:1},{id:'tp20',  q:1},{id:'mang20', q:1},{id:'etiq',   q:1}],
+  // Bag in Box: bolsa laminada aluminio (ES el envase) + caja cartón + bolsa termocontraíble exterior + etiqueta
+  'Caja Bag in Box 20 L':   [{id:'btril', q:1},{id:'caja',  q:1},{id:'btermbb',q:1},{id:'etiq',   q:1}],
+};
+
+// Estado local
+let materiales = {}; // {id: {nom, cat, unid, min, stock}}
+let movimientos = [];
+let formulas = {};   // {prodNom: [{id, q}]}
+let formulaEditando = null;
+let formulaItems = [];
+
+// ══ HELPERS FECHA ══
+function hoy(){ const n=new Date(),z=x=>String(x).padStart(2,'0'); return `${n.getFullYear()}-${z(n.getMonth()+1)}-${z(n.getDate())}`; }
+function ahora(){ const n=new Date(),z=x=>String(x).padStart(2,'0'); return `${n.getFullYear()}-${z(n.getMonth()+1)}-${z(n.getDate())} ${z(n.getHours())}:${z(n.getMinutes())}`; }
+function fmt(f){ if(!f)return'—'; const s=String(f).slice(0,10).split('-'); return s.length===3?`${s[2]}/${s[1]}/${s[0]}`:f; }
+
+// ══ SYNC UI ══
+function setSyncUI(e,t){ document.getElementById('sync-dot').className='sync-dot '+e; document.getElementById('sync-txt').textContent=t; }
+function showLoad(t='Cargando...'){ document.getElementById('load-txt').textContent=t; document.getElementById('loading').classList.add('show'); }
+function hideLoad(){ document.getElementById('loading').classList.remove('show'); }
+
+// ══ API ══
+async function api(data){
+  setSyncUI('carg','Sincronizando...');
+  try{
+    const res=await fetch(API,{method:'POST',body:JSON.stringify(data),headers:{'Content-Type':'text/plain'}});
+    const json=await res.json();
+    if(json.ok){ setSyncUI('ok','Sincronizado ✓'); return json; }
+    setSyncUI('err','Error'); throw new Error(json.error||'Error');
+  }catch(e){ setSyncUI('err','Sin conexión'); throw e; }
+}
+
+// ══ CARGAR DATOS DESDE SHEETS ══
+async function cargar(){
+  showLoad('Cargando almacén desde Google Sheets...');
+  try{
+    const r = await api({action:'obtenerAlmacen'});
+    // Materiales config
+    if(r.materiales&&r.materiales.length){
+      materiales={};
+      r.materiales.forEach(m=>{ materiales[m.id]={nom:m.nom,cat:m.cat,unid:m.unid,min:parseInt(m.min)||STOCK_MIN_DEFAULT,stock:parseInt(m.stock)||0}; });
+    } else {
+      // Primera vez: usar predefinidos
+      materiales={};
+      MATS_INICIALES.forEach(m=>{ materiales[m.id]={...m,stock:0}; });
+    }
+    // Fórmulas
+    if(r.formulas&&r.formulas.length){
+      formulas={};
+      r.formulas.forEach(f=>{ formulas[f.prod]=(f.items||[]); });
+    } else {
+      formulas={...FORMULAS_DEFAULT};
+    }
+    // Movimientos
+    movimientos=(r.movimientos||[]).map(m=>({...m,cant:parseInt(m.cant)||0}));
+    // Recalcular stock desde movimientos
+    recalcStock();
+    renderTodo();
+  }catch(e){ toast('❌','Error al cargar: '+e.message); }
+  finally{ hideLoad(); }
+}
+
+function recalcStock(){
+  // Reset
+  Object.keys(materiales).forEach(id=>{ materiales[id].stock=0; });
+  // Aplicar movimientos en orden
+  const movOrden=[...movimientos].reverse();
+  movOrden.forEach(m=>{
+    if(!materiales[m.matId]) return;
+    if(m.tipo==='Ingreso') materiales[m.matId].stock+=m.cant;
+    else materiales[m.matId].stock=Math.max(0,materiales[m.matId].stock-m.cant);
+  });
+}
+
+// ══ NAV ══
+function ir(idx,btn){
+  document.querySelectorAll('.mod').forEach((m,i)=>m.classList.toggle('on',i===idx));
+  document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function renderTodo(){
+  renderDash();
+  renderStock();
+  renderMovs();
+  renderFormulas();
+  renderCfg();
+  poblarSelects();
+}
+
+// ══ DASHBOARD ══
+function renderDash(){
+  const mats=Object.values(materiales);
+  const criticos=mats.filter(m=>m.stock<=0).length;
+  const bajos=mats.filter(m=>m.stock>0&&m.stock<=m.min).length;
+  const ok=mats.filter(m=>m.stock>m.min).length;
+  const total=mats.length;
+
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat"><div class="stat-ico">📦</div><div class="stat-val">${total}</div><div class="stat-lbl">Materiales</div></div>
+    <div class="stat"><div class="stat-ico">✅</div><div class="stat-val" style="color:var(--vr)">${ok}</div><div class="stat-lbl">Stock OK</div></div>
+    <div class="stat"><div class="stat-ico">🟡</div><div class="stat-val" style="color:var(--am)">${bajos}</div><div class="stat-lbl">Stock bajo</div></div>
+    <div class="stat"><div class="stat-ico">🔴</div><div class="stat-val" style="color:var(--rj)">${criticos}</div><div class="stat-lbl">Sin stock</div></div>
+    <div class="stat"><div class="stat-ico">🔄</div><div class="stat-val">${movimientos.length}</div><div class="stat-lbl">Movimientos</div></div>
+  `;
+
+  // Alertas críticas
+  const sinStock=Object.entries(materiales).filter(([,m])=>m.stock<=0);
+  const bajStock=Object.entries(materiales).filter(([,m])=>m.stock>0&&m.stock<=m.min);
+
+  let rjHtml='', amHtml='';
+  if(sinStock.length){
+    rjHtml=`<div class="alert-strip"><div>🚨 <strong>SIN STOCK — Se necesita reabastecimiento urgente:</strong><ul>${sinStock.map(([,m])=>`<li>${m.nom} — Stock: 0 ${m.unid}</li>`).join('')}</ul></div></div>`;
+  }
+  if(bajStock.length){
+    amHtml=`<div class="alert-strip warn"><div>⚠️ <strong>STOCK BAJO — Considere reabastecer pronto:</strong><ul>${bajStock.map(([,m])=>`<li>${m.nom} — Stock: ${m.stock} ${m.unid} (mín: ${m.min})</li>`).join('')}</ul></div></div>`;
+  }
+  document.getElementById('dash-alertas-rj').innerHTML=rjHtml;
+  document.getElementById('dash-alertas-am').innerHTML=amHtml;
+
+  // Últimos movimientos
+  const recientes=movimientos.slice(0,10);
+  if(!recientes.length){ document.getElementById('dash-movs').innerHTML='<p class="empty">Sin movimientos registrados</p>'; return; }
+  let h=`<table class="htbl"><thead><tr><th>Fecha</th><th>Tipo</th><th>Material</th><th>Cant.</th><th>Referencia</th></tr></thead><tbody>`;
+  recientes.forEach(m=>{
+    const mat=materiales[m.matId];
+    const bc=m.tipo==='Ingreso'?'b-vr':m.tipo==='Producción'?'b-az':m.tipo==='Salida'?'b-rj':'b-am';
+    h+=`<tr><td>${m.fecha||'—'}</td><td><span class="badge ${bc}">${m.tipo}</span></td><td style="font-family:'Montserrat',sans-serif;white-space:normal;font-size:.7rem">${mat?mat.nom:m.matId}</td><td>${m.tipo==='Ingreso'?'+':'−'}${m.cant}</td><td style="font-family:'Montserrat',sans-serif;font-size:.68rem;white-space:normal">${m.ref||m.obs||'—'}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  document.getElementById('dash-movs').innerHTML=h;
+}
+
+// ══ STOCK CARDS ══
+function renderStock(){
+  const cats={};
+  Object.entries(materiales).forEach(([id,m])=>{
+    if(!cats[m.cat]) cats[m.cat]=[];
+    cats[m.cat].push({id,...m});
+  });
+  let html='';
+  Object.entries(cats).forEach(([cat,mats])=>{
+    html+=`<div style="grid-column:1/-1;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--g3);padding:6px 0 2px;border-bottom:1px solid var(--g2);margin-bottom:4px">${CAT_ICO[cat]||'📦'} ${cat}</div>`;
+    mats.forEach(m=>{
+      const pct=m.min>0?m.stock/m.min:1;
+      let cls='', mincls='ok', mintxt='';
+      if(m.stock<=0){ cls='alerta-rj'; mincls='danger'; mintxt=`🚨 Sin stock`; }
+      else if(m.stock<=m.min){ cls='alerta-am'; mincls='warn'; mintxt=`⚠️ Bajo (mín: ${m.min})`; }
+      else{ cls='ok'; mincls='ok'; mintxt=`✅ OK (mín: ${m.min})`; }
+      html+=`<div class="mat-card ${cls}">
+        <div class="mat-cat">${CAT_ICO[m.cat]||'📦'} ${m.cat}</div>
+        <div class="mat-nom">${m.nom}</div>
+        <div class="mat-stock">${m.stock}</div>
+        <div class="mat-unid">${m.unid} en stock</div>
+        <div class="mat-min ${mincls}">${mintxt}</div>
+        <div class="mat-acciones">
+          <button class="mat-btn entrada" onclick="abrirEntradaMat('${m.id}')">➕ Ingreso</button>
+          <button class="mat-btn salida"  onclick="abrirSalidaMat('${m.id}')">➖ Salida</button>
+          <button class="mat-btn cfg"     onclick="editarMat('${m.id}')">✏️</button>
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('mat-grid').innerHTML=html||'<p class="empty">No hay materiales configurados</p>';
+}
+
+// ══ MOVIMIENTOS ══
+function renderMovs(){
+  const filtMat=document.getElementById('filtro-mat')?.value||'';
+  const filtTipo=document.getElementById('filtro-tipo')?.value||'';
+  let movs=movimientos;
+  if(filtMat) movs=movs.filter(m=>m.matId===filtMat);
+  if(filtTipo) movs=movs.filter(m=>m.tipo===filtTipo);
+
+  if(!movs.length){ document.getElementById('hist-movs').innerHTML='<p class="empty">Sin movimientos</p>'; return; }
+  let h=`<table class="htbl"><thead><tr><th>Fecha/Hora</th><th>Tipo</th><th>Material</th><th>Cantidad</th><th>Ref./Motivo</th><th>Obs.</th></tr></thead><tbody>`;
+  movs.forEach(m=>{
+    const mat=materiales[m.matId];
+    const bc=m.tipo==='Ingreso'?'b-vr':m.tipo==='Producción'?'b-az':m.tipo==='Salida'?'b-rj':'b-am';
+    const signo=m.tipo==='Ingreso'?'+':'−';
+    h+=`<tr>
+      <td>${m.fecha||'—'}</td>
+      <td><span class="badge ${bc}">${m.tipo}</span></td>
+      <td style="font-family:'Montserrat',sans-serif;white-space:normal;font-size:.7rem;max-width:200px">${mat?mat.nom:m.matId}</td>
+      <td style="font-weight:700;color:${m.tipo==='Ingreso'?'var(--vr)':'var(--rj)'}">${signo}${m.cant}</td>
+      <td style="font-family:'Montserrat',sans-serif;font-size:.68rem;white-space:normal">${m.ref||'—'}</td>
+      <td style="font-family:'Montserrat',sans-serif;font-size:.68rem;white-space:normal">${m.obs||'—'}</td>
+    </tr>`;
+  });
+  h+='</tbody></table>';
+  document.getElementById('hist-movs').innerHTML=h;
+}
+
+// ══ FÓRMULAS ══
+function renderFormulas(){
+  const prods=['Botella 625 ml','Botella 1 L tapa rosca','Botella 1 L tapa sport','Bidón 8.7 L','Caja Bag in Box 20 L','Bidón 20 L con caño','Bidón 20 L sin caño'];
+  let html='';
+  prods.forEach(p=>{
+    const f=formulas[p]||[];
+    const items=f.map(fi=>{
+      const mat=materiales[fi.id];
+      return mat?`<div class="fi"><span class="qty">${fi.q}×</span><span class="nom">${mat.nom}</span></div>`:'';
+    }).join('');
+    html+=`<div class="formula-card">
+      <div class="formula-prod">💧 ${p} <span>por unidad</span>
+        <button onclick="editarFormula('${p}')" style="margin-left:auto;background:rgba(13,110,253,.1);border:none;border-radius:6px;padding:3px 10px;font-size:.62rem;font-weight:700;color:var(--az2);cursor:pointer;letter-spacing:.5px">✏️ Editar</button>
+      </div>
+      <div class="formula-items">${items||'<span style="font-size:.7rem;color:var(--g3)">Sin materiales configurados</span>'}</div>
+    </div>`;
+  });
+  document.getElementById('formulas-lista').innerHTML=html;
+}
+
+// ══ CONFIGURACIÓN ══
+function renderCfg(){
+  const mats=Object.entries(materiales);
+  if(!mats.length){ document.getElementById('cfg-lista').innerHTML='<p class="empty">No hay materiales</p>'; return; }
+  let h=`<table class="htbl"><thead><tr><th>Material</th><th>Categoría</th><th>Unidad</th><th>Stock mín.</th><th>Stock actual</th><th></th></tr></thead><tbody>`;
+  mats.forEach(([id,m])=>{
+    h+=`<tr>
+      <td style="font-family:'Montserrat',sans-serif;font-weight:600;font-size:.72rem;white-space:normal">${m.nom}</td>
+      <td><span class="badge b-gy">${m.cat}</span></td>
+      <td>${m.unid}</td>
+      <td>${m.min}</td>
+      <td style="font-weight:700;color:${m.stock<=0?'var(--rj)':m.stock<=m.min?'var(--am)':'var(--vr)'}">${m.stock}</td>
+      <td><button class="btn btn-o btn-sm" onclick="editarMat('${id}')">✏️ Editar</button></td>
+    </tr>`;
+  });
+  h+='</tbody></table>';
+  document.getElementById('cfg-lista').innerHTML=h;
+}
+
+// ══ POBLAR SELECTS ══
+function poblarSelects(){
+  const mats=Object.entries(materiales);
+  ['ent-mat','sal-mat'].forEach(id=>{
+    const sel=document.getElementById(id); if(!sel)return;
+    const v=sel.value;
+    sel.innerHTML=mats.map(([id,m])=>`<option value="${id}">${m.nom} (Stock: ${m.stock} ${m.unid})</option>`).join('');
+    if(v) sel.value=v;
+    actualizarUnidad(id==='ent-mat'?'ent':'sal');
+  });
+  // Filtro materiales
+  const fm=document.getElementById('filtro-mat');
+  if(fm){
+    const v=fm.value;
+    fm.innerHTML='<option value="">— Todos los materiales —</option>'+mats.map(([id,m])=>`<option value="${id}">${m.nom}</option>`).join('');
+    if(v) fm.value=v;
+  }
+}
+
+function actualizarUnidad(pref){
+  const sel=document.getElementById(pref+'-mat');
+  const unidEl=document.getElementById(pref+'-unid');
+  if(!sel||!unidEl)return;
+  const m=materiales[sel.value];
+  if(m) unidEl.value=m.unid;
+}
+
+// ══ REGISTRAR ENTRADA ══
+function abrirEntrada(){ poblarSelects(); document.getElementById('modal-entrada').classList.add('open'); }
+function abrirEntradaMat(id){
+  poblarSelects();
+  document.getElementById('ent-mat').value=id;
+  actualizarUnidad('ent');
+  document.getElementById('modal-entrada').classList.add('open');
+}
+
+async function registrarEntrada(){
+  const matId=document.getElementById('ent-mat').value;
+  const cant=parseInt(document.getElementById('ent-cant').value)||0;
+  const prov=document.getElementById('ent-prov').value.trim();
+  const ref=document.getElementById('ent-ref').value.trim();
+  const obs=document.getElementById('ent-obs').value.trim();
+  if(!cant||cant<=0){ toast('⚠️','Ingrese una cantidad válida'); return; }
+
+  const btn=document.getElementById('btn-ent'); btn.disabled=true;
+  showLoad('Guardando ingreso...');
+  try{
+    const mov={matId,tipo:'Ingreso',cant,ref,obs:prov?(prov+' '+obs).trim():obs,fecha:ahora()};
+    await api({action:'guardarMovAlmacen',movimiento:mov});
+    movimientos.unshift(mov);
+    materiales[matId].stock+=cant;
+    toast('✅',`Ingreso registrado: +${cant} ${materiales[matId].unid}`);
+    cerrar('modal-entrada');
+    limpiarEntrada();
+    renderTodo();
+    await guardarStockAlmacen();
+  }catch(e){ toast('❌','Error: '+e.message); }
+  finally{ btn.disabled=false; hideLoad(); }
+}
+
+function limpiarEntrada(){
+  ['ent-cant','ent-prov','ent-ref','ent-obs'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
+}
+
+// ══ REGISTRAR SALIDA ══
+function abrirSalida(){ poblarSelects(); document.getElementById('modal-salida').classList.add('open'); }
+function abrirSalidaMat(id){
+  poblarSelects();
+  document.getElementById('sal-mat').value=id;
+  actualizarUnidad('sal');
+  document.getElementById('modal-salida').classList.add('open');
+}
+
+async function registrarSalida(){
+  const matId=document.getElementById('sal-mat').value;
+  const cant=parseInt(document.getElementById('sal-cant').value)||0;
+  const motivo=document.getElementById('sal-motivo').value;
+  const obs=document.getElementById('sal-obs').value.trim();
+  if(!cant||cant<=0){ toast('⚠️','Ingrese una cantidad válida'); return; }
+  if(materiales[matId].stock<cant){ toast('❌',`Stock insuficiente (disponible: ${materiales[matId].stock} ${materiales[matId].unid})`); return; }
+
+  const btn=document.getElementById('btn-sal'); btn.disabled=true;
+  showLoad('Guardando salida...');
+  try{
+    const mov={matId,tipo:'Salida',cant,ref:motivo,obs,fecha:ahora()};
+    await api({action:'guardarMovAlmacen',movimiento:mov});
+    movimientos.unshift(mov);
+    materiales[matId].stock=Math.max(0,materiales[matId].stock-cant);
+    toast('✅',`Salida registrada: −${cant} ${materiales[matId].unid}`);
+    cerrar('modal-salida');
+    limpiarSalida();
+    renderTodo();
+    await guardarStockAlmacen();
+  }catch(e){ toast('❌','Error: '+e.message); }
+  finally{ btn.disabled=false; hideLoad(); }
+}
+
+function limpiarSalida(){
+  ['sal-cant','sal-obs'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
+}
+
+// ══ GUARDAR MATERIAL ══
+function abrirNuevoMat(){
+  document.getElementById('modal-mat-titulo').textContent='➕ Nuevo Material';
+  document.getElementById('mat-nom').value='';
+  document.getElementById('mat-cat').value='Envases';
+  document.getElementById('mat-unid').value='unidades';
+  document.getElementById('mat-min').value=STOCK_MIN_DEFAULT;
+  document.getElementById('mat-stock').value=0;
+  document.getElementById('mat-id').value='';
+  document.getElementById('modal-mat').classList.add('open');
+}
+
+function editarMat(id){
+  const m=materiales[id]; if(!m)return;
+  document.getElementById('modal-mat-titulo').textContent='✏️ Editar Material';
+  document.getElementById('mat-nom').value=m.nom;
+  document.getElementById('mat-cat').value=m.cat;
+  document.getElementById('mat-unid').value=m.unid;
+  document.getElementById('mat-min').value=m.min;
+  document.getElementById('mat-stock').value=m.stock;
+  document.getElementById('mat-id').value=id;
+  document.getElementById('modal-mat').classList.add('open');
+}
+
+async function guardarMaterial(){
+  const nom=document.getElementById('mat-nom').value.trim();
+  const cat=document.getElementById('mat-cat').value;
+  const unid=document.getElementById('mat-unid').value;
+  const min=parseInt(document.getElementById('mat-min').value)||STOCK_MIN_DEFAULT;
+  const stock=parseInt(document.getElementById('mat-stock').value)||0;
+  let id=document.getElementById('mat-id').value;
+  if(!nom){ toast('⚠️','Ingrese el nombre del material'); return; }
+  if(!id) id='mat_'+Date.now();
+
+  materiales[id]={nom,cat,unid,min,stock};
+  showLoad('Guardando configuración...');
+  try{
+    await guardarStockAlmacen();
+    toast('✅','Material guardado correctamente');
+    cerrar('modal-mat');
+    renderTodo();
+  }catch(e){ toast('❌','Error: '+e.message); }
+  finally{ hideLoad(); }
+}
+
+// ══ FÓRMULAS EDITOR ══
+function editarFormula(prod){
+  formulaEditando=prod;
+  formulaItems=[...(formulas[prod]||[]).map(fi=>({...fi}))];
+  document.getElementById('form-titulo').textContent=`⚗️ Fórmula: ${prod}`;
+  renderFormulaItems();
+  document.getElementById('modal-formula').classList.add('open');
+}
+
+function addFormulaItem(){
+  const ids=Object.keys(materiales);
+  if(!ids.length) return;
+  formulaItems.push({id:ids[0],q:1});
+  renderFormulaItems();
+}
+
+function renderFormulaItems(){
+  const ids=Object.entries(materiales);
+  document.getElementById('form-items').innerHTML=formulaItems.map((fi,i)=>`
+    <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px">
+      <select onchange="formulaItems[${i}].id=this.value" style="padding:7px 10px;border:1.5px solid var(--g2);border-radius:6px;font-family:'Montserrat',sans-serif;font-size:.72rem;background:var(--g1);color:var(--az);outline:none">
+        ${ids.map(([id,m])=>`<option value="${id}"${fi.id===id?' selected':''}>${m.nom}</option>`).join('')}
+      </select>
+      <input type="number" min="0.01" step="0.01" value="${fi.q}" placeholder="1"
+             onchange="formulaItems[${i}].q=parseFloat(this.value)||1"
+             style="padding:7px 10px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.82rem;background:var(--g1);outline:none">
+      <button onclick="formulaItems.splice(${i},1);renderFormulaItems()" class="btn btn-rj btn-sm">✕</button>
+    </div>`).join('');
+}
+
+async function guardarFormula(){
+  formulas[formulaEditando]=[...formulaItems];
+  showLoad('Guardando fórmula...');
+  try{
+    await guardarStockAlmacen();
+    toast('✅','Fórmula guardada');
+    cerrar('modal-formula');
+    renderFormulas();
+  }catch(e){ toast('❌','Error: '+e.message); }
+  finally{ hideLoad(); }
+}
+
+// ══ GUARDAR TODO EL ESTADO EN SHEETS ══
+async function guardarStockAlmacen(){
+  const payload={
+    materiales: Object.entries(materiales).map(([id,m])=>({id,...m})),
+    formulas: Object.entries(formulas).map(([prod,items])=>({prod,items}))
+  };
+  await api({action:'guardarConfigAlmacen', payload});
+}
+
+// ══ CONSUMO AUTOMÁTICO DESDE PRODUCCIÓN ══
+// Esta función se llama cuando el Sistema de Gestión registra una producción.
+// Si están en el mismo Google Sheets, el Apps Script puede invocarla.
+// También se puede llamar desde el sistema de gestión con un fetch a este mismo endpoint.
+async function descontarPorProduccion(produccion){
+  // produccion = {cantidades: {'Botella 625 ml': 10, 'Bidón 20L con caño': 5, ...}}
+  const movs=[];
+  const errores=[];
+  Object.entries(produccion.cantidades).forEach(([prod,cant])=>{
+    if(!cant||cant<=0) return;
+    const formula=formulas[prod]||[];
+    formula.forEach(fi=>{
+      const mat=materiales[fi.id]; if(!mat) return;
+      const consumo=Math.round(fi.q*cant*100)/100;
+      if(mat.stock<consumo){
+        errores.push(`${mat.nom}: necesita ${consumo}, tiene ${mat.stock}`);
+      }
+      movs.push({matId:fi.id,tipo:'Producción',cant:consumo,ref:`Prod. ${produccion.fecha}`,obs:`${prod} ×${cant}`,fecha:ahora()});
+    });
+  });
+
+  if(errores.length){
+    toast('⚠️',`Stock insuficiente en: ${errores.slice(0,2).join('; ')}`);
+  }
+
+  // Aplicar de todas formas (alerta pero no bloquea)
+  for(const mov of movs){
+    try{
+      await api({action:'guardarMovAlmacen',movimiento:mov});
+      movimientos.unshift(mov);
+      materiales[mov.matId].stock=Math.max(0,materiales[mov.matId].stock-mov.cant);
+    }catch(e){ console.error('Error movimiento:',e); }
+  }
+  await guardarStockAlmacen();
+  renderTodo();
+}
+
+// ══ EXPORT CSV ══
+function exportCSV(){
+  let csv='ID,Material,Categoría,Unidad,Stock Actual,Stock Mínimo,Estado\n';
+  Object.entries(materiales).forEach(([id,m])=>{
+    const est=m.stock<=0?'SIN STOCK':m.stock<=m.min?'BAJO':'OK';
+    csv+=`"${id}","${m.nom}","${m.cat}","${m.unid}","${m.stock}","${m.min}","${est}"\n`;
+  });
+  descargar(csv,'OZAS_Almacen_Stock');
+}
+function exportCSVMovs(){
+  let csv='Fecha,Tipo,Material ID,Material,Cantidad,Referencia,Observaciones\n';
+  movimientos.forEach(m=>{
+    const mat=materiales[m.matId];
+    csv+=`"${m.fecha||''}","${m.tipo}","${m.matId}","${mat?mat.nom:''}","${m.cant}","${m.ref||''}","${m.obs||''}"\n`;
+  });
+  descargar(csv,'OZAS_Almacen_Movimientos');
+}
+function descargar(csv,fn){
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=fn+'_'+hoy()+'.csv'; a.click();
+  URL.revokeObjectURL(url);
+  toast('📊','CSV exportado');
+}
+
+// ══ MODALES ══
+function cerrar(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-ov').forEach(m=>{ m.addEventListener('click',e=>{ if(e.target===m)m.classList.remove('open'); }); });
+
+// ══ TOAST ══
+function toast(ico,msg){
+  document.getElementById('t-i').textContent=ico;
+  document.getElementById('t-m').textContent=msg;
+  const t=document.getElementById('toast'); t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3800);
+}
+
+// ══ INIT ══
+cargar();
+setInterval(cargar, 90000);
+</script>
+</body>
+</html>
