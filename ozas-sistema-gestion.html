@@ -223,11 +223,28 @@ table.htbl td{padding:8px 11px;color:var(--az);font-family:'DM Mono',monospace;w
 <!-- DASHBOARD -->
 <div class="modulo on" id="m0">
   <div class="dash-grid" id="dash-stats">
-    <div class="stat-card"><div class="stat-ico">📦</div><div class="stat-val" id="ds-stock">—</div><div class="stat-lbl">Unidades en Stock</div></div>
+    <div class="stat-card" style="cursor:pointer" onclick="document.getElementById('stock-detalle').classList.toggle('open')">
+      <div class="stat-ico">📦</div>
+      <div class="stat-val" id="ds-stock">—</div>
+      <div class="stat-lbl">Unidades en Stock</div>
+      <div style="font-size:.58rem;color:var(--g3);margin-top:4px">▼ ver detalle</div>
+    </div>
     <div class="stat-card"><div class="stat-ico">🧾</div><div class="stat-val" id="ds-hoy">—</div><div class="stat-lbl">Boletas Hoy</div></div>
     <div class="stat-card"><div class="stat-ico">📋</div><div class="stat-val" id="ds-bols">—</div><div class="stat-lbl">Total Boletas</div></div>
     <div class="stat-card"><div class="stat-ico">🏭</div><div class="stat-val" id="ds-prods">—</div><div class="stat-lbl">Producciones</div></div>
   </div>
+  <!-- Detalle stock por producto -->
+  <div id="stock-detalle" style="display:none;background:var(--w);border-radius:var(--r);box-shadow:var(--sh);border:1.5px solid var(--g2);margin-bottom:20px;overflow:hidden">
+    <div style="background:linear-gradient(135deg,var(--az),#163a6e);padding:11px 20px;display:flex;align-items:center;justify-content:space-between">
+      <span style="color:#fff;font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase">📦 Stock Actual por Producto</span>
+      <button onclick="document.getElementById('stock-detalle').classList.remove('open')" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.7rem">✕ Cerrar</button>
+    </div>
+    <div id="stock-detalle-body" style="padding:16px"></div>
+  </div>
+  <style>
+    #stock-detalle{display:none}
+    #stock-detalle.open{display:block}
+  </style>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" class="dash-cols">
     <div class="card">
       <div class="card-hdr"><h2>⚠️ Alertas de Vencimiento</h2></div>
@@ -467,37 +484,71 @@ async function cargarTodo(){
   } finally{ hideLoad(); }
 }
 
-// ══ INVENTARIO CALCULADO ══
+// ══ INVENTARIO CALCULADO (FIFO robusto) ══
+function normProd(s){ return String(s||'').normalize('NFC').trim(); }
+
 function calcInv(){
   const inv={};
-  PRODS.forEach(p=>{ inv[p]={stock:0,lotes:[]}; });
-  // Ingresos por producción
+  PRODS.forEach(p=>{ inv[normProd(p)]={stock:0,lotes:[],nombre:p}; });
+
+  // Construir timeline unificada de todos los eventos ordenados por fecha
+  const eventos=[];
+
+  // Producciones → entradas por producto
   cache.prod.forEach(r=>{
     PRODS.forEach(p=>{
       const c=r.cantidades[p]||0;
-      if(c>0){
-        inv[p].stock+=c;
-        inv[p].lotes.push({cant:c,fechaProd:r.fecha,fechaVenc:r.venc});
-      }
+      if(c>0) eventos.push({fecha:r.fecha,tipo:'entrada',prod:normProd(p),cant:c,fechaVenc:r.venc,fechaProd:r.fecha});
     });
   });
-  // Descontar movimientos de salida/ajuste
+
+  // Movimientos de Sheets
   cache.movs.forEach(m=>{
-    if(m.tipo==='Boleta'||m.tipo==='Ajuste -'){
-      if(inv[m.prod]){
-        inv[m.prod].stock=Math.max(0,inv[m.prod].stock-m.cant);
-      }
-    }
+    const prod=normProd(m.prod);
+    if(!inv[prod]) return; // ignorar si el producto no existe
     if(m.tipo==='Entrada'){
-      if(inv[m.prod]){
-        inv[m.prod].stock+=m.cant;
-        inv[m.prod].lotes.push({cant:m.cant,fechaProd:m.fecha,fechaVenc:addMeses(m.fecha,6)});
+      eventos.push({fecha:m.fecha,tipo:'entrada',prod,cant:m.cant,fechaVenc:addMeses(m.fecha,6),fechaProd:m.fecha});
+    } else if(m.tipo==='Boleta'||m.tipo==='Ajuste -'){
+      eventos.push({fecha:m.fecha,tipo:'salida',prod,cant:m.cant});
+    }
+  });
+
+  // Ordenar todo cronológicamente (entradas primero si misma fecha)
+  eventos.sort((a,b)=>{
+    if(a.fecha!==b.fecha) return String(a.fecha).localeCompare(String(b.fecha));
+    return a.tipo==='entrada'?-1:1;
+  });
+
+  // Aplicar eventos en orden
+  eventos.forEach(ev=>{
+    const d=inv[ev.prod]; if(!d) return;
+    if(ev.tipo==='entrada'){
+      d.lotes.push({cant:ev.cant,fechaProd:ev.fechaProd,fechaVenc:ev.fechaVenc});
+    } else {
+      // FIFO: descontar del lote más próximo a vencer primero
+      // Ordenar lotes antes de descontar
+      d.lotes.sort((a,b)=>String(a.fechaVenc).localeCompare(String(b.fechaVenc)));
+      let restante=ev.cant;
+      for(const lote of d.lotes){
+        if(restante<=0) break;
+        const desc=Math.min(lote.cant,restante);
+        lote.cant=Math.max(0,lote.cant-desc);
+        restante-=desc;
       }
     }
   });
-  // Ordenar lotes por vencimiento
-  PRODS.forEach(p=>{ inv[p].lotes.sort((a,b)=>String(a.fechaVenc).localeCompare(String(b.fechaVenc))); });
-  return inv;
+
+  // Ordenar lotes finales y calcular stock total
+  PRODS.forEach(p=>{
+    const key=normProd(p);
+    inv[key].lotes.sort((a,b)=>String(a.fechaVenc).localeCompare(String(b.fechaVenc)));
+    inv[key].stock=inv[key].lotes.reduce((s,l)=>s+Math.max(0,l.cant),0);
+  });
+
+  // Devolver indexado por nombre original también
+  const result={};
+  PRODS.forEach(p=>{ result[p]=inv[normProd(p)]; });
+  return result;
 }
 
 // ══ NAV ══
@@ -528,7 +579,58 @@ function renderDash(){
   document.getElementById('ds-bols').textContent=cache.bols.length;
   document.getElementById('ds-prods').textContent=cache.prod.length;
 
-  // Alertas
+  // ── Detalle stock por producto ──
+  let detHtml=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">`;
+  PRODS.forEach(p=>{
+    const d=inv[p];
+    const stock=d.stock;
+    const lotesCon=d.lotes.filter(l=>l.cant>0);
+    // Color general
+    const proxDias=lotesCon.length?diasHasta(lotesCon[0].fechaVenc):null;
+    let borde='var(--g2)',bg='var(--g1)',icoProd='✅';
+    if(stock===0){borde='#ccc';bg='#f8f8f8';icoProd='⚫';}
+    else if(proxDias!==null&&proxDias<=0){borde='var(--rj)';bg='var(--rj2)';icoProd='⛔';}
+    else if(proxDias!==null&&proxDias<=30){borde='var(--rj)';bg='#fff5f5';icoProd='🔴';}
+    else if(proxDias!==null&&proxDias<=60){borde='var(--am)';bg='#fffbf0';icoProd='🟡';}
+
+    // Packs
+    let packStr='';
+    if(PACKS[p]&&stock>0){
+      const {tam,label}=PACKS[p];
+      packStr=`<span style="font-size:.62rem;color:var(--az2);font-weight:700;background:#dbeafe;border-radius:5px;padding:2px 8px">📦 ${Math.floor(stock/tam)} packs + ${stock%tam} sueltas</span>`;
+    }
+
+    // Lotes
+    let lotesStr='';
+    if(lotesCon.length){
+      lotesStr=lotesCon.map(l=>{
+        const dv=diasHasta(l.fechaVenc);
+        const c=dv<=0?'var(--rj)':dv<=30?'var(--rj)':dv<=60?'#b07000':'#0a6630';
+        const bg2=dv<=0?'var(--rj2)':dv<=30?'var(--rj2)':dv<=60?'var(--am2)':'var(--vr2)';
+        const ico=dv<=0?'⛔':dv<=30?'🔴':dv<=60?'🟡':'✅';
+        const pkInfo=PACKS[p]?` (${Math.floor(l.cant/PACKS[p].tam)}pk+${l.cant%PACKS[p].tam}u)`:'';
+        return `<div style="background:${bg2};border-radius:5px;padding:3px 9px;font-size:.62rem;font-weight:700;color:${c};display:flex;justify-content:space-between">
+          <span>${ico} ${l.cant} uds${pkInfo}</span>
+          <span>Vce: ${fmt(l.fechaVenc)} · ${dv<=0?'VENCIDO':dv===1?'mañana':`${dv}d`}</span>
+        </div>`;
+      }).join('');
+    } else {
+      lotesStr=`<div style="font-size:.65rem;color:var(--g3);text-align:center;padding:6px">Sin lotes</div>`;
+    }
+
+    detHtml+=`<div style="background:${bg};border:1.5px solid ${borde};border-radius:10px;padding:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:.7rem;font-weight:700;color:var(--az)">${icoProd} ${p}</span>
+        <span style="font-size:1.4rem;font-weight:900;color:var(--az2);font-family:'DM Mono',monospace">${stock}</span>
+      </div>
+      ${packStr?`<div style="margin-bottom:6px">${packStr}</div>`:''}
+      <div style="display:flex;flex-direction:column;gap:3px">${lotesStr}</div>
+    </div>`;
+  });
+  detHtml+='</div>';
+  document.getElementById('stock-detalle-body').innerHTML=detHtml;
+
+  // ── Alertas ──
   const alertas=[];
   PRODS.forEach(p=>{
     const d=inv[p];
@@ -760,47 +862,88 @@ function removeRow(i){ boletaRows.splice(i,1); if(!boletaRows.length)addRow(); e
 function renderRows(){
   const inv=calcInv();
   document.getElementById('b-items').innerHTML=boletaRows.map((r,i)=>{
-    const lote=inv[r.prod]?.lotes?.find(l=>l.cant>0);
-    const stockDisp=inv[r.prod]?.stock||0;
+    const d=inv[r.prod];
     const tienePack=!!PACKS[r.prod];
     const tam=tienePack?PACKS[r.prod].tam:1;
     const packLabel=tienePack?PACKS[r.prod].label:'';
+    const stockDisp=d?.stock||0;
+    const stockPacks=tienePack?Math.floor(stockDisp/tam):0;
+    const maxCant=r.tipo==='pack'?stockPacks:stockDisp;
+    const unidadesEq=r.tipo==='pack'?(r.cant||0)*tam:(r.cant||0);
+    const sinStock=stockDisp<=0;
+    const insuf=unidadesEq>stockDisp;
 
-    // Si tipo es pack, calculamos las unidades equivalentes
-    const unidadesEq = r.tipo==='pack' ? (r.cant||0)*tam : (r.cant||0);
-    const stockPacks = tienePack ? Math.floor(stockDisp/tam) : 0;
-    const maxCant    = r.tipo==='pack' ? stockPacks : stockDisp;
-
-    // Selector de tipo: solo mostrar "Pack" si el producto lo tiene
-    const tipoSel = tienePack
-      ? `<select onchange="boletaRows[${i}].tipo=this.value;boletaRows[${i}].cant=1;renderRows()" style="font-size:.72rem">
+    // Selector tipo
+    const tipoSel=tienePack
+      ?`<select onchange="boletaRows[${i}].tipo=this.value;boletaRows[${i}].cant=1;renderRows()" style="font-size:.72rem">
            <option value="unidad"${r.tipo==='unidad'?' selected':''}>Unidad</option>
            <option value="pack"${r.tipo==='pack'?' selected':''}>📦 ${packLabel}</option>
          </select>`
-      : `<span style="font-size:.68rem;color:var(--g3);padding:7px 4px">Unidad</span>`;
+      :`<span style="font-size:.68rem;color:var(--g3);padding:7px 4px">Unidad</span>`;
 
-    // Hint de equivalencia
-    const eqHint = tienePack && r.tipo==='pack'
-      ? `<div style="font-size:.58rem;color:var(--g3);margin-top:2px">(=${unidadesEq} uds)</div>`
-      : '';
+    const eqHint=tienePack&&r.tipo==='pack'
+      ?`<div style="font-size:.58rem;color:var(--g3);margin-top:2px">(=${unidadesEq} uds)</div>`:'';
 
-    const fprod=lote
-      ? `<span style="color:var(--az2);font-size:.72rem;font-family:'DM Mono',monospace">${fmt(lote.fechaProd)}</span>`
-      : `<span style="color:var(--g3);font-size:.7rem">Sin stock</span>`;
+    // Stock badge con color
+    let stockBadge='';
+    if(sinStock){
+      stockBadge=`<div style="font-size:.62rem;font-weight:700;color:var(--rj);background:var(--rj2);border-radius:5px;padding:3px 7px;margin-top:3px">⛔ Sin stock</div>`;
+    } else {
+      const color=stockDisp<=5?'var(--rj)':stockDisp<=20?'#b07000':'var(--vr)';
+      const ico=stockDisp<=5?'🔴':stockDisp<=20?'🟡':'🟢';
+      const dispTxt=tienePack&&r.tipo==='pack'
+        ?`${stockPacks} packs disp.`
+        :`${stockDisp} uds disp.`;
+      stockBadge=`<div style="font-size:.6rem;font-weight:700;color:${color};margin-top:3px">${ico} ${dispTxt}</div>`;
+    }
+
+    // Lotes disponibles con colores
+    const lotesCon=(d?.lotes||[]).filter(l=>l.cant>0);
+    let lotesHtml='';
+    if(lotesCon.length){
+      lotesHtml=`<div style="margin-top:4px;display:flex;flex-direction:column;gap:2px">`;
+      lotesCon.forEach(l=>{
+        const dv=diasHasta(l.fechaVenc);
+        const color=dv<=0?'var(--rj)':dv<=30?'var(--rj)':dv<=60?'#b07000':'#0a6630';
+        const bg=dv<=0?'var(--rj2)':dv<=30?'var(--rj2)':dv<=60?'var(--am2)':'var(--vr2)';
+        const ico=dv<=0?'⛔':dv<=30?'🔴':dv<=60?'🟡':'✅';
+        const cantDisp=tienePack&&r.tipo==='pack'?`${Math.floor(l.cant/tam)}pk+${l.cant%tam}u`:`${l.cant}u`;
+        lotesHtml+=`<div style="background:${bg};border-radius:5px;padding:3px 7px;font-size:.58rem;font-weight:700;color:${color};display:flex;justify-content:space-between">
+          <span>${ico} ${cantDisp}</span>
+          <span>Vce: ${fmt(l.fechaVenc)}</span>
+        </div>`;
+      });
+      lotesHtml+=`</div>`;
+    }
+
+    // Input con borde rojo si cantidad supera stock
+    const inputBorder=insuf&&!sinStock?'border-color:var(--rj);background:var(--rj2)':'';
+
+    // Fechas del lote que se usará (FIFO = primero)
+    const lote=lotesCon[0]||null;
+    const fprod=lote?`<span style="color:var(--az2);font-size:.7rem;font-family:'DM Mono',monospace">${fmt(lote.fechaProd)}</span>`
+                    :`<span style="color:var(--g3);font-size:.68rem">—</span>`;
     const fvenc=lote?(()=>{
-      const d=diasHasta(lote.fechaVenc);
-      const color=d<=30?'var(--rj)':d<=60?'#b07000':'#0a6630';
-      return `<span style="color:${color};font-size:.72rem;font-family:'DM Mono',monospace;font-weight:700">${fmt(lote.fechaVenc)}</span>`;
-    })():`<span style="color:var(--g3);font-size:.7rem">—</span>`;
+      const dv=diasHasta(lote.fechaVenc);
+      const color=dv<=0?'var(--rj)':dv<=30?'var(--rj)':dv<=60?'#b07000':'#0a6630';
+      return `<span style="color:${color};font-size:.7rem;font-family:'DM Mono',monospace;font-weight:700">${fmt(lote.fechaVenc)}</span>`;
+    })():`<span style="color:var(--g3);font-size:.68rem">—</span>`;
 
-    return `<div class="boleta-row">
-      <select onchange="boletaRows[${i}].prod=this.value;boletaRows[${i}].tipo='unidad';boletaRows[${i}].cant=1;renderRows()">
-        ${PRODS.map(p=>`<option value="${p}"${r.prod===p?' selected':''}>${p}</option>`).join('')}
-      </select>
+    return `<div class="boleta-row" style="${sinStock?'opacity:.6':''}">
+      <div>
+        <select onchange="boletaRows[${i}].prod=this.value;boletaRows[${i}].tipo='unidad';boletaRows[${i}].cant=1;renderRows()">
+          ${PRODS.map(p=>`<option value="${p}"${r.prod===p?' selected':''}>${p}</option>`).join('')}
+        </select>
+        ${stockBadge}
+        ${lotesHtml}
+      </div>
       <div>${tipoSel}</div>
       <div>
-        <input type="number" min="1" max="${maxCant}" value="${r.cant}" placeholder="0"
-               onchange="boletaRows[${i}].cant=parseInt(this.value)||0;calcTotal()">
+        <input type="number" min="0" max="${maxCant}" value="${r.cant}" placeholder="0"
+               style="${inputBorder}"
+               onchange="boletaRows[${i}].cant=parseInt(this.value)||0;calcTotal()"
+               ${sinStock?'disabled':''}>
+        ${insuf&&!sinStock?`<div style="font-size:.58rem;color:var(--rj);font-weight:700;margin-top:2px">⚠️ Máx: ${maxCant}</div>`:''}
         ${eqHint}
       </div>
       <input type="number" min="0" step="0.01" value="${r.precio||''}" placeholder="0.00"
@@ -835,23 +978,27 @@ async function emitirBoleta(){
   if(!cliente){ toast('⚠️','Ingrese el nombre del cliente'); return; }
   if(!doc){ toast('⚠️','Ingrese el RUC o DNI'); return; }
 
-  // Validar stock — convertir packs a unidades
+  // Validar stock — convertir packs a unidades y verificar contra stock real
   const inv=calcInv();
   const resumen={};
   for(const r of boletaRows){
-    if(!r.cant||r.cant<=0){ toast('⚠️','Verifique las cantidades'); return; }
-    const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
-    const unidades = r.cant * tam;
+    if(!r.cant||r.cant<=0){ toast('⚠️','Verifique las cantidades — hay filas en cero'); return; }
+    const tam=r.tipo==='pack'&&PACKS[r.prod]?PACKS[r.prod].tam:1;
+    const unidades=r.cant*tam;
     resumen[r.prod]=(resumen[r.prod]||0)+unidades;
   }
   for(const [prod,unidades] of Object.entries(resumen)){
-    const stock=inv[prod]?.stock||0;
-    if(stock<unidades){
+    const stockReal=inv[prod]?.stock||0;
+    if(stockReal<=0){
+      toast('❌',`Sin stock: ${prod}`); return;
+    }
+    if(stockReal<unidades){
       const tienePack=!!PACKS[prod];
-      const dispStr = tienePack
-        ? `${stock} uds (${Math.floor(stock/PACKS[prod].tam)} packs + ${stock%PACKS[prod].tam} sueltas)`
-        : `${stock} uds`;
-      toast('❌',`Stock insuficiente: ${prod} (disponible: ${dispStr})`); return;
+      const dispStr=tienePack
+        ?`${stockReal} uds (${Math.floor(stockReal/PACKS[prod].tam)} packs + ${stockReal%PACKS[prod].tam} sueltas)`
+        :`${stockReal} uds`;
+      toast('❌',`Stock insuficiente: ${prod} — Disponible: ${dispStr}, solicitado: ${unidades} uds`);
+      return;
     }
   }
 
