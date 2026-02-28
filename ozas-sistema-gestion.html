@@ -223,28 +223,16 @@ table.htbl td{padding:8px 11px;color:var(--az);font-family:'DM Mono',monospace;w
 <!-- DASHBOARD -->
 <div class="modulo on" id="m0">
   <div class="dash-grid" id="dash-stats">
-    <div class="stat-card" style="cursor:pointer" onclick="document.getElementById('stock-detalle').classList.toggle('open')">
-      <div class="stat-ico">📦</div>
-      <div class="stat-val" id="ds-stock">—</div>
-      <div class="stat-lbl">Unidades en Stock</div>
-      <div style="font-size:.58rem;color:var(--g3);margin-top:4px">▼ ver detalle</div>
-    </div>
+    <div class="stat-card"><div class="stat-ico">📦</div><div class="stat-val" id="ds-stock">—</div><div class="stat-lbl">Unidades en Stock</div></div>
     <div class="stat-card"><div class="stat-ico">🧾</div><div class="stat-val" id="ds-hoy">—</div><div class="stat-lbl">Boletas Hoy</div></div>
     <div class="stat-card"><div class="stat-ico">📋</div><div class="stat-val" id="ds-bols">—</div><div class="stat-lbl">Total Boletas</div></div>
     <div class="stat-card"><div class="stat-ico">🏭</div><div class="stat-val" id="ds-prods">—</div><div class="stat-lbl">Producciones</div></div>
   </div>
-  <!-- Detalle stock por producto -->
-  <div id="stock-detalle" style="display:none;background:var(--w);border-radius:var(--r);box-shadow:var(--sh);border:1.5px solid var(--g2);margin-bottom:20px;overflow:hidden">
-    <div style="background:linear-gradient(135deg,var(--az),#163a6e);padding:11px 20px;display:flex;align-items:center;justify-content:space-between">
-      <span style="color:#fff;font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase">📦 Stock Actual por Producto</span>
-      <button onclick="document.getElementById('stock-detalle').classList.remove('open')" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.7rem">✕ Cerrar</button>
-    </div>
-    <div id="stock-detalle-body" style="padding:16px"></div>
+  <!-- Stock por producto — siempre visible -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-hdr"><h2>📦 Stock por Producto</h2></div>
+    <div class="card-body"><div id="stock-detalle-body"><p class="empty">Cargando...</p></div></div>
   </div>
-  <style>
-    #stock-detalle{display:none}
-    #stock-detalle.open{display:block}
-  </style>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" class="dash-cols">
     <div class="card">
       <div class="card-hdr"><h2>⚠️ Alertas de Vencimiento</h2></div>
@@ -484,71 +472,59 @@ async function cargarTodo(){
   } finally{ hideLoad(); }
 }
 
-// ══ INVENTARIO CALCULADO (FIFO robusto) ══
+// ══ INVENTARIO CALCULADO (FIFO) ══
 function normProd(s){ return String(s||'').normalize('NFC').trim(); }
 
 function calcInv(){
   const inv={};
-  PRODS.forEach(p=>{ inv[normProd(p)]={stock:0,lotes:[],nombre:p}; });
+  PRODS.forEach(p=>{ inv[p]={stock:0,lotes:[]}; });
 
-  // Construir timeline unificada de todos los eventos ordenados por fecha
-  const eventos=[];
+  // Mapa nombre normalizado → nombre real
+  const mapaProds={};
+  PRODS.forEach(p=>{ mapaProds[normProd(p)]=p; });
+  function resolverProd(s){ return mapaProds[normProd(s)]||null; }
 
-  // Producciones → entradas por producto
+  // 1. Lotes desde producciones
   cache.prod.forEach(r=>{
     PRODS.forEach(p=>{
       const c=r.cantidades[p]||0;
-      if(c>0) eventos.push({fecha:r.fecha,tipo:'entrada',prod:normProd(p),cant:c,fechaVenc:r.venc,fechaProd:r.fecha});
+      if(c>0) inv[p].lotes.push({cant:c,fechaProd:r.fecha,fechaVenc:r.venc});
     });
   });
 
-  // Movimientos de Sheets
+  // 2. Ingresos manuales
   cache.movs.forEach(m=>{
-    const prod=normProd(m.prod);
-    if(!inv[prod]) return; // ignorar si el producto no existe
-    if(m.tipo==='Entrada'){
-      eventos.push({fecha:m.fecha,tipo:'entrada',prod,cant:m.cant,fechaVenc:addMeses(m.fecha,6),fechaProd:m.fecha});
-    } else if(m.tipo==='Boleta'||m.tipo==='Ajuste -'){
-      eventos.push({fecha:m.fecha,tipo:'salida',prod,cant:m.cant});
-    }
+    if(m.tipo!=='Entrada') return;
+    const p=resolverProd(m.prod); if(!p) return;
+    inv[p].lotes.push({cant:m.cant,fechaProd:m.fecha,fechaVenc:addMeses(m.fecha,6)});
   });
 
-  // Ordenar todo cronológicamente (entradas primero si misma fecha)
-  eventos.sort((a,b)=>{
-    if(a.fecha!==b.fecha) return String(a.fecha).localeCompare(String(b.fecha));
-    return a.tipo==='entrada'?-1:1;
+  // 3. Ordenar FIFO por fecha vencimiento
+  PRODS.forEach(p=>{
+    inv[p].lotes.sort((a,b)=>String(a.fechaVenc).localeCompare(String(b.fechaVenc)));
   });
 
-  // Aplicar eventos en orden
-  eventos.forEach(ev=>{
-    const d=inv[ev.prod]; if(!d) return;
-    if(ev.tipo==='entrada'){
-      d.lotes.push({cant:ev.cant,fechaProd:ev.fechaProd,fechaVenc:ev.fechaVenc});
-    } else {
-      // FIFO: descontar del lote más próximo a vencer primero
-      // Ordenar lotes antes de descontar
-      d.lotes.sort((a,b)=>String(a.fechaVenc).localeCompare(String(b.fechaVenc)));
-      let restante=ev.cant;
-      for(const lote of d.lotes){
+  // 4. Aplicar salidas FIFO en orden cronológico
+  [...cache.movs]
+    .filter(m=>m.tipo==='Boleta'||m.tipo==='Ajuste -')
+    .sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)))
+    .forEach(m=>{
+      const p=resolverProd(m.prod); if(!p) return;
+      let restante=m.cant;
+      for(const lote of inv[p].lotes){
         if(restante<=0) break;
         const desc=Math.min(lote.cant,restante);
         lote.cant=Math.max(0,lote.cant-desc);
         restante-=desc;
       }
-    }
-  });
+    });
 
-  // Ordenar lotes finales y calcular stock total
+  // 5. Stock total
   PRODS.forEach(p=>{
-    const key=normProd(p);
-    inv[key].lotes.sort((a,b)=>String(a.fechaVenc).localeCompare(String(b.fechaVenc)));
-    inv[key].stock=inv[key].lotes.reduce((s,l)=>s+Math.max(0,l.cant),0);
+    inv[p].stock=inv[p].lotes.reduce((s,l)=>s+Math.max(0,l.cant),0);
   });
 
-  // Devolver indexado por nombre original también
-  const result={};
-  PRODS.forEach(p=>{ result[p]=inv[normProd(p)]; });
-  return result;
+  return inv;
 }
 
 // ══ NAV ══
