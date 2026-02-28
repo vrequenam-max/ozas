@@ -116,10 +116,13 @@ table.htbl td{padding:8px 11px;color:var(--az);font-family:'DM Mono',monospace;w
 
 /* INVENTARIO */
 .inv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-.inv-card{background:var(--w);border-radius:var(--r);box-shadow:var(--sh);border:1.5px solid var(--g2);padding:16px;transition:transform .2s}
+.inv-card{background:var(--w);border-radius:var(--r);box-shadow:var(--sh);border:1.5px solid var(--g2);padding:16px;transition:transform .2s;position:relative;overflow:hidden}
+.inv-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--az2),var(--az3))}
 .inv-card:hover{transform:translateY(-2px)}
-.inv-card.alerta-rj{border-color:var(--rj);background:var(--rj2)}
-.inv-card.alerta-am{border-color:var(--am);background:var(--am2)}
+.inv-card.alerta-rj{border-color:var(--rj);background:linear-gradient(180deg,#fff8f8,#fff)}
+.inv-card.alerta-rj::before{background:linear-gradient(90deg,var(--rj),#ff8080)}
+.inv-card.alerta-am{border-color:var(--am);background:linear-gradient(180deg,#fffbf0,#fff)}
+.inv-card.alerta-am::before{background:linear-gradient(90deg,var(--am),#ffd97d)}
 .inv-prod{font-size:.75rem;font-weight:700;color:var(--az);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
 .inv-stock{font-size:2rem;font-weight:900;color:var(--az2);font-family:'DM Mono',monospace;line-height:1}
 .inv-unid{font-size:.6rem;color:var(--g3);font-weight:600;text-transform:uppercase;letter-spacing:1px}
@@ -530,12 +533,19 @@ function renderDash(){
   PRODS.forEach(p=>{
     const d=inv[p];
     if(!d.lotes.length||d.stock===0) return;
-    const pv=d.lotes[0].fechaVenc;
-    const dias=diasHasta(pv);
-    if(dias<=60){
+    const lotesVenc=d.lotes.filter(l=>l.cant>0&&diasHasta(l.fechaVenc)<=60);
+    lotesVenc.forEach(l=>{
+      const dias=diasHasta(l.fechaVenc);
       const cls=dias<=30?'av-rojo':'av-amari', ico=dias<=30?'🔴':'🟡';
-      alertas.push(`<div class="av-item ${cls}"><span>${ico} ${p}</span><span>Vence ${fmt(pv)} (${dias}d) · Stock: ${d.stock}</span></div>`);
-    }
+      const packInfo=PACKS[p]?` · ${Math.floor(l.cant/PACKS[p].tam)} packs + ${l.cant%PACKS[p].tam} sueltas`:'';
+      alertas.push(`<div class="av-item ${cls}">
+        <span>${ico} <strong>${p}</strong></span>
+        <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+          <span>${l.cant} uds${packInfo}</span>
+          <span style="font-size:.65rem;opacity:.8">Vence ${fmt(l.fechaVenc)} · ${dias<=0?'VENCIDO':dias===1?'mañana':`en ${dias} días`}</span>
+        </span>
+      </div>`);
+    });
   });
   document.getElementById('dash-alertas').innerHTML=alertas.length?alertas.join(''):'<p class="empty">✅ Sin alertas de vencimiento</p>';
 
@@ -621,46 +631,79 @@ function renderInv(){
   const inv=calcInv();
   document.getElementById('inv-grid').innerHTML=PRODS.map(p=>{
     const d=inv[p]; const stock=d.stock;
-    const proxLote=d.lotes.find(l=>l.cant>0);
+    const lotesCon=d.lotes.filter(l=>l.cant>0);
+    const proxLote=lotesCon[0]||null;
     const proxVenc=proxLote?proxLote.fechaVenc:null;
     const dias=proxVenc?diasHasta(proxVenc):null;
     let cls='',vcls='sin',vtxt='Sin stock';
     if(stock>0&&proxVenc){
-      if(dias<=0)        { cls='alerta-rj'; vcls='danger'; vtxt=`⛔ VENCIDO: ${fmt(proxVenc)}`; }
-      else if(dias<=30)  { cls='alerta-rj'; vcls='danger'; vtxt=`🔴 Vence en ${dias} días (${fmt(proxVenc)})`; }
-      else if(dias<=60)  { cls='alerta-am'; vcls='warn';   vtxt=`🟡 Vence en ${dias} días (${fmt(proxVenc)})`; }
-      else               { vcls='ok';                      vtxt=`✅ Vence: ${fmt(proxVenc)} (${dias}d)`; }
+      if(dias<=0)       { cls='alerta-rj'; vcls='danger'; vtxt=`⛔ VENCIDO`; }
+      else if(dias<=30) { cls='alerta-rj'; vcls='danger'; vtxt=`🔴 Próximo vence en ${dias} días`; }
+      else if(dias<=60) { cls='alerta-am'; vcls='warn';   vtxt=`🟡 Próximo vence en ${dias} días`; }
+      else              { vcls='ok';                      vtxt=`✅ Stock en buen estado`; }
     }
-    // Calcular packs si aplica
+
+    // Packs si aplica
     let packHtml='';
     if(PACKS[p]){
-      const { tam, label } = PACKS[p];
-      const packs  = Math.floor(stock / tam);
-      const sueltas = stock % tam;
-      packHtml=`
-        <div style="margin-top:8px;padding:7px 10px;background:rgba(13,110,253,.08);border-radius:8px;border:1px solid var(--g2)">
-          <div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);margin-bottom:4px">📦 ${label}</div>
-          <div style="display:flex;gap:14px;align-items:baseline">
-            <div>
-              <span style="font-size:1.3rem;font-weight:900;color:var(--az2);font-family:'DM Mono',monospace">${packs}</span>
-              <span style="font-size:.6rem;color:var(--g3);font-weight:600"> packs</span>
-            </div>
-            <div style="color:var(--g3);font-size:.8rem">+</div>
-            <div>
-              <span style="font-size:1.3rem;font-weight:900;color:#6b7c9a;font-family:'DM Mono',monospace">${sueltas}</span>
-              <span style="font-size:.6rem;color:var(--g3);font-weight:600"> sueltas</span>
-            </div>
-          </div>
-        </div>`;
+      const {tam,label}=PACKS[p];
+      const packs=Math.floor(stock/tam), sueltas=stock%tam;
+      packHtml=`<div style="padding:7px 10px;background:rgba(13,110,253,.07);border-radius:8px;border:1px solid var(--g2);margin-bottom:8px">
+        <div style="font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);margin-bottom:3px">📦 ${label}</div>
+        <div style="display:flex;gap:12px;align-items:baseline">
+          <div><span style="font-size:1.2rem;font-weight:900;color:var(--az2);font-family:'DM Mono',monospace">${packs}</span><span style="font-size:.58rem;color:var(--g3);font-weight:600"> packs</span></div>
+          <div style="color:var(--g3)">+</div>
+          <div><span style="font-size:1.2rem;font-weight:900;color:#6b7c9a;font-family:'DM Mono',monospace">${sueltas}</span><span style="font-size:.58rem;color:var(--g3);font-weight:600"> sueltas</span></div>
+        </div>
+      </div>`;
     }
+
+    // Detalle de lotes por vencimiento
+    let lotesHtml='';
+    if(lotesCon.length){
+      lotesHtml=`<div style="margin-top:8px">
+        <div style="font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--g3);margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--g2)">📋 Detalle por lote</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+        ${lotesCon.map(l=>{
+          const dv=diasHasta(l.fechaVenc);
+          let bg,color,ico;
+          if(dv<=0)       { bg='var(--rj2)'; color='var(--rj)'; ico='⛔'; }
+          else if(dv<=30) { bg='var(--rj2)'; color='var(--rj)'; ico='🔴'; }
+          else if(dv<=60) { bg='var(--am2)'; color='#7c5200';   ico='🟡'; }
+          else            { bg='var(--vr2)'; color='#0a6630';   ico='✅'; }
+          // Packs de este lote si aplica
+          let packLote='';
+          if(PACKS[p]){
+            const {tam,label}=PACKS[p];
+            const pk=Math.floor(l.cant/tam), su=l.cant%tam;
+            packLote=`<span style="font-size:.6rem;color:${color};opacity:.8"> (${pk} pack${pk!==1?'s':''}${su>0?` +${su}`:''})</span>`;
+          }
+          return `<div style="background:${bg};border-radius:6px;padding:5px 9px;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
+            <div>
+              <span style="font-size:.7rem;font-weight:900;color:${color};font-family:'DM Mono',monospace">${l.cant} uds${packLote?packLote:''}</span>
+              <div style="font-size:.58rem;color:${color};opacity:.8;margin-top:1px">Prod: ${fmt(l.fechaProd)}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:.62rem;font-weight:700;color:${color}">${ico} Vence: ${fmt(l.fechaVenc)}</div>
+              <div style="font-size:.6rem;color:${color};opacity:.8">${dv<=0?'VENCIDO':dv===1?'Mañana':`en ${dv} días`}</div>
+            </div>
+          </div>`;
+        }).join('')}
+        </div>
+      </div>`;
+    } else {
+      lotesHtml=`<div style="margin-top:8px;text-align:center;padding:10px;background:var(--g1);border-radius:8px;font-size:.72rem;color:var(--g3)">Sin lotes registrados</div>`;
+    }
+
     return `<div class="inv-card ${cls}">
       <div class="inv-prod">💧 ${p}</div>
-      <div style="display:flex;align-items:baseline;gap:6px;margin:4px 0">
+      <div style="display:flex;align-items:baseline;gap:6px;margin:4px 0 8px">
         <div class="inv-stock">${stock}</div>
         <div class="inv-unid">unidades totales</div>
       </div>
       ${packHtml}
-      <div class="inv-venc ${vcls}" style="margin-top:8px">${vtxt}</div>
+      <div class="inv-venc ${vcls}">${vtxt}</div>
+      ${lotesHtml}
     </div>`;
   }).join('');
 }
