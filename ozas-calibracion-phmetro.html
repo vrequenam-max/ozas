@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OZÀS – Calibración pH-metro</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --az:#0a2342;--az2:#0d6efd;--az3:#38b6ff;
+  --w:#fff;--g1:#f0f6ff;--g2:#cce0f5;--g3:#6b7c9a;
+  --vr:#1db954;--vr2:#d4f5e2;
+  --rj:#e02020;--rj2:#fde8e8;
+  --am:#f59e0b;--am2:#fef3c7;
+  --mo:#7c3aed;--mo2:#ede9fe;
+  --sh:0 4px 24px rgba(10,35,66,.10);
+  --r:14px;--rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Montserrat',sans-serif;background:linear-gradient(135deg,#e8f4ff,#f0f8ff 60%,#d0eeff);min-height:100vh;color:var(--az)}
+
+header{background:var(--az);box-shadow:0 2px 20px rgba(10,35,66,.3);position:sticky;top:0;z-index:200}
+.hdr{max-width:1100px;margin:0 auto;padding:0 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px;padding:13px 0}
+.logo-ico{width:42px;height:42px;background:linear-gradient(135deg,var(--az3),var(--az2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.logo h1{font-size:1.35rem;font-weight:900;color:#fff;letter-spacing:2px}
+.logo h1 span{color:var(--az3)}
+.logo p{font-size:.55rem;color:rgba(255,255,255,.45);letter-spacing:3px;text-transform:uppercase;margin-top:2px}
+.sync-bar{display:flex;align-items:center;gap:8px;padding:5px 12px;background:rgba(255,255,255,.08);border-radius:20px;font-size:.64rem;color:rgba(255,255,255,.7);font-weight:600}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#6b7c9a;transition:background .3s}
+.sync-dot.ok{background:var(--vr)}.sync-dot.carg{background:var(--am);animation:blink 1s infinite}.sync-dot.err{background:var(--rj)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.nav-links{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;padding:6px 0}
+.nav-a{padding:7px 14px;border-radius:var(--rs);font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;text-decoration:none;color:rgba(255,255,255,.6);transition:all .2s;border:none;cursor:pointer;background:rgba(255,255,255,.08)}
+.nav-a:hover{background:rgba(255,255,255,.15);color:#fff}
+.nav-a.on{background:var(--az3);color:var(--az)}
+
+.load-ov{position:fixed;inset:0;background:rgba(10,35,66,.72);z-index:900;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.load-ov.show{display:flex}
+.spinner{width:46px;height:46px;border:4px solid rgba(255,255,255,.2);border-top-color:var(--az3);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{color:#fff;font-size:.82rem;font-weight:600}
+
+main{max-width:1100px;margin:0 auto;padding:26px 20px 60px}
+.mod{display:none}.mod.on{display:block}
+
+/* CARDS */
+.card{background:var(--w);border-radius:var(--r);box-shadow:var(--sh);border:1.5px solid var(--g2);margin-bottom:20px;overflow:hidden}
+.ch{background:linear-gradient(135deg,var(--az),#163a6e);padding:13px 22px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ch h2{color:#fff;font-size:.78rem;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.cb{padding:22px}
+
+/* FORMULARIO CALIBRACIÓN */
+.meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--g3)}
+.fg input,.fg select,.fg textarea{padding:9px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-family:'DM Mono',monospace;font-size:.84rem;color:var(--az);background:var(--g1);outline:none;transition:border-color .2s;width:100%}
+.fg input:focus,.fg select:focus{border-color:var(--az2);background:var(--w)}
+.fg input[readonly]{background:#f3f6fa;color:var(--g3);cursor:default}
+.fg input.ok{border-color:var(--vr);background:#f0fdf4}
+.fg input.warn{border-color:var(--am);background:var(--am2)}
+.fg input.err{border-color:var(--rj);background:var(--rj2)}
+
+/* BUFFER CARDS */
+.buf-section{margin-bottom:28px}
+.buf-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--g3);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--g2);display:flex;align-items:center;gap:10px}
+.buf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.buf-card{border-radius:var(--r);border:2px solid var(--g2);overflow:hidden;transition:border-color .3s,box-shadow .3s}
+.buf-card.estado-ok{border-color:var(--vr);box-shadow:0 0 0 3px rgba(29,185,84,.12)}
+.buf-card.estado-warn{border-color:var(--am);box-shadow:0 0 0 3px rgba(245,158,11,.12)}
+.buf-card.estado-err{border-color:var(--rj);box-shadow:0 0 0 3px rgba(224,32,32,.12)}
+.buf-hdr{padding:11px 18px;display:flex;align-items:center;justify-content:space-between}
+.buf-hdr.b4{background:linear-gradient(135deg,#dc2626,#ef4444)}
+.buf-hdr.b7{background:linear-gradient(135deg,#2563eb,#3b82f6)}
+.buf-hdr.b10{background:linear-gradient(135deg,#7c3aed,#8b5cf6)}
+.buf-nom{color:#fff;font-size:.9rem;font-weight:900;letter-spacing:1px}
+.buf-ref{color:rgba(255,255,255,.8);font-size:.62rem;font-weight:600}
+.buf-body{padding:16px 18px;background:var(--w)}
+.buf-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end;margin-bottom:12px}
+.buf-estado{padding:6px 12px;border-radius:8px;font-size:.68rem;font-weight:700;text-align:center;min-height:34px;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .3s}
+.buf-estado.vacio{background:var(--g1);color:var(--g3)}
+.buf-estado.aprobado{background:var(--vr2);color:#0a6630}
+.buf-estado.advertencia{background:var(--am2);color:#7c5200}
+.buf-estado.rechazado{background:var(--rj2);color:var(--rj)}
+.buf-pendulum{margin-top:10px}
+.buf-bar-wrap{height:10px;background:var(--g2);border-radius:5px;overflow:hidden;margin-top:4px;position:relative}
+.buf-bar{height:100%;border-radius:5px;transition:width .5s ease,background .3s;min-width:2px}
+.buf-bar-labels{display:flex;justify-content:space-between;font-size:.56rem;color:var(--g3);margin-top:3px}
+.err-tip{font-size:.62rem;color:var(--rj);font-weight:600;margin-top:4px;padding:4px 8px;background:var(--rj2);border-radius:5px;display:none}
+.err-tip.show{display:block}
+
+/* RESUMEN CALIBRACIÓN */
+.resumen-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.res-card{border-radius:var(--rs);padding:14px;text-align:center;border:1.5px solid var(--g2)}
+.res-card.ok{background:var(--vr2);border-color:var(--vr)}
+.res-card.warn{background:var(--am2);border-color:var(--am)}
+.res-card.err{background:var(--rj2);border-color:var(--rj)}
+.res-card.pend{background:var(--g1);border-color:var(--g2)}
+.res-ico{font-size:1.6rem;margin-bottom:4px}
+.res-nom{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3)}
+.res-val{font-size:1.1rem;font-weight:900;font-family:'DM Mono',monospace;color:var(--az);margin:4px 0 2px}
+.res-err{font-size:.65rem;font-weight:700}
+
+/* RESULTADO FINAL */
+.resultado-final{border-radius:var(--r);padding:18px 22px;margin-bottom:20px;border:2px solid var(--g2);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.resultado-final.aprobado{background:var(--vr2);border-color:var(--vr)}
+.resultado-final.advertencia{background:var(--am2);border-color:var(--am)}
+.resultado-final.rechazado{background:var(--rj2);border-color:var(--rj)}
+.resultado-final.pendiente{background:var(--g1);border-color:var(--g2)}
+.rf-ico{font-size:2.2rem;flex-shrink:0}
+.rf-txt h3{font-size:.9rem;font-weight:900;color:var(--az)}
+.rf-txt p{font-size:.72rem;color:var(--g3);margin-top:3px}
+
+/* BTN */
+.btn{padding:10px 22px;border-radius:var(--rs);border:none;font-family:'Montserrat',sans-serif;font-weight:700;font-size:.74rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-p{background:linear-gradient(135deg,var(--az2),var(--az3));color:#fff;box-shadow:0 4px 14px rgba(13,110,253,.28)}
+.btn-p:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(13,110,253,.38)}
+.btn-o{background:var(--w);color:var(--az);border:1.5px solid var(--g2)}
+.btn-o:hover{border-color:var(--az2);color:var(--az2)}
+.btn-vr{background:var(--vr2);color:#0a6630;border:1.5px solid #b2e8c8}
+.btn-sm{padding:6px 14px;font-size:.66rem}
+.btns-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+
+/* HISTORIAL */
+.htbl-wrap{overflow-x:auto;max-height:420px;overflow-y:auto}
+table.htbl{width:100%;border-collapse:collapse;font-size:.72rem;min-width:700px}
+table.htbl thead{background:var(--g1);position:sticky;top:0;z-index:2}
+table.htbl th{padding:9px 12px;text-align:left;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--g3);border-bottom:2px solid var(--g2);white-space:nowrap}
+table.htbl tbody tr{border-bottom:1px solid var(--g2);transition:background .15s}
+table.htbl tbody tr:hover{background:rgba(13,110,253,.04)}
+table.htbl td{padding:8px 12px;color:var(--az);font-family:'DM Mono',monospace;font-size:.7rem;white-space:nowrap}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.b-vr{background:var(--vr2);color:#0a6630}
+.b-am{background:var(--am2);color:#7c5200}
+.b-rj{background:var(--rj2);color:var(--rj)}
+.b-az{background:#dbeafe;color:var(--az2)}
+.b-mo{background:var(--mo2);color:var(--mo)}
+.empty{text-align:center;padding:40px;color:#a0b4c8;font-size:.82rem}
+
+/* INFO BOX */
+.info-box{background:var(--g1);border:1.5px solid var(--g2);border-radius:var(--rs);padding:14px 18px;font-size:.72rem;line-height:1.8;margin-bottom:18px}
+.info-box strong{color:var(--az2)}
+.info-box .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.6rem;font-weight:700;margin-right:4px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--az);color:#fff;padding:13px 20px;border-radius:var(--rs);font-size:.8rem;font-weight:600;box-shadow:0 8px 24px rgba(10,35,66,.25);transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);z-index:999;display:flex;align-items:center;gap:10px;max-width:400px}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* PRINT */
+@media print{header,.btns-row,.load-ov,.toast,.nav-links,#mod-historial{display:none!important}main{padding:0!important}}
+@media(max-width:640px){.buf-row{grid-template-columns:1fr 1fr}.resumen-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="load-ov" id="loading">
+  <div class="spinner"></div>
+  <div class="load-txt" id="load-txt">Guardando calibración...</div>
+</div>
+
+<header>
+  <div class="hdr">
+    <div class="logo">
+      <div class="logo-ico">🧪</div>
+      <div>
+        <h1>OZ<span>À</span>S</h1>
+        <p>Calibración pH-metro</p>
+      </div>
+    </div>
+    <div class="sync-bar">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-txt">Conectando...</span>
+    </div>
+    <nav class="nav-links">
+      <button class="nav-a on" onclick="ir(0,this)">🧪 Calibrar</button>
+      <button class="nav-a"    onclick="ir(1,this)">📋 Historial</button>
+      <a class="nav-a" href="ozas-sistema-gestion.html">💧 Gestión</a>
+      <a class="nav-a" href="ozas-control-calidad.html">🔬 Calidad</a>
+      <a class="nav-a" href="ozas-almacen.html">🏪 Almacén</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ══ MOD 0: CALIBRACIÓN ══ -->
+<div class="mod on" id="mod-calibrar">
+
+  <!-- INFO -->
+  <div class="info-box">
+    <strong>📌 Procedimiento de calibración de 3 puntos</strong> — Buffers estándar NIST:
+    <span class="tag" style="background:#fee2e2;color:#991b1b">pH 4.01</span> ácido &nbsp;|&nbsp;
+    <span class="tag" style="background:#dbeafe;color:#1e40af">pH 7.01</span> neutro &nbsp;|&nbsp;
+    <span class="tag" style="background:var(--mo2);color:var(--mo)">pH 10.01</span> alcalino<br>
+    Tolerancia aceptable: <strong>± 0.05 pH</strong> · Advertencia: <strong>± 0.06–0.10 pH</strong> · Rechazo: <strong>> ± 0.10 pH</strong>
+  </div>
+
+  <!-- DATOS GENERALES -->
+  <div class="card">
+    <div class="ch"><h2>📝 Datos del Registro</h2></div>
+    <div class="cb">
+      <div class="meta-grid">
+        <div class="fg"><label>Fecha</label><input type="date" id="m-fecha"></div>
+        <div class="fg"><label>Hora</label><input type="time" id="m-hora"></div>
+        <div class="fg"><label>Operario responsable</label><input type="text" id="m-op" placeholder="Nombre completo"></div>
+        <div class="fg"><label>Código pH-metro</label><input type="text" id="m-equipo" placeholder="Ej: PHM-001"></div>
+        <div class="fg"><label>Marca / Modelo</label><input type="text" id="m-modelo" placeholder="Ej: Hanna HI98103"></div>
+        <div class="fg"><label>N° Serie</label><input type="text" id="m-serie" placeholder="Ej: 20241201-A"></div>
+        <div class="fg"><label>Temperatura solución (°C)</label><input type="number" id="m-temp" step="0.1" min="15" max="35" placeholder="25.0" onchange="actualizarTemp()"></div>
+        <div class="fg"><label>Lote soluciones buffer</label><input type="text" id="m-lote-buf" placeholder="Ej: BUF-2024-03"></div>
+        <div class="fg"><label>Vencimiento buffers</label><input type="date" id="m-venc-buf"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUFFERS -->
+  <div class="card">
+    <div class="ch"><h2>⚗️ Medición de Buffers</h2><span style="color:rgba(255,255,255,.5);font-size:.62rem">Ingrese la lectura mostrada por el pH-metro para cada solución</span></div>
+    <div class="cb">
+      <div class="buf-grid" id="buf-grid">
+
+        <!-- BUFFER 4.01 -->
+        <div class="buf-card" id="card-b4">
+          <div class="buf-hdr b4">
+            <div><div class="buf-nom">Buffer pH 4.01</div><div class="buf-ref">Solución ácida de referencia</div></div>
+            <div style="font-size:1.8rem">🔴</div>
+          </div>
+          <div class="buf-body">
+            <div class="buf-row">
+              <div class="fg">
+                <label>Lectura pH-metro</label>
+                <input type="number" id="b4-lect" step="0.01" min="1" max="14" placeholder="4.01"
+                       oninput="evaluarBuffer('b4',4.01,this.value)">
+              </div>
+              <div class="fg">
+                <label>Valor referencia</label>
+                <input type="text" value="4.01" readonly id="b4-ref">
+              </div>
+              <div class="fg">
+                <label>Error (ΔpH)</label>
+                <input type="text" id="b4-error" readonly placeholder="—">
+              </div>
+            </div>
+            <div class="buf-pendulum">
+              <div style="font-size:.6rem;font-weight:700;color:var(--g3);text-transform:uppercase;letter-spacing:1px">Desviación respecto al valor real</div>
+              <div class="buf-bar-wrap"><div class="buf-bar" id="b4-bar" style="width:0%;background:var(--g2)"></div></div>
+              <div class="buf-bar-labels"><span>−0.10</span><span>0.00</span><span>+0.10</span></div>
+            </div>
+            <div class="buf-estado vacio" id="b4-estado">⏳ Pendiente de lectura</div>
+            <div class="err-tip" id="b4-tip"></div>
+          </div>
+        </div>
+
+        <!-- BUFFER 7.01 -->
+        <div class="buf-card" id="card-b7">
+          <div class="buf-hdr b7">
+            <div><div class="buf-nom">Buffer pH 7.01</div><div class="buf-ref">Solución neutra de referencia</div></div>
+            <div style="font-size:1.8rem">🔵</div>
+          </div>
+          <div class="buf-body">
+            <div class="buf-row">
+              <div class="fg">
+                <label>Lectura pH-metro</label>
+                <input type="number" id="b7-lect" step="0.01" min="1" max="14" placeholder="7.01"
+                       oninput="evaluarBuffer('b7',7.01,this.value)">
+              </div>
+              <div class="fg">
+                <label>Valor referencia</label>
+                <input type="text" value="7.01" readonly id="b7-ref">
+              </div>
+              <div class="fg">
+                <label>Error (ΔpH)</label>
+                <input type="text" id="b7-error" readonly placeholder="—">
+              </div>
+            </div>
+            <div class="buf-pendulum">
+              <div style="font-size:.6rem;font-weight:700;color:var(--g3);text-transform:uppercase;letter-spacing:1px">Desviación respecto al valor real</div>
+              <div class="buf-bar-wrap"><div class="buf-bar" id="b7-bar" style="width:0%;background:var(--g2)"></div></div>
+              <div class="buf-bar-labels"><span>−0.10</span><span>0.00</span><span>+0.10</span></div>
+            </div>
+            <div class="buf-estado vacio" id="b7-estado">⏳ Pendiente de lectura</div>
+            <div class="err-tip" id="b7-tip"></div>
+          </div>
+        </div>
+
+        <!-- BUFFER 10.01 -->
+        <div class="buf-card" id="card-b10">
+          <div class="buf-hdr b10">
+            <div><div class="buf-nom">Buffer pH 10.01</div><div class="buf-ref">Solución alcalina de referencia</div></div>
+            <div style="font-size:1.8rem">🟣</div>
+          </div>
+          <div class="buf-body">
+            <div class="buf-row">
+              <div class="fg">
+                <label>Lectura pH-metro</label>
+                <input type="number" id="b10-lect" step="0.01" min="1" max="14" placeholder="10.01"
+                       oninput="evaluarBuffer('b10',10.01,this.value)">
+              </div>
+              <div class="fg">
+                <label>Valor referencia</label>
+                <input type="text" value="10.01" readonly id="b10-ref">
+              </div>
+              <div class="fg">
+                <label>Error (ΔpH)</label>
+                <input type="text" id="b10-error" readonly placeholder="—">
+              </div>
+            </div>
+            <div class="buf-pendulum">
+              <div style="font-size:.6rem;font-weight:700;color:var(--g3);text-transform:uppercase;letter-spacing:1px">Desviación respecto al valor real</div>
+              <div class="buf-bar-wrap"><div class="buf-bar" id="b10-bar" style="width:0%;background:var(--g2)"></div></div>
+              <div class="buf-bar-labels"><span>−0.10</span><span>0.00</span><span>+0.10</span></div>
+            </div>
+            <div class="buf-estado vacio" id="b10-estado">⏳ Pendiente de lectura</div>
+            <div class="err-tip" id="b10-tip"></div>
+          </div>
+        </div>
+
+      </div><!-- /buf-grid -->
+    </div>
+  </div>
+
+  <!-- RESUMEN -->
+  <div class="card">
+    <div class="ch"><h2>📊 Resumen de Calibración</h2></div>
+    <div class="cb">
+      <div class="resumen-grid" id="resumen-grid">
+        <div class="res-card pend" id="res-b4"><div class="res-ico">🔴</div><div class="res-nom">Buffer 4.01</div><div class="res-val">—</div><div class="res-err">Pendiente</div></div>
+        <div class="res-card pend" id="res-b7"><div class="res-ico">🔵</div><div class="res-nom">Buffer 7.01</div><div class="res-val">—</div><div class="res-err">Pendiente</div></div>
+        <div class="res-card pend" id="res-b10"><div class="res-ico">🟣</div><div class="res-nom">Buffer 10.01</div><div class="res-val">—</div><div class="res-err">Pendiente</div></div>
+      </div>
+
+      <div class="resultado-final pendiente" id="resultado-final">
+        <div class="rf-ico">⏳</div>
+        <div class="rf-txt">
+          <h3>Ingrese las 3 lecturas para ver el resultado</h3>
+          <p>Se requieren los 3 buffers para determinar el estado de calibración</p>
+        </div>
+      </div>
+
+      <div class="fg" style="margin-bottom:16px">
+        <label>Observaciones / Acciones correctivas</label>
+        <textarea id="m-obs" rows="3" placeholder="Ej: Electrodo limpiado antes de calibrar. Temperatura estable a 25°C. Sin acciones correctivas requeridas..."
+          style="padding:9px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-family:'Montserrat',sans-serif;font-size:.78rem;resize:vertical;background:var(--g1);color:var(--az);outline:none;transition:border-color .2s"></textarea>
+      </div>
+
+      <div class="fg" style="margin-bottom:20px">
+        <label>Próxima calibración programada</label>
+        <input type="date" id="m-proxima" style="max-width:220px">
+      </div>
+
+      <div class="btns-row">
+        <button class="btn btn-p" id="btn-guardar" onclick="guardar()">💾 Registrar Calibración</button>
+        <button class="btn btn-o" onclick="limpiar()">🗑 Limpiar</button>
+        <button class="btn btn-o btn-sm" onclick="window.print()">🖨 Imprimir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MOD 1: HISTORIAL ══ -->
+<div class="mod" id="mod-historial">
+  <div class="card">
+    <div class="ch">
+      <h2>📋 Historial de Calibraciones</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-o btn-sm" onclick="cargarHistorial()">🔄 Actualizar</button>
+        <button class="btn btn-o btn-sm" onclick="exportCSV()">📊 CSV</button>
+      </div>
+    </div>
+    <div class="cb">
+      <!-- Filtros -->
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <select id="filtro-result" onchange="renderHistorial()" style="padding:7px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-family:'Montserrat',sans-serif;font-size:.72rem;background:var(--g1);color:var(--az);outline:none">
+          <option value="">— Todos los resultados —</option>
+          <option value="APROBADO">✅ Aprobado</option>
+          <option value="ADVERTENCIA">⚠️ Advertencia</option>
+          <option value="RECHAZADO">❌ Rechazado</option>
+        </select>
+        <select id="filtro-equipo" onchange="renderHistorial()" style="padding:7px 12px;border:1.5px solid var(--g2);border-radius:var(--rs);font-family:'Montserrat',sans-serif;font-size:.72rem;background:var(--g1);color:var(--az);outline:none">
+          <option value="">— Todos los equipos —</option>
+        </select>
+      </div>
+      <div class="htbl-wrap" id="hist-wrap"><p class="empty">Cargando historial...</p></div>
+      <div style="margin-top:14px;padding:12px;background:var(--g1);border-radius:var(--rs);font-size:.7rem;color:var(--g3)" id="hist-resumen"></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<div class="toast" id="toast"><span id="t-i"></span><span id="t-m"></span></div>
+
+<script>
+// ══ CONFIG ══
+const API = 'https://script.google.com/macros/s/AKfycbzMZue8V0bvWnuQJvtH3w7YrBEK43jo9iFtXrTQ8efT-V6AYD6aDAcz0aborrdekV9ohQ/exec';
+
+// Tolerancias
+const TOL_OK   = 0.05; // ± aceptable
+const TOL_WARN = 0.10; // ± advertencia (entre 0.05 y 0.10)
+// > 0.10 = RECHAZADO
+
+const BUFFERS = [
+  {id:'b4',  ref:4.01,  nombre:'pH 4.01',  color:'#dc2626'},
+  {id:'b7',  ref:7.01,  nombre:'pH 7.01',  color:'#2563eb'},
+  {id:'b10', ref:10.01, nombre:'pH 10.01', color:'#7c3aed'},
+];
+
+let historialData = [];
+
+// ══ HELPERS ══
+function hoy(){ const n=new Date(),z=x=>String(x).padStart(2,'0'); return `${n.getFullYear()}-${z(n.getMonth()+1)}-${z(n.getDate())}`; }
+function ahoraHora(){ const n=new Date(),z=x=>String(x).padStart(2,'0'); return `${z(n.getHours())}:${z(n.getMinutes())}`; }
+function fmt(f){ if(!f)return'—'; const p=String(f).slice(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:f; }
+function addDias(f,d){ const dt=new Date(f+'T12:00:00'); dt.setDate(dt.getDate()+d); return dt.toISOString().slice(0,10); }
+
+// ══ SYNC UI ══
+function setSyncUI(e,t){ document.getElementById('sync-dot').className='sync-dot '+e; document.getElementById('sync-txt').textContent=t; }
+function showLoad(t='Guardando...'){ document.getElementById('load-txt').textContent=t; document.getElementById('loading').classList.add('show'); }
+function hideLoad(){ document.getElementById('loading').classList.remove('show'); }
+
+// ══ API ══
+async function api(data){
+  setSyncUI('carg','Sincronizando...');
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify(data),headers:{'Content-Type':'text/plain'}});
+    const j=await r.json();
+    if(j.ok){ setSyncUI('ok','Sincronizado ✓'); return j; }
+    setSyncUI('err','Error'); throw new Error(j.error||'Error en servidor');
+  }catch(e){ setSyncUI('err','Sin conexión'); throw e; }
+}
+
+// ══ NAV ══
+function ir(idx,btn){
+  document.querySelectorAll('.mod').forEach((m,i)=>m.classList.toggle('on',i===idx));
+  document.querySelectorAll('.nav-a').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(idx===1) cargarHistorial();
+}
+
+// ══ INIT ══
+function init(){
+  document.getElementById('m-fecha').value=hoy();
+  document.getElementById('m-hora').value=ahoraHora();
+  // Próxima calibración sugerida: 30 días
+  document.getElementById('m-proxima').value=addDias(hoy(),30);
+  setSyncUI('ok','Listo');
+}
+
+// ══ EVALUAR BUFFER EN TIEMPO REAL ══
+function evaluarBuffer(bid, ref, lecturaStr){
+  const lectura = parseFloat(lecturaStr);
+  const errorEl  = document.getElementById(bid+'-error');
+  const estadoEl = document.getElementById(bid+'-estado');
+  const barEl    = document.getElementById(bid+'-bar');
+  const cardEl   = document.getElementById('card-'+bid);
+  const tipEl    = document.getElementById(bid+'-tip');
+  const inputEl  = document.getElementById(bid+'-lect');
+
+  if(isNaN(lectura)||lecturaStr===''||lecturaStr===null){
+    errorEl.value='—';
+    estadoEl.className='buf-estado vacio'; estadoEl.textContent='⏳ Pendiente de lectura';
+    barEl.style.width='0%'; barEl.style.background='var(--g2)';
+    cardEl.className='buf-card';
+    tipEl.className='err-tip'; tipEl.textContent='';
+    inputEl.className='';
+    actualizarResumen(); return;
+  }
+
+  if(lectura<0||lectura>14){
+    toast('⚠️','El pH debe estar entre 0 y 14'); return;
+  }
+
+  const error = lectura - ref;
+  const absErr = Math.abs(error);
+  const signo  = error>=0?'+':'';
+  errorEl.value = signo+error.toFixed(3)+' pH';
+
+  // Barra de desviación (0% = -0.10, 50% = 0.00, 100% = +0.10)
+  const pct = Math.min(100, Math.max(0, ((error+0.10)/0.20)*100));
+  barEl.style.width = pct+'%';
+
+  // Determinar estado
+  let cls, txt, color, cardCls, inputCls, tipTxt='';
+  if(absErr<=TOL_OK){
+    cls='aprobado'; txt='✅ APROBADO — Error dentro de tolerancia (±0.05)';
+    color='var(--vr)'; cardCls='buf-card estado-ok'; inputCls='ok';
+  } else if(absErr<=TOL_WARN){
+    cls='advertencia'; txt=`⚠️ ADVERTENCIA — Error fuera del óptimo (±0.05–0.10)`;
+    color='var(--am)'; cardCls='buf-card estado-warn'; inputCls='warn';
+    tipTxt=`💡 Sugerencia: Limpiar electrodo con agua destilada y repetir lectura`;
+  } else {
+    cls='rechazado'; txt=`❌ RECHAZADO — Error excede ±0.10 pH`;
+    color='var(--rj)'; cardCls='buf-card estado-err'; inputCls='err';
+    tipTxt=`🔧 Acción requerida: Limpiar electrodo, verificar solución buffer y recalibrar. Si persiste, revisar electrodo o reemplazar.`;
+  }
+
+  barEl.style.background=color;
+  estadoEl.className='buf-estado '+cls; estadoEl.textContent=txt;
+  cardEl.className=cardCls; inputEl.className=inputCls;
+  if(tipTxt){ tipEl.className='err-tip show'; tipEl.textContent=tipTxt; }
+  else{ tipEl.className='err-tip'; tipEl.textContent=''; }
+
+  actualizarResumen();
+}
+
+// ══ ACTUALIZAR RESUMEN ══
+function actualizarResumen(){
+  const resultados={};
+  BUFFERS.forEach(b=>{
+    const lect=parseFloat(document.getElementById(b.id+'-lect').value);
+    if(isNaN(lect)){ resultados[b.id]=null; return; }
+    const absErr=Math.abs(lect-b.ref);
+    resultados[b.id]={
+      lect,
+      err:lect-b.ref,
+      absErr,
+      estado: absErr<=TOL_OK?'APROBADO': absErr<=TOL_WARN?'ADVERTENCIA':'RECHAZADO'
+    };
+  });
+
+  // Actualizar cards resumen
+  BUFFERS.forEach(b=>{
+    const r=resultados[b.id];
+    const el=document.getElementById('res-'+b.id);
+    if(!r){
+      el.className='res-card pend';
+      el.querySelector('.res-val').textContent='—';
+      el.querySelector('.res-err').textContent='Pendiente';
+      return;
+    }
+    const cls=r.estado==='APROBADO'?'ok':r.estado==='ADVERTENCIA'?'warn':'err';
+    el.className='res-card '+cls;
+    el.querySelector('.res-val').textContent=r.lect.toFixed(2);
+    const signo=r.err>=0?'+':'';
+    el.querySelector('.res-err').textContent=`Δ ${signo}${r.err.toFixed(3)}`;
+  });
+
+  // Resultado final
+  const vals=Object.values(resultados);
+  const completo=vals.every(v=>v!==null);
+  const rfEl=document.getElementById('resultado-final');
+
+  if(!completo){
+    const faltantes=vals.filter(v=>v===null).length;
+    rfEl.className='resultado-final pendiente';
+    rfEl.innerHTML=`<div class="rf-ico">⏳</div><div class="rf-txt"><h3>Faltan ${faltantes} lectura(s)</h3><p>Complete los 3 buffers para obtener el resultado final</p></div>`;
+    return;
+  }
+
+  const tieneRechazado=vals.some(v=>v.estado==='RECHAZADO');
+  const tieneAdvertencia=vals.some(v=>v.estado==='ADVERTENCIA');
+  const maxErr=Math.max(...vals.map(v=>v.absErr));
+
+  let estado, cls, ico, txt, sub;
+  if(tieneRechazado){
+    estado='RECHAZADO'; cls='rechazado'; ico='❌';
+    txt='Calibración RECHAZADA — Equipo fuera de especificación';
+    sub='Error superior a ±0.10 pH en uno o más buffers. No usar el equipo. Limpiar electrodo y recalibrar.';
+  } else if(tieneAdvertencia){
+    estado='ADVERTENCIA'; cls='advertencia'; ico='⚠️';
+    txt='Calibración con ADVERTENCIA — Requiere revisión';
+    sub='Error entre ±0.05 y ±0.10 pH. El equipo puede usarse con precaución. Se recomienda revisión del electrodo.';
+  } else {
+    estado='APROBADO'; cls='aprobado'; ico='✅';
+    txt='Calibración APROBADA — Equipo dentro de especificación';
+    sub=`Error máximo: ±${maxErr.toFixed(3)} pH. El equipo está calibrado correctamente y apto para uso.`;
+  }
+
+  rfEl.className='resultado-final '+cls;
+  rfEl.innerHTML=`<div class="rf-ico">${ico}</div><div class="rf-txt"><h3>${txt}</h3><p>${sub}</p></div>`;
+}
+
+// ══ ACTUALIZAR TEMP ══
+function actualizarTemp(){
+  const t=parseFloat(document.getElementById('m-temp').value);
+  if(isNaN(t)) return;
+  // A temperaturas distintas de 25°C los buffers varían ligeramente
+  const corrB4  = +(4.01 + (t-25)*0.001).toFixed(3);
+  const corrB7  = +(7.01 + (t-25)*(-0.0012)).toFixed(3);
+  const corrB10 = +(10.01+ (t-25)*(-0.0033)).toFixed(3);
+  document.getElementById('b4-ref').value  = corrB4;
+  document.getElementById('b7-ref').value  = corrB7;
+  document.getElementById('b10-ref').value = corrB10;
+  // Re-evaluar si ya hay lecturas
+  ['b4','b7','b10'].forEach((bid,i)=>{
+    const refs=[corrB4,corrB7,corrB10];
+    const v=document.getElementById(bid+'-lect').value;
+    if(v) evaluarBuffer(bid,refs[i],v);
+  });
+  toast('🌡️',`Valores de referencia ajustados a ${t}°C`);
+}
+
+// ══ GUARDAR ══
+async function guardar(){
+  const fecha=document.getElementById('m-fecha').value;
+  const hora=document.getElementById('m-hora').value;
+  const operario=document.getElementById('m-op').value.trim();
+  const equipo=document.getElementById('m-equipo').value.trim();
+
+  if(!fecha||!hora){ toast('⚠️','Complete fecha y hora'); return; }
+  if(!operario)     { toast('⚠️','Ingrese el operario responsable'); return; }
+  if(!equipo)       { toast('⚠️','Ingrese el código del pH-metro'); return; }
+
+  const lecturas={};
+  for(const b of BUFFERS){
+    const v=parseFloat(document.getElementById(b.id+'-lect').value);
+    if(isNaN(v)){ toast('⚠️',`Falta la lectura del buffer ${b.nombre}`); return; }
+    lecturas[b.id]={lectura:v, ref:parseFloat(document.getElementById(b.id+'-ref').value), error:+(v-parseFloat(document.getElementById(b.id+'-ref').value)).toFixed(4)};
+  }
+
+  // Estado final
+  const maxErr=Math.max(...Object.values(lecturas).map(l=>Math.abs(l.error)));
+  const estadoFinal=maxErr<=TOL_OK?'APROBADO':maxErr<=TOL_WARN?'ADVERTENCIA':'RECHAZADO';
+
+  const reg={
+    fecha, hora, operario, equipo,
+    modelo:   document.getElementById('m-modelo').value.trim(),
+    serie:    document.getElementById('m-serie').value.trim(),
+    temp:     document.getElementById('m-temp').value||'25',
+    loteBuf:  document.getElementById('m-lote-buf').value.trim(),
+    vencBuf:  document.getElementById('m-venc-buf').value,
+    lect4:    lecturas.b4.lectura, ref4:lecturas.b4.ref, err4:lecturas.b4.error,
+    lect7:    lecturas.b7.lectura, ref7:lecturas.b7.ref, err7:lecturas.b7.error,
+    lect10:   lecturas.b10.lectura,ref10:lecturas.b10.ref,err10:lecturas.b10.error,
+    resultado: estadoFinal,
+    maxError:  maxErr.toFixed(4),
+    proxCalib: document.getElementById('m-proxima').value,
+    obs:       document.getElementById('m-obs').value.trim(),
+    timestamp: new Date().toISOString()
+  };
+
+  const ico=estadoFinal==='APROBADO'?'✅':estadoFinal==='ADVERTENCIA'?'⚠️':'❌';
+  const btn=document.getElementById('btn-guardar'); btn.disabled=true;
+  showLoad('Guardando calibración en Google Sheets...');
+
+  try{
+    await api({action:'guardarCalibracion', registro:reg});
+    toast(ico,`Calibración ${estadoFinal} — Guardada correctamente`);
+    historialData.unshift(reg);
+    limpiar();
+  }catch(e){
+    toast('❌','Error al guardar: '+e.message);
+  }finally{
+    btn.disabled=false; hideLoad();
+  }
+}
+
+// ══ LIMPIAR ══
+function limpiar(){
+  ['m-op','m-equipo','m-modelo','m-serie','m-lote-buf','m-obs'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
+  document.getElementById('m-fecha').value=hoy();
+  document.getElementById('m-hora').value=ahoraHora();
+  document.getElementById('m-temp').value='';
+  document.getElementById('m-venc-buf').value='';
+  document.getElementById('m-proxima').value=addDias(hoy(),30);
+  // Reset refs
+  document.getElementById('b4-ref').value='4.01';
+  document.getElementById('b7-ref').value='7.01';
+  document.getElementById('b10-ref').value='10.01';
+  // Reset buffers
+  BUFFERS.forEach(b=>{
+    document.getElementById(b.id+'-lect').value='';
+    document.getElementById(b.id+'-error').value='';
+    document.getElementById(b.id+'-lect').className='';
+    document.getElementById(b.id+'-estado').className='buf-estado vacio';
+    document.getElementById(b.id+'-estado').textContent='⏳ Pendiente de lectura';
+    document.getElementById(b.id+'-bar').style.width='0%';
+    document.getElementById(b.id+'-bar').style.background='var(--g2)';
+    document.getElementById('card-'+b.id).className='buf-card';
+    document.getElementById(b.id+'-tip').className='err-tip';
+  });
+  actualizarResumen();
+}
+
+// ══ CARGAR HISTORIAL ══
+async function cargarHistorial(){
+  document.getElementById('hist-wrap').innerHTML='<p class="empty">Cargando...</p>';
+  try{
+    const r=await api({action:'obtenerCalibraciones'});
+    historialData=(r.calibraciones||[]);
+    poblarFiltroEquipos();
+    renderHistorial();
+  }catch(e){
+    document.getElementById('hist-wrap').innerHTML='<p class="empty">❌ Error al cargar historial</p>';
+    toast('❌','Error: '+e.message);
+  }
+}
+
+function poblarFiltroEquipos(){
+  const equipos=[...new Set(historialData.map(r=>r.equipo).filter(Boolean))];
+  const sel=document.getElementById('filtro-equipo');
+  sel.innerHTML='<option value="">— Todos los equipos —</option>'+equipos.map(e=>`<option value="${e}">${e}</option>`).join('');
+}
+
+function renderHistorial(){
+  const filtR=document.getElementById('filtro-result').value;
+  const filtE=document.getElementById('filtro-equipo').value;
+  let data=historialData;
+  if(filtR) data=data.filter(r=>r.resultado===filtR);
+  if(filtE) data=data.filter(r=>r.equipo===filtE);
+
+  if(!data.length){ document.getElementById('hist-wrap').innerHTML='<p class="empty">Sin registros</p>'; document.getElementById('hist-resumen').textContent=''; return; }
+
+  const aprobados=data.filter(r=>r.resultado==='APROBADO').length;
+  const advertencias=data.filter(r=>r.resultado==='ADVERTENCIA').length;
+  const rechazados=data.filter(r=>r.resultado==='RECHAZADO').length;
+  document.getElementById('hist-resumen').innerHTML=`<strong>Resumen:</strong> ${data.length} calibraciones — ✅ ${aprobados} aprobadas · ⚠️ ${advertencias} advertencias · ❌ ${rechazados} rechazadas`;
+
+  let h=`<table class="htbl"><thead><tr>
+    <th>Fecha</th><th>Hora</th><th>Operario</th><th>Equipo</th><th>Temp.</th>
+    <th>Buffer 4.01</th><th>Buffer 7.01</th><th>Buffer 10.01</th>
+    <th>Error máx.</th><th>Resultado</th><th>Próx. Calib.</th>
+  </tr></thead><tbody>`;
+
+  data.forEach(r=>{
+    const bc=r.resultado==='APROBADO'?'b-vr':r.resultado==='ADVERTENCIA'?'b-am':'b-rj';
+    const fmtErr=(e)=>{
+      if(!e&&e!==0) return '—';
+      const n=parseFloat(e); if(isNaN(n)) return '—';
+      const abs=Math.abs(n);
+      const color=abs<=0.05?'var(--vr)':abs<=0.10?'var(--am)':'var(--rj)';
+      return `<span style="color:${color};font-weight:700">${(n>=0?'+':'')+n.toFixed(3)}</span>`;
+    };
+    h+=`<tr>
+      <td>${fmt(r.fecha)}</td>
+      <td>${r.hora||'—'}</td>
+      <td style="font-family:'Montserrat',sans-serif;font-weight:600;font-size:.68rem;white-space:normal">${r.operario||'—'}</td>
+      <td style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:.68rem">${r.equipo||'—'}</td>
+      <td>${r.temp||'25'}°C</td>
+      <td>${r.lect4||'—'} ${fmtErr(r.err4)}</td>
+      <td>${r.lect7||'—'} ${fmtErr(r.err7)}</td>
+      <td>${r.lect10||'—'} ${fmtErr(r.err10)}</td>
+      <td style="font-weight:700">${r.maxError?'±'+parseFloat(r.maxError).toFixed(3):'—'}</td>
+      <td><span class="badge ${bc}">${r.resultado||'—'}</span></td>
+      <td>${fmt(r.proxCalib)}</td>
+    </tr>`;
+  });
+  h+='</tbody></table>';
+  document.getElementById('hist-wrap').innerHTML=h;
+}
+
+// ══ EXPORT CSV ══
+function exportCSV(){
+  let csv='Fecha,Hora,Operario,Equipo,Modelo,N°Serie,Temp(°C),Lote Buffer,Venc.Buffer,Lect.4.01,Ref.4.01,Err.4.01,Lect.7.01,Ref.7.01,Err.7.01,Lect.10.01,Ref.10.01,Err.10.01,Error Máx.,Resultado,Próx.Calibración,Observaciones\n';
+  historialData.forEach(r=>{
+    csv+=`"${r.fecha}","${r.hora||''}","${r.operario||''}","${r.equipo||''}","${r.modelo||''}","${r.serie||''}","${r.temp||''}","${r.loteBuf||''}","${r.vencBuf||''}","${r.lect4||''}","${r.ref4||''}","${r.err4||''}","${r.lect7||''}","${r.ref7||''}","${r.err7||''}","${r.lect10||''}","${r.ref10||''}","${r.err10||''}","${r.maxError||''}","${r.resultado||''}","${r.proxCalib||''}","${(r.obs||'').replace(/"/g,"'")}"\n`;
+  });
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url;
+  a.download=`OZAS_Calibracion_pHmetro_${hoy()}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('📊','CSV exportado');
+}
+
+// ══ TOAST ══
+function toast(ico,msg){
+  document.getElementById('t-i').textContent=ico;
+  document.getElementById('t-m').textContent=msg;
+  const t=document.getElementById('toast'); t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),4000);
+}
+
+// ══ INIT ══
+init();
+</script>
+</body>
+</html>
