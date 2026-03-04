@@ -39,14 +39,14 @@ main{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
 /* ── BANNER ── */
 .banner{border-radius:var(--r);padding:14px 22px;margin-bottom:22px;display:flex;align-items:center;gap:14px;font-weight:700;font-size:1rem;letter-spacing:1px;transition:all .3s;border:2px solid transparent}
 .banner.neutro   {background:var(--gris1);border-color:var(--gris2);color:#6b7c9a}
-.banner.aprobado {background:var(--verde-bg);border-color:var(--verde);color:#0a6630}
-.banner.rechazado{background:var(--rojo-bg);border-color:var(--rojo);color:var(--rojo)}
+.banner.aproba {background:var(--verde-bg);border-color:var(--verde);color:#0a6630}
+.banner.rechaza{background:var(--rojo-bg);border-color:var(--rojo);color:var(--rojo)}
 .banner.revision {background:var(--amarillo-bg);border-color:var(--amarillo);color:#7c5200}
-.dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;animation:pulso 2s infinite}
-.neutro   .dot{background:#6b7c9a;animation:none}
-.aprobado .dot{background:var(--verde)}
-.rechazado .dot{background:var(--rojo)}
-.revision .dot{background:var(--amarillo)}
+.t{width:14px;height:14px;border-radius:50%;flex-shrink:0;animation:pulso 2s infinite}
+.neutro   .t{background:#6b7c9a;animation:none}
+.aproba .t{background:var(--verde)}
+.rechaza .t{background:var(--rojo)}
+.revision .t{background:var(--amarillo)}
 @keyframes pulso{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.7}}
 
 /* ── GRID ── */
@@ -653,5 +653,33 @@ function toast(ico,msg){
 renderTabla();
 dibujarGrafica('cloro');
 </script>
+  function guardarCalibracion(data) {
+  let h = SS.getSheetByName('Calibraciones');
+  if (!h) {
+    h = SS.insertSheet('Calibraciones');
+    h.appendRow(['Fecha','Hora','Operario','Equipo','Modelo','Serie','Temp','LoteBuf','VencBuf',
+                 'Lect4','Ref4','Err4','Lect7','Ref7','Err7','Lect10','Ref10','Err10',
+                 'MaxError','Resultado','ProxCalib','Observaciones','Timestamp']);
+  }
+  const r = data.registro;
+  h.appendRow([r.fecha,r.hora,r.operario,r.equipo,r.modelo,r.serie,r.temp,r.loteBuf,r.vencBuf,
+               r.lect4,r.ref4,r.err4,r.lect7,r.ref7,r.err7,r.lect10,r.ref10,r.err10,
+               r.maxError,r.resultado,r.proxCalib,r.obs,r.timestamp]);
+}
+
+function obtenerCalibraciones() {
+  const h = SS.getSheetByName('Calibraciones');
+  if (!h || h.getLastRow() <= 1)
+    return ContentService.createTextOutput(JSON.stringify({ok:true,calibraciones:[]}))
+           .setMimeType(ContentService.MimeType.JSON);
+  const cols = ['fecha','hora','operario','equipo','modelo','serie','temp','loteBuf','vencBuf',
+                'lect4','ref4','err4','lect7','ref7','err7','lect10','ref10','err10',
+                'maxError','resultado','proxCalib','obs','timestamp'];
+  const calibraciones = h.getDataRange().getValues().slice(1)
+    .map(r => { const o={}; cols.forEach((c,i)=>o[c]=r[i]); return o; })
+    .reverse();
+  return ContentService.createTextOutput(JSON.stringify({ok:true,calibraciones}))
+         .setMimeType(ContentService.MimeType.JSON);
+}
 </body>
 </html>
