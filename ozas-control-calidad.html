@@ -19,7 +19,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Montserrat',sans-serif;background:linear-gradient(135deg,#e8f4ff,#f5faff 60%,#d0eeff);min-height:100vh;color:var(--azul)}
 
-/* ── HEADER ── */
+/* HEADER */
 header{background:var(--azul);position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(10,35,66,.25)}
 .hi{max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
 .brand{display:flex;align-items:center;gap:14px}
@@ -33,23 +33,37 @@ header{background:var(--azul);position:sticky;top:0;z-index:100;box-shadow:0 2px
 .mf input{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:6px 10px;color:#fff;font-family:'DM Mono',monospace;font-size:.78rem;outline:none;width:185px}
 .mf input:focus{border-color:var(--azul3);background:rgba(255,255,255,.15)}
 
-/* ── MAIN ── */
+/* SYNC BAR */
+.sync-bar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(255,255,255,.08);border-radius:20px;font-size:.65rem;color:rgba(255,255,255,.7);font-weight:600}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#6b7c9a;flex-shrink:0;transition:background .3s}
+.sync-dot.ok{background:var(--verde)}
+.sync-dot.carg{background:var(--amarillo);animation:parpadeo 1s infinite}
+.sync-dot.err{background:var(--rojo)}
+@keyframes parpadeo{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:rgba(10,35,66,.7);z-index:900;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.loading-overlay.show{display:flex}
+.spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,.2);border-top-color:var(--azul3);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{color:#fff;font-size:.85rem;font-weight:600;letter-spacing:1px}
+
 main{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
 
-/* ── BANNER ── */
+/* BANNER */
 .banner{border-radius:var(--r);padding:14px 22px;margin-bottom:22px;display:flex;align-items:center;gap:14px;font-weight:700;font-size:1rem;letter-spacing:1px;transition:all .3s;border:2px solid transparent}
 .banner.neutro   {background:var(--gris1);border-color:var(--gris2);color:#6b7c9a}
-.banner.aproba {background:var(--verde-bg);border-color:var(--verde);color:#0a6630}
-.banner.rechaza{background:var(--rojo-bg);border-color:var(--rojo);color:var(--rojo)}
+.banner.aprobado {background:var(--verde-bg);border-color:var(--verde);color:#0a6630}
+.banner.rechazado{background:var(--rojo-bg);border-color:var(--rojo);color:var(--rojo)}
 .banner.revision {background:var(--amarillo-bg);border-color:var(--amarillo);color:#7c5200}
-.t{width:14px;height:14px;border-radius:50%;flex-shrink:0;animation:pulso 2s infinite}
-.neutro   .t{background:#6b7c9a;animation:none}
-.aproba .t{background:var(--verde)}
-.rechaza .t{background:var(--rojo)}
-.revision .t{background:var(--amarillo)}
+.dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;animation:pulso 2s infinite}
+.neutro   .dot{background:#6b7c9a;animation:none}
+.aprobado .dot{background:var(--verde)}
+.rechazado .dot{background:var(--rojo)}
+.revision .dot{background:var(--amarillo)}
 @keyframes pulso{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.7}}
 
-/* ── GRID ── */
+/* GRID */
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:14px}
 @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:540px){.grid{grid-template-columns:1fr}}
@@ -60,7 +74,7 @@ main{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
 .ch h3{color:#fff;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;line-height:1.35}
 .cb{padding:14px;display:flex;flex-direction:column;gap:11px}
 
-/* ── PARAMS ── */
+/* PARAMS */
 .pg{display:flex;flex-direction:column;gap:4px}
 .pl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#6b7c9a;display:flex;justify-content:space-between;align-items:center}
 .pl .rng{font-weight:400;color:#a0b4c8;font-style:italic;font-size:.57rem}
@@ -73,14 +87,15 @@ main{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
 .pu{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.55rem;color:#a0b4c8;font-weight:600;pointer-events:none}
 .pi{position:absolute;right:28px;top:50%;transform:translateY(-50%);font-size:.72rem;pointer-events:none;display:none;font-weight:900}
 
-/* ── NOTA ── */
+/* NOTA */
 .nota{font-size:.67rem;color:#7c5200;background:var(--amarillo-bg);border:1px solid #f0c060;border-radius:8px;padding:9px 14px;margin-bottom:18px;font-weight:600;line-height:1.6}
 
-/* ── BOTONES ── */
+/* BOTONES */
 .acciones{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px}
 .btn{padding:11px 20px;border-radius:var(--rs);border:none;font-family:'Montserrat',sans-serif;font-weight:700;font-size:.78rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-p{background:linear-gradient(135deg,var(--azul2),var(--azul3));color:#fff;box-shadow:0 4px 14px rgba(13,110,253,.3)}
-.btn-p:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(13,110,253,.4)}
+.btn-p:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(13,110,253,.4)}
 .btn-o{background:var(--blanco);color:var(--azul);border:1.5px solid var(--gris2)}
 .btn-o:hover{border-color:var(--azul2);color:var(--azul2)}
 .btn-g{background:var(--blanco);color:#0a6630;border:1.5px solid #b2e8c8}
@@ -91,7 +106,7 @@ main{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
 .btn-d:hover{background:var(--rojo-bg)}
 @media(max-width:540px){.acciones{flex-direction:column}.btn{width:100%;justify-content:center}}
 
-/* ── GRÁFICAS ── */
+/* GRÁFICAS */
 .gsec{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra);border:1.5px solid var(--gris2);margin-bottom:24px;overflow:hidden}
 .ghdr{background:var(--azul);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .ghdr h2{color:#fff;font-size:.82rem;font-weight:700;letter-spacing:2px;text-transform:uppercase}
@@ -101,7 +116,7 @@ main{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
 .gbody{padding:20px}
 .cwrap{position:relative;height:290px}
 
-/* ── HISTORIAL ── */
+/* HISTORIAL */
 .hsec{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra);border:1.5px solid var(--gris2);overflow:hidden}
 .hhdr{background:var(--azul);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .hhdr h2{color:#fff;font-size:.82rem;font-weight:700;letter-spacing:2px;text-transform:uppercase}
@@ -124,15 +139,15 @@ tbody td{padding:8px 11px;color:var(--azul);font-family:'DM Mono',monospace;whit
 .vacío{text-align:center;padding:48px 24px;color:#a0b4c8}
 .vacío .ico{font-size:2.5rem;margin-bottom:8px}
 
-/* ── TOAST ── */
+/* TOAST */
 .toast{position:fixed;bottom:24px;right:24px;background:var(--azul);color:#fff;padding:13px 20px;border-radius:var(--rs);font-size:.8rem;font-weight:600;box-shadow:0 8px 24px rgba(10,35,66,.25);transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);z-index:999;display:flex;align-items:center;gap:10px}
 .toast.show{transform:translateY(0);opacity:1}
 
-/* ── PRINT ── */
+/* PRINT */
 @media print{
   body{background:#fff!important}
   header{position:relative!important;box-shadow:none!important}
-  .acciones,.toast,.tabs,.pdf-aviso{display:none!important}
+  .acciones,.toast,.tabs,.pdf-aviso,.loading-overlay{display:none!important}
   .gsec,.hsec,.card{box-shadow:none!important;page-break-inside:avoid}
   main{padding:10px!important}
   .cwrap{height:220px!important}
@@ -142,7 +157,11 @@ tbody td{padding:8px 11px;color:var(--azul);font-family:'DM Mono',monospace;whit
 </head>
 <body>
 
-<!-- HEADER -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-txt" id="loading-txt">Sincronizando con Google Sheets...</div>
+</div>
+
 <header>
   <div class="hi">
     <div class="brand">
@@ -151,6 +170,10 @@ tbody td{padding:8px 11px;color:var(--azul);font-family:'DM Mono',monospace;whit
         <h1>OZ<span>À</span>S</h1>
         <p>Control de Calidad · Agua Alcalina sin Gas</p>
       </div>
+    </div>
+    <div class="sync-bar">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-txt">Conectando...</span>
     </div>
     <div class="hmeta">
       <div class="mf">
@@ -167,178 +190,149 @@ tbody td{padding:8px 11px;color:var(--azul);font-family:'DM Mono',monospace;whit
 
 <main>
 
-  <!-- BANNER DE ESTADO -->
   <div class="banner neutro" id="banner">
     <div class="dot"></div>
     <span id="banner-txt">Ingrese los parámetros para ver el estado del lote</span>
   </div>
 
-  <!-- ── 4 PUNTOS DE CONTROL ── -->
   <div class="grid">
 
-    <!-- P1: Ingreso Tanque Agua Cruda -->
+    <!-- P1 -->
     <div class="card">
       <div class="ch"><div class="cnum">1</div><h3>Ingreso Tanque<br>Agua Cruda</h3></div>
       <div class="cb">
         <div class="pg">
-          <div class="pl">Cloro Residual <span class="rng">0.5 – 2.5 mg/L (D.S.031-2010)</span></div>
+          <div class="pl">Cloro Residual <span class="rng">0.5–2.5 mg/L (D.S.031-2010)</span></div>
           <div class="pw">
-            <input type="number" step="0.01" min="0" placeholder="0.00"
-                   data-p="0" data-k="cloro" data-min="0.5" data-max="2.5"
-                   oninput="validar(this);estado()">
+            <input type="number" step="0.01" min="0" placeholder="0.00" data-p="0" data-k="cloro" data-min="0.5" data-max="2.5" oninput="validar(this);estado()">
             <span class="pu">mg/L</span><span class="pi" id="i0-cloro"></span>
           </div>
         </div>
         <div class="pg">
-          <div class="pl">pH <span class="rng">6.5 – 8.5 (D.S.031-2010)</span></div>
+          <div class="pl">pH <span class="rng">6.5–8.5 (D.S.031-2010)</span></div>
           <div class="pw">
-            <input type="number" step="0.01" min="0" placeholder="0.00"
-                   data-p="0" data-k="ph" data-min="6.5" data-max="8.5"
-                   oninput="validar(this);estado()">
+            <input type="number" step="0.01" min="0" placeholder="0.00" data-p="0" data-k="ph" data-min="6.5" data-max="8.5" oninput="validar(this);estado()">
             <span class="pu">pH</span><span class="pi" id="i0-ph"></span>
           </div>
         </div>
         <div class="pg">
           <div class="pl">TDS <span class="rng">máx 1000 · óptimo 20–30 mg/L</span></div>
           <div class="pw">
-            <input type="number" step="1" min="0" placeholder="0"
-                   data-p="0" data-k="tds"
-                   oninput="validarTDS(this);estado()">
+            <input type="number" step="1" min="0" placeholder="0" data-p="0" data-k="tds" oninput="validarTDS(this);estado()">
             <span class="pu">mg/L</span><span class="pi" id="i0-tds"></span>
           </div>
         </div>
         <div class="pg">
           <div class="pl">CE <span class="rng">máx 1500 µmho/cm</span></div>
           <div class="pw">
-            <input type="number" step="0.1" min="0" placeholder="0.0"
-                   data-p="0" data-k="ce"
-                   oninput="validarCE(this);estado()">
+            <input type="number" step="0.1" min="0" placeholder="0.0" data-p="0" data-k="ce" oninput="validarCE(this);estado()">
             <span class="pu">µmho/cm</span><span class="pi" id="i0-ce"></span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- P2: Salida Ósmosis -->
+    <!-- P2 -->
     <div class="card">
       <div class="ch"><div class="cnum">2</div><h3>Salida de<br>Ósmosis</h3></div>
       <div class="cb">
         <div class="pg">
-          <div class="pl">pH <span class="rng">5.8 – 6.4 (ligeramente ácido)</span></div>
+          <div class="pl">pH <span class="rng">5.8–6.4 (ligeramente ácido)</span></div>
           <div class="pw">
-            <input type="number" step="0.01" min="0" placeholder="0.00"
-                   data-p="1" data-k="ph" data-min="5.8" data-max="6.4"
-                   oninput="validar(this);estado()">
+            <input type="number" step="0.01" min="0" placeholder="0.00" data-p="1" data-k="ph" data-min="5.8" data-max="6.4" oninput="validar(this);estado()">
             <span class="pu">pH</span><span class="pi" id="i1-ph"></span>
           </div>
         </div>
         <div class="pg">
           <div class="pl">TDS <span class="rng">máx 1000 · óptimo 20–30 mg/L</span></div>
           <div class="pw">
-            <input type="number" step="1" min="0" placeholder="0"
-                   data-p="1" data-k="tds"
-                   oninput="validarTDS(this);estado()">
+            <input type="number" step="1" min="0" placeholder="0" data-p="1" data-k="tds" oninput="validarTDS(this);estado()">
             <span class="pu">mg/L</span><span class="pi" id="i1-tds"></span>
           </div>
         </div>
         <div class="pg">
           <div class="pl">CE <span class="rng">máx 1500 µmho/cm</span></div>
           <div class="pw">
-            <input type="number" step="0.1" min="0" placeholder="0.0"
-                   data-p="1" data-k="ce"
-                   oninput="validarCE(this);estado()">
+            <input type="number" step="0.1" min="0" placeholder="0.0" data-p="1" data-k="ce" oninput="validarCE(this);estado()">
             <span class="pu">µmho/cm</span><span class="pi" id="i1-ce"></span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- P3: Salida Calcita -->
+    <!-- P3 -->
     <div class="card">
       <div class="ch"><div class="cnum">3</div><h3>Salida de<br>Calcita</h3></div>
       <div class="cb">
         <div class="pg">
-          <div class="pl">pH <span class="rng">8.0 – 8.5 ★ óptimo</span></div>
+          <div class="pl">pH <span class="rng">8.0–8.5 ★ óptimo</span></div>
           <div class="pw">
-            <input type="number" step="0.01" min="0" placeholder="0.00"
-                   data-p="2" data-k="ph" data-min="8.0" data-max="8.5"
-                   oninput="validar(this);estado()">
+            <input type="number" step="0.01" min="0" placeholder="0.00" data-p="2" data-k="ph" data-min="8.0" data-max="8.5" oninput="validar(this);estado()">
             <span class="pu">pH</span><span class="pi" id="i2-ph"></span>
           </div>
         </div>
         <div class="pg">
           <div class="pl">TDS <span class="rng">máx 1000 · óptimo 20–30 mg/L</span></div>
           <div class="pw">
-            <input type="number" step="1" min="0" placeholder="0"
-                   data-p="2" data-k="tds"
-                   oninput="validarTDS(this);estado()">
+            <input type="number" step="1" min="0" placeholder="0" data-p="2" data-k="tds" oninput="validarTDS(this);estado()">
             <span class="pu">mg/L</span><span class="pi" id="i2-tds"></span>
           </div>
         </div>
         <div class="pg">
           <div class="pl">CE <span class="rng">máx 1500 µmho/cm</span></div>
           <div class="pw">
-            <input type="number" step="0.1" min="0" placeholder="0.0"
-                   data-p="2" data-k="ce"
-                   oninput="validarCE(this);estado()">
+            <input type="number" step="0.1" min="0" placeholder="0.0" data-p="2" data-k="ce" oninput="validarCE(this);estado()">
             <span class="pu">µmho/cm</span><span class="pi" id="i2-ce"></span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- P4: Salida Tanque Producto -->
+    <!-- P4 -->
     <div class="card">
       <div class="ch"><div class="cnum">4</div><h3>Salida Tanque<br>Agua Producto</h3></div>
       <div class="cb">
         <div class="pg">
-          <div class="pl">pH <span class="rng">8.0 – 8.5 ★ óptimo</span></div>
+          <div class="pl">pH <span class="rng">8.0–8.5 ★ óptimo</span></div>
           <div class="pw">
-            <input type="number" step="0.01" min="0" placeholder="0.00"
-                   data-p="3" data-k="ph" data-min="8.0" data-max="8.5"
-                   oninput="validar(this);estado()">
+            <input type="number" step="0.01" min="0" placeholder="0.00" data-p="3" data-k="ph" data-min="8.0" data-max="8.5" oninput="validar(this);estado()">
             <span class="pu">pH</span><span class="pi" id="i3-ph"></span>
           </div>
         </div>
         <div class="pg">
           <div class="pl">TDS <span class="rng">máx 1000 · óptimo 20–30 mg/L</span></div>
           <div class="pw">
-            <input type="number" step="1" min="0" placeholder="0"
-                   data-p="3" data-k="tds"
-                   oninput="validarTDS(this);estado()">
+            <input type="number" step="1" min="0" placeholder="0" data-p="3" data-k="tds" oninput="validarTDS(this);estado()">
             <span class="pu">mg/L</span><span class="pi" id="i3-tds"></span>
           </div>
         </div>
         <div class="pg">
           <div class="pl">CE <span class="rng">máx 1500 µmho/cm</span></div>
           <div class="pw">
-            <input type="number" step="0.1" min="0" placeholder="0.0"
-                   data-p="3" data-k="ce"
-                   oninput="validarCE(this);estado()">
+            <input type="number" step="0.1" min="0" placeholder="0.0" data-p="3" data-k="ce" oninput="validarCE(this);estado()">
             <span class="pu">µmho/cm</span><span class="pi" id="i3-ce"></span>
           </div>
         </div>
       </div>
     </div>
 
-  </div><!-- /grid -->
+  </div>
 
   <p class="nota">
     ★ <strong>pH óptimo OZÀS (P3 y P4): 8.0–8.5</strong> &nbsp;|&nbsp;
     P1 D.S.031-2010-SA: Cloro <strong>0.5–2.5 mg/L</strong>, pH <strong>6.5–8.5</strong> &nbsp;|&nbsp;
     P2 pH ósmosis: <strong>5.8–6.4</strong> (ligeramente ácido) &nbsp;|&nbsp;
-    TDS: máx <strong>1000 mg/L</strong>, rango óptimo <strong>20–30 mg/L</strong> (★ dorado) &nbsp;|&nbsp;
-    CE: máx <strong>1500 µmho/cm</strong> &nbsp;|&nbsp;
-    Cloro solo se mide en el Punto 1
+    TDS: máx <strong>1000 mg/L</strong>, óptimo <strong>20–30 mg/L</strong> (★ dorado) &nbsp;|&nbsp;
+    CE: máx <strong>1500 µmho/cm</strong>
   </p>
 
-  <!-- BOTONES -->
   <div class="acciones">
-    <button class="btn btn-p"   onclick="guardar()">💾 Guardar Registro</button>
-    <button class="btn btn-o"   onclick="exportCSV()">📊 Exportar CSV</button>
+    <button class="btn btn-p" id="btn-guardar" onclick="guardar()">💾 Guardar Registro</button>
+    <button class="btn btn-o" onclick="cargarHistorial()">🔄 Actualizar</button>
+    <button class="btn btn-o" onclick="exportCSV()">📊 Exportar CSV</button>
     <button class="btn btn-pdf" onclick="exportPDF()">📄 Exportar PDF</button>
-    <button class="btn btn-g"   onclick="window.print()">🖨 Imprimir</button>
-    <button class="btn btn-d"   onclick="limpiar()">🗑 Limpiar Formulario</button>
+    <button class="btn btn-g"  onclick="window.print()">🖨 Imprimir</button>
+    <button class="btn btn-d"  onclick="limpiar()">🗑 Limpiar</button>
   </div>
 
   <!-- GRÁFICAS -->
@@ -352,9 +346,7 @@ tbody td{padding:8px 11px;color:var(--azul);font-family:'DM Mono',monospace;whit
         <button class="tab"        onclick="cambiarTab('ce',this)">CE</button>
       </div>
     </div>
-    <div class="gbody">
-      <div class="cwrap"><canvas id="grafica"></canvas></div>
-    </div>
+    <div class="gbody"><div class="cwrap"><canvas id="grafica"></canvas></div></div>
   </div>
 
   <!-- HISTORIAL -->
@@ -368,158 +360,196 @@ tbody td{padding:8px 11px;color:var(--azul);font-family:'DM Mono',monospace;whit
 
 </main>
 
-<div class="toast" id="toast">
-  <span id="t-ico">✅</span><span id="t-msg"></span>
-</div>
+<div class="toast" id="toast"><span id="t-ico">✅</span><span id="t-msg"></span></div>
 
 <script>
-// ══ CONSTANTES ══
+// ══ CONFIG ══
+const API = 'https://script.google.com/macros/s/AKfycbzMZue8V0bvWnuQJvtH3w7YrBEK43jo9iFtXrTQ8efT-V6AYD6aDAcz0aborrdekV9ohQ/exec';
 const PUNTOS  = ['Ingreso Tanque Crudo','Salida Ósmosis','Salida Calcita','Salida Tanque Producto'];
 const COLORES = ['#0d6efd','#38b6ff','#1db954','#f59e0b'];
-const TDS_MAX = 1000, TDS_OPT_MIN = 20, TDS_OPT_MAX = 30, CE_MAX = 1500;
+const TDS_MAX=1000, TDS_OPT_MIN=20, TDS_OPT_MAX=30, CE_MAX=1500;
+
+let historial = [];
+let tabActual = 'cloro';
+let chart = null;
+
+// ══ SYNC UI ══
+function setSyncUI(estado, txt){
+  document.getElementById('sync-dot').className='sync-dot '+estado;
+  document.getElementById('sync-txt').textContent=txt;
+}
+function showLoad(txt='Sincronizando...'){
+  document.getElementById('loading-txt').textContent=txt;
+  document.getElementById('loading').classList.add('show');
+}
+function hideLoad(){ document.getElementById('loading').classList.remove('show'); }
+
+// ══ API ══
+async function api(data){
+  setSyncUI('carg','Sincronizando...');
+  try{
+    const res = await fetch(API,{method:'POST',body:JSON.stringify(data),headers:{'Content-Type':'text/plain'}});
+    const json = await res.json();
+    if(json.ok){ setSyncUI('ok','Sincronizado ✓'); return json; }
+    else{ setSyncUI('err','Error'); throw new Error(json.error||'Error'); }
+  }catch(e){ setSyncUI('err','Sin conexión'); throw e; }
+}
 
 // ══ FECHA ══
 (function(){
   const n=new Date(), z=x=>String(x).padStart(2,'0');
-  document.getElementById('fecha-hora').value =
-    `${n.getFullYear()}-${z(n.getMonth()+1)}-${z(n.getDate())}T${z(n.getHours())}:${z(n.getMinutes())}`;
+  document.getElementById('fecha-hora').value=`${n.getFullYear()}-${z(n.getMonth()+1)}-${z(n.getDate())}T${z(n.getHours())}:${z(n.getMinutes())}`;
 })();
 
-// ══ HELPERS ICONO ══
-function setIcon(id, tipo) {
-  // tipo: 'ok' | 'mal' | 'opt' | 'vacio'
-  const el = document.getElementById(id);
-  if (!el) return;
-  if (tipo === 'vacio') { el.textContent=''; el.style.display='none'; return; }
-  el.style.display = 'block';
-  if (tipo === 'ok')  { el.textContent='✓'; el.style.color='var(--verde)'; }
-  if (tipo === 'mal') { el.textContent='✗'; el.style.color='var(--rojo)'; }
-  if (tipo === 'opt') { el.textContent='★'; el.style.color='var(--amarillo)'; }
+// ══ ICONO ══
+function setIcon(id,tipo){
+  const el=document.getElementById(id); if(!el)return;
+  if(tipo==='vacio'){el.textContent='';el.style.display='none';return;}
+  el.style.display='block';
+  if(tipo==='ok') {el.textContent='✓';el.style.color='var(--verde)';}
+  if(tipo==='mal'){el.textContent='✗';el.style.color='var(--rojo)';}
+  if(tipo==='opt'){el.textContent='★';el.style.color='var(--amarillo)';}
 }
 
 // ══ VALIDACIONES ══
-function validar(inp) {
-  const v=parseFloat(inp.value), mn=parseFloat(inp.dataset.min), mx=parseFloat(inp.dataset.max);
-  const p=inp.dataset.p, k=inp.dataset.k;
-  if (inp.value==='') { inp.className=''; setIcon('i'+p+'-'+k,'vacio'); return; }
-  const ok = v>=mn && v<=mx;
-  inp.className = ok ? 'ok' : 'mal';
-  setIcon('i'+p+'-'+k, ok ? 'ok' : 'mal');
+function validar(inp){
+  const v=parseFloat(inp.value),mn=parseFloat(inp.dataset.min),mx=parseFloat(inp.dataset.max);
+  const p=inp.dataset.p,k=inp.dataset.k;
+  if(inp.value===''){inp.className='';setIcon('i'+p+'-'+k,'vacio');return;}
+  const ok=v>=mn&&v<=mx;
+  inp.className=ok?'ok':'mal';
+  setIcon('i'+p+'-'+k,ok?'ok':'mal');
+}
+function validarTDS(inp){
+  const v=parseFloat(inp.value),p=inp.dataset.p;
+  if(inp.value===''){inp.className='';setIcon('i'+p+'-tds','vacio');return;}
+  if(v>TDS_MAX){inp.className='mal';setIcon('i'+p+'-tds','mal');}
+  else if(v>=TDS_OPT_MIN&&v<=TDS_OPT_MAX){inp.className='optimo';setIcon('i'+p+'-tds','opt');}
+  else{inp.className='ok';setIcon('i'+p+'-tds','ok');}
+}
+function validarCE(inp){
+  const v=parseFloat(inp.value),p=inp.dataset.p;
+  if(inp.value===''){inp.className='';setIcon('i'+p+'-ce','vacio');return;}
+  const ok=v<=CE_MAX; inp.className=ok?'ok':'mal'; setIcon('i'+p+'-ce',ok?'ok':'mal');
 }
 
-function validarTDS(inp) {
-  const v=parseFloat(inp.value), p=inp.dataset.p;
-  if (inp.value==='') { inp.className=''; setIcon('i'+p+'-tds','vacio'); return; }
-  if (v > TDS_MAX)              { inp.className='mal'; setIcon('i'+p+'-tds','mal'); }
-  else if (v>=TDS_OPT_MIN && v<=TDS_OPT_MAX) { inp.className='optimo'; setIcon('i'+p+'-tds','opt'); }
-  else                          { inp.className='ok';  setIcon('i'+p+'-tds','ok'); }
-}
-
-function validarCE(inp) {
-  const v=parseFloat(inp.value), p=inp.dataset.p;
-  if (inp.value==='') { inp.className=''; setIcon('i'+p+'-ce','vacio'); return; }
-  const ok = v <= CE_MAX;
-  inp.className = ok ? 'ok' : 'mal';
-  setIcon('i'+p+'-ce', ok ? 'ok' : 'mal');
-}
-
-// ══ ESTADO GENERAL ══
-function estado() {
-  const all = document.querySelectorAll('.cb input');
-  let total=0, mal=0, bien=0;
-  all.forEach(i => {
-    if (i.value !== '') {
-      total++;
-      if (i.classList.contains('mal'))    mal++;
-      if (i.classList.contains('ok') || i.classList.contains('optimo')) bien++;
-    }
-  });
-  const b=document.getElementById('banner'), t=document.getElementById('banner-txt');
-  if (total===0) { b.className='banner neutro'; t.textContent='Ingrese los parámetros para ver el estado del lote'; return; }
-  if (mal===0)   { b.className='banner aprobado';  t.textContent='✅ APROBADO — Todos los parámetros dentro del rango aceptable'; }
-  else if (bien===0) { b.className='banner rechazado'; t.textContent='🚫 RECHAZADO — Parámetros fuera de rango detectados'; }
-  else           { b.className='banner revision';  t.textContent='⚠️ EN REVISIÓN — Algunos parámetros fuera de rango'; }
+// ══ ESTADO BANNER ══
+function estado(){
+  const all=document.querySelectorAll('.cb input');
+  let total=0,mal=0,bien=0;
+  all.forEach(i=>{if(i.value!==''){total++;if(i.classList.contains('mal'))mal++;if(i.classList.contains('ok')||i.classList.contains('optimo'))bien++;}});
+  const b=document.getElementById('banner'),t=document.getElementById('banner-txt');
+  if(total===0){b.className='banner neutro';t.textContent='Ingrese los parámetros para ver el estado del lote';return;}
+  if(mal===0)  {b.className='banner aprobado';t.textContent='✅ APROBADO — Todos los parámetros dentro del rango aceptable';}
+  else if(bien===0){b.className='banner rechazado';t.textContent='🚫 RECHAZADO — Parámetros fuera de rango detectados';}
+  else         {b.className='banner revision';t.textContent='⚠️ EN REVISIÓN — Algunos parámetros fuera de rango';}
 }
 
 // ══ LEER FORM ══
-function leerForm() {
-  const g = (p,k) => { const el=document.querySelector(`[data-p="${p}"][data-k="${k}"]`); return el ? el.value : ''; };
-  return [0,1,2,3].map(p => ({ cloro:g(p,'cloro'), ph:g(p,'ph'), tds:g(p,'tds'), ce:g(p,'ce') }));
+function leerForm(){
+  const g=(p,k)=>{const el=document.querySelector(`[data-p="${p}"][data-k="${k}"]`);return el?el.value:'';};
+  return [0,1,2,3].map(p=>({cloro:g(p,'cloro'),ph:g(p,'ph'),tds:g(p,'tds'),ce:g(p,'ce')}));
 }
-
-function calcEstado() {
+function calcEstado(){
   const all=document.querySelectorAll('.cb input');
   let total=0,mal=0,bien=0;
-  all.forEach(i=>{ if(i.value!==''){total++;if(i.classList.contains('mal'))mal++;if(i.classList.contains('ok')||i.classList.contains('optimo'))bien++; }});
-  if(total===0) return '—';
-  if(mal===0)   return 'APROBADO';
-  if(bien===0)  return 'RECHAZADO';
-  return 'EN REVISIÓN';
+  all.forEach(i=>{if(i.value!==''){total++;if(i.classList.contains('mal'))mal++;if(i.classList.contains('ok')||i.classList.contains('optimo'))bien++;}});
+  if(total===0)return'—'; if(mal===0)return'APROBADO'; if(bien===0)return'RECHAZADO'; return'EN REVISIÓN';
 }
 
-// ══ GUARDAR ══
-function guardar() {
+// ══ GUARDAR → SHEETS ══
+async function guardar(){
   const op=document.getElementById('operario').value.trim();
   const fh=document.getElementById('fecha-hora').value;
-  if(!op){ toast('⚠️','Ingrese el nombre del operario'); return; }
-  if(!fh){ toast('⚠️','Ingrese la fecha y hora'); return; }
-  const reg={ id:Date.now(), fecha:fh, operario:op, datos:leerForm(), estado:calcEstado() };
-  const h=JSON.parse(localStorage.getItem('ozas_h')||'[]');
-  h.unshift(reg);
-  localStorage.setItem('ozas_h', JSON.stringify(h));
-  renderTabla();
-  dibujarGrafica(tabActual);
-  toast('✅','Registro guardado correctamente');
+  if(!op){toast('⚠️','Ingrese el nombre del operario');return;}
+  if(!fh){toast('⚠️','Ingrese la fecha y hora');return;}
+
+  const datos=leerForm();
+  const estReg=calcEstado();
+  const fecha=fh.slice(0,10);
+  const hora=fh.slice(11,16);
+  const d=datos;
+  const registro={
+    id:Date.now(), fecha, hora, operario:op,
+    p1cloro:d[0].cloro, p1ph:d[0].ph, p1tds:d[0].tds, p1ce:d[0].ce,
+    p2ph:d[1].ph,       p2tds:d[1].tds, p2ce:d[1].ce,
+    p3ph:d[2].ph,       p3tds:d[2].tds, p3ce:d[2].ce,
+    p4ph:d[3].ph,       p4tds:d[3].tds, p4ce:d[3].ce,
+    estado:estReg
+  };
+
+  const btn=document.getElementById('btn-guardar');
+  btn.disabled=true;
+  showLoad('Guardando en Google Sheets...');
+  try{
+    await api({action:'guardarControlCalidad', registro});
+    toast('✅','Registro guardado en Google Sheets');
+    limpiar();
+    await cargarHistorial();
+  }catch(e){ toast('❌','Error al guardar: '+e.message); }
+  finally{ btn.disabled=false; hideLoad(); }
 }
 
 // ══ LIMPIAR ══
-function limpiar() {
-  document.querySelectorAll('.cb input').forEach(i=>{ i.value=''; i.className=''; });
-  document.querySelectorAll('.pi').forEach(ic=>{ ic.textContent=''; ic.style.display='none'; });
+function limpiar(){
+  document.querySelectorAll('.cb input').forEach(i=>{i.value='';i.className='';});
+  document.querySelectorAll('.pi').forEach(ic=>{ic.textContent='';ic.style.display='none';});
   document.getElementById('operario').value='';
-  const n=new Date(), z=x=>String(x).padStart(2,'0');
+  const n=new Date(),z=x=>String(x).padStart(2,'0');
   document.getElementById('fecha-hora').value=`${n.getFullYear()}-${z(n.getMonth()+1)}-${z(n.getDate())}T${z(n.getHours())}:${z(n.getMinutes())}`;
   estado();
   toast('🗑','Formulario limpiado');
 }
 
-// ══ TABLA HISTORIAL ══
-function renderTabla() {
-  const h=JSON.parse(localStorage.getItem('ozas_h')||'[]');
-  document.getElementById('hcount').textContent=`${h.length} registro${h.length!==1?'s':''}`;
+// ══ CARGAR HISTORIAL DESDE SHEETS ══
+async function cargarHistorial(){
+  showLoad('Cargando historial desde Google Sheets...');
+  try{
+    const r=await api({action:'obtenerControlCalidad'});
+    // Convertir filas a formato interno
+    historial=(r.registros||[]).map(x=>({
+      id:x.id,
+      fecha:String(x.fecha).slice(0,10)+'T'+(x.hora||'00:00'),
+      operario:x.operario,
+      estado:x.estado,
+      datos:[
+        {cloro:String(x.p1cloro||''),ph:String(x.p1ph||''),tds:String(x.p1tds||''),ce:String(x.p1ce||'')},
+        {cloro:'',                   ph:String(x.p2ph||''),tds:String(x.p2tds||''),ce:String(x.p2ce||'')},
+        {cloro:'',                   ph:String(x.p3ph||''),tds:String(x.p3tds||''),ce:String(x.p3ce||'')},
+        {cloro:'',                   ph:String(x.p4ph||''),tds:String(x.p4tds||''),ce:String(x.p4ce||'')}
+      ]
+    }));
+    renderTabla();
+    dibujarGrafica(tabActual);
+  }catch(e){ toast('❌','Error al cargar: '+e.message); }
+  finally{ hideLoad(); }
+}
+
+// ══ TABLA ══
+function renderTabla(){
+  document.getElementById('hcount').textContent=`${historial.length} registro${historial.length!==1?'s':''}`;
   const wrap=document.getElementById('tabla');
-  if(!h.length){ wrap.innerHTML='<div class="vacío"><div class="ico">📭</div><p>Aún no hay registros guardados.</p></div>'; return; }
+  if(!historial.length){wrap.innerHTML='<div class="vacío"><div class="ico">📭</div><p>Aún no hay registros guardados.</p></div>';return;}
 
   let htm=`<table><thead><tr>
     <th>Fecha / Hora</th><th>Operario</th><th>Punto</th>
     <th>Cloro (mg/L)</th><th>pH</th><th>TDS (mg/L)</th><th>CE (µmho/cm)</th><th>Estado</th>
   </tr></thead><tbody>`;
 
-  h.forEach(reg => {
-    const bc = {'APROBADO':'b-ap','RECHAZADO':'b-re','EN REVISIÓN':'b-rv'}[reg.estado]||'';
-    reg.datos.forEach((d,i) => {
-      // Cloro (solo P1)
-      const tieneCloro = i===0;
-      const cVal = parseFloat(d.cloro);
-      const cOk  = tieneCloro && d.cloro!=='' && cVal>=0.5 && cVal<=2.5;
-      const cCls = tieneCloro && d.cloro!=='' ? (cOk?'v-ok':'v-mal') : '';
-
-      // pH
-      const phMin=[6.5,5.8,8.0,8.0][i], phMax=[8.5,6.4,8.5,8.5][i];
-      const pVal=parseFloat(d.ph), pOk=d.ph!==''&&pVal>=phMin&&pVal<=phMax;
+  historial.forEach(reg=>{
+    const bc={'APROBADO':'b-ap','RECHAZADO':'b-re','EN REVISIÓN':'b-rv'}[reg.estado]||'';
+    reg.datos.forEach((d,i)=>{
+      const tieneCloro=i===0;
+      const cVal=parseFloat(d.cloro),cOk=tieneCloro&&d.cloro!==''&&cVal>=0.5&&cVal<=2.5;
+      const cCls=tieneCloro&&d.cloro!==''?(cOk?'v-ok':'v-mal'):'';
+      const phMin=[6.5,5.8,8.0,8.0][i],phMax=[8.5,6.4,8.5,8.5][i];
+      const pVal=parseFloat(d.ph),pOk=d.ph!==''&&pVal>=phMin&&pVal<=phMax;
       const pCls=d.ph!==''?(pOk?'v-ok':'v-mal'):'';
-
-      // TDS
-      const tVal=parseFloat(d.tds);
-      const tOk=d.tds!==''&&tVal<=TDS_MAX;
-      const tOpt=tOk&&tVal>=TDS_OPT_MIN&&tVal<=TDS_OPT_MAX;
+      const tVal=parseFloat(d.tds),tOk=d.tds!==''&&tVal<=TDS_MAX,tOpt=tOk&&tVal>=TDS_OPT_MIN&&tVal<=TDS_OPT_MAX;
       const tCls=d.tds!==''?(tOpt?'v-opt':tOk?'v-ok':'v-mal'):'';
       const tTxt=d.tds!==''?(tOpt?d.tds+' ★':d.tds):'—';
-
-      // CE
-      const eVal=parseFloat(d.ce), eOk=d.ce!==''&&eVal<=CE_MAX;
+      const eVal=parseFloat(d.ce),eOk=d.ce!==''&&eVal<=CE_MAX;
       const eCls=d.ce!==''?(eOk?'v-ok':'v-mal'):'';
-
       htm+=`<tr>
         ${i===0?`<td rowspan="4" style="font-family:'DM Mono',monospace;font-size:.68rem;vertical-align:top;padding-top:10px">${reg.fecha.replace('T',' ')}</td>
                  <td rowspan="4" style="vertical-align:top;padding-top:10px;font-weight:600">${reg.operario}</td>`:''}
@@ -532,33 +562,24 @@ function renderTabla() {
       </tr>`;
     });
   });
-
   htm+='</tbody></table>';
   wrap.innerHTML=htm;
 }
 
 // ══ GRÁFICA ══
-let chart=null, tabActual='cloro';
-
-function dibujarGrafica(tipo) {
-  const h=JSON.parse(localStorage.getItem('ozas_h')||'[]');
-  const labels=h.map(r=>r.fecha.slice(0,16).replace('T',' ')).reverse();
+function dibujarGrafica(tipo){
+  const labels=historial.map(r=>r.fecha.slice(0,16).replace('T',' ')).reverse();
   const ds=[];
-
-  // Series de datos por punto
-  const puntosAMostrar = tipo==='cloro' ? [0] : [0,1,2,3];
+  const puntosAMostrar=tipo==='cloro'?[0]:[0,1,2,3];
   puntosAMostrar.forEach(p=>{
-    if(tipo==='cloro' && p!==0) return; // solo P1 tiene cloro
-    const vals=h.map(r=>{
-      const v = tipo==='cloro'?r.datos[p].cloro : tipo==='ph'?r.datos[p].ph : tipo==='tds'?r.datos[p].tds : r.datos[p].ce;
-      return v!==''?parseFloat(v):null;
+    if(tipo==='cloro'&&p!==0)return;
+    const vals=historial.map(r=>{
+      const v=tipo==='cloro'?r.datos[p].cloro:tipo==='ph'?r.datos[p].ph:tipo==='tds'?r.datos[p].tds:r.datos[p].ce;
+      return v!==''&&v!==undefined?parseFloat(v):null;
     }).reverse();
-    ds.push({ label:PUNTOS[p], data:vals, borderColor:COLORES[p], backgroundColor:COLORES[p]+'28',
-      pointBackgroundColor:COLORES[p], borderWidth:2.5, pointRadius:5, pointHoverRadius:7,
-      tension:0.38, fill:false, spanGaps:true });
+    ds.push({label:PUNTOS[p],data:vals,borderColor:COLORES[p],backgroundColor:COLORES[p]+'28',
+      pointBackgroundColor:COLORES[p],borderWidth:2.5,pointRadius:5,pointHoverRadius:7,tension:0.38,fill:false,spanGaps:true});
   });
-
-  // Líneas de referencia
   if(labels.length>0){
     if(tipo==='cloro'){
       ds.push({label:'Mín (0.5)',data:labels.map(()=>0.5),borderColor:'#1db95488',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false});
@@ -580,14 +601,13 @@ function dibujarGrafica(tipo) {
       ds.push({label:'Límite máx (1500)',data:labels.map(()=>1500),borderColor:'#e0202088',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false});
     }
   }
-
-  if(chart) chart.destroy();
+  if(chart)chart.destroy();
   const ctx=document.getElementById('grafica').getContext('2d');
   const unidad={cloro:'mg/L',ph:'Unidades pH',tds:'mg/L',ce:'µmho/cm'};
   chart=new Chart(ctx,{
-    type:'line', data:{labels,datasets:ds},
+    type:'line',data:{labels,datasets:ds},
     options:{
-      responsive:true, maintainAspectRatio:false,
+      responsive:true,maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
       plugins:{
         legend:{position:'bottom',labels:{font:{family:'Montserrat',size:10},padding:14,usePointStyle:true}},
@@ -609,14 +629,16 @@ function cambiarTab(tipo,btn){
   dibujarGrafica(tipo);
 }
 
-// ══ EXPORTAR CSV ══
+// ══ EXPORT CSV ══
 function exportCSV(){
-  const h=JSON.parse(localStorage.getItem('ozas_h')||'[]');
-  if(!h.length){ toast('⚠️','No hay registros para exportar'); return; }
-  let csv='Fecha,Operario,Punto de Control,Cloro Residual (mg/L),pH,TDS (mg/L),CE (µmho/cm),Estado\n';
-  h.forEach(r=>r.datos.forEach((d,i)=>{
-    csv+=`"${r.fecha}","${r.operario}","${PUNTOS[i]}","${i===0?d.cloro:'N/A'}","${d.ph}","${d.tds}","${d.ce}","${r.estado}"\n`;
-  }));
+  if(!historial.length){toast('⚠️','No hay registros para exportar');return;}
+  let csv='Fecha,Hora,Operario,Punto de Control,Cloro Residual (mg/L),pH,TDS (mg/L),CE (µmho/cm),Estado\n';
+  historial.forEach(r=>{
+    const fecha=r.fecha.slice(0,10), hora=r.fecha.slice(11,16);
+    r.datos.forEach((d,i)=>{
+      csv+=`"${fecha}","${hora}","${r.operario}","${PUNTOS[i]}","${i===0?d.cloro:'N/A'}","${d.ph}","${d.tds}","${d.ce}","${r.estado}"\n`;
+    });
+  });
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -625,7 +647,7 @@ function exportCSV(){
   toast('📊','CSV exportado correctamente');
 }
 
-// ══ EXPORTAR PDF ══
+// ══ EXPORT PDF ══
 function exportPDF(){
   const orig=document.title;
   document.title=`OZAS_ControlCalidad_${new Date().toISOString().slice(0,10)}`;
@@ -634,52 +656,20 @@ function exportPDF(){
   aviso.style.cssText='position:fixed;top:0;left:0;right:0;background:#0d6efd;color:#fff;text-align:center;padding:11px;font-size:.8rem;font-weight:700;z-index:9999;font-family:sans-serif';
   aviso.innerHTML='📄 En el diálogo que se abrirá, elige <strong>"Guardar como PDF"</strong> como destino.';
   document.body.prepend(aviso);
-  setTimeout(()=>{
-    window.print();
-    setTimeout(()=>{ document.title=orig; aviso.remove(); },600);
-  },250);
+  setTimeout(()=>{ window.print(); setTimeout(()=>{document.title=orig;aviso.remove();},600); },250);
 }
 
 // ══ TOAST ══
 function toast(ico,msg){
   document.getElementById('t-ico').textContent=ico;
   document.getElementById('t-msg').textContent=msg;
-  const t=document.getElementById('toast');
-  t.classList.add('show');
+  const t=document.getElementById('toast'); t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),3200);
 }
 
 // ══ INICIO ══
-renderTabla();
-dibujarGrafica('cloro');
+cargarHistorial();
+setInterval(cargarHistorial, 60000);
 </script>
-  function guardarCalibracion(data) {
-  let h = SS.getSheetByName('Calibraciones');
-  if (!h) {
-    h = SS.insertSheet('Calibraciones');
-    h.appendRow(['Fecha','Hora','Operario','Equipo','Modelo','Serie','Temp','LoteBuf','VencBuf',
-                 'Lect4','Ref4','Err4','Lect7','Ref7','Err7','Lect10','Ref10','Err10',
-                 'MaxError','Resultado','ProxCalib','Observaciones','Timestamp']);
-  }
-  const r = data.registro;
-  h.appendRow([r.fecha,r.hora,r.operario,r.equipo,r.modelo,r.serie,r.temp,r.loteBuf,r.vencBuf,
-               r.lect4,r.ref4,r.err4,r.lect7,r.ref7,r.err7,r.lect10,r.ref10,r.err10,
-               r.maxError,r.resultado,r.proxCalib,r.obs,r.timestamp]);
-}
-
-function obtenerCalibraciones() {
-  const h = SS.getSheetByName('Calibraciones');
-  if (!h || h.getLastRow() <= 1)
-    return ContentService.createTextOutput(JSON.stringify({ok:true,calibraciones:[]}))
-           .setMimeType(ContentService.MimeType.JSON);
-  const cols = ['fecha','hora','operario','equipo','modelo','serie','temp','loteBuf','vencBuf',
-                'lect4','ref4','err4','lect7','ref7','err7','lect10','ref10','err10',
-                'maxError','resultado','proxCalib','obs','timestamp'];
-  const calibraciones = h.getDataRange().getValues().slice(1)
-    .map(r => { const o={}; cols.forEach((c,i)=>o[c]=r[i]); return o; })
-    .reverse();
-  return ContentService.createTextOutput(JSON.stringify({ok:true,calibraciones}))
-         .setMimeType(ContentService.MimeType.JSON);
-}
 </body>
 </html>
