@@ -646,9 +646,27 @@ function calcInv(){
       }
     });
 
-  // 5. Stock total
+  // 5. Stock total — nunca negativo
   PRODS.forEach(p=>{
     inv[p].stock=inv[p].lotes.reduce((s,l)=>s+Math.max(0,l.cant),0);
+  });
+
+  // 6. Ajuste extra: si hay más salidas que lotes registrados,
+  // calcular desde movimientos puros (entrada - salida) y usar el menor
+  PRODS.forEach(p=>{
+    const totalEntradas = cache.movs
+      .filter(m=>(m.tipo==='Producción'||m.tipo==='Entrada') && resolverProd(m.prod)===p)
+      .reduce((s,m)=>s+m.cant,0);
+    const totalSalidas = cache.movs
+      .filter(m=>(m.tipo==='Boleta'||m.tipo==='Ajuste -') && resolverProd(m.prod)===p)
+      .reduce((s,m)=>s+m.cant,0);
+    const stockMovs = Math.max(0, totalEntradas - totalSalidas);
+    // Usar el menor entre FIFO y movimientos simples para no sobreestimar
+    inv[p].stock = Math.min(inv[p].stock, stockMovs);
+    // Si stock por movimientos es 0, también limpiar lotes
+    if(stockMovs === 0){
+      inv[p].lotes.forEach(l=>{ l.cant=0; });
+    }
   });
 
   return inv;
