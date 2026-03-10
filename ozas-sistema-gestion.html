@@ -588,7 +588,7 @@ async function cargarTodo(){
     cache.bols = (r.bols||[]).map(b=>({
       ...b, fecha:String(b.fecha).slice(0,10),
       total:parseFloat(b.total)||0,
-      historico: b.historico==='SI'||b.historico===true||b.historico==='true' ? 'SI' : 'NO',
+      historico: ['SI','TRUE','true','1',1,true].includes(b.historico)||String(b.historico||'').toUpperCase().trim()==='SI' ? 'SI' : 'NO',
       items:(b.items||[]).map(it=>({...it,cant:parseInt(it.cant)||0,precio:parseFloat(it.precio)||0}))
     }));
     renderTodo();
@@ -1521,7 +1521,7 @@ function limpiarHistorico(){
 }
 
 function renderHistHistorial(){
-  const bols=cache.bols.filter(b=>b.historico==='SI'||b.historico===true);
+  const bols=cache.bols.filter(b=>b.historico==='SI');
   const wrap=document.getElementById('hist-hist');
   if(!wrap) return;
   if(!bols.length){ wrap.innerHTML='<p class="empty">Sin boletas históricas registradas</p>'; return; }
