@@ -427,9 +427,10 @@ table.htbl td{padding:8px 11px;color:var(--az);font-family:'DM Mono',monospace;w
         </div>
 
         <!-- Cabecera tabla -->
-        <div style="display:grid;grid-template-columns:2fr 80px 80px 100px 100px 90px auto;gap:6px;padding:8px 12px;background:var(--az);border-radius:8px 8px 0 0;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.7)">
+        <div style="display:grid;grid-template-columns:2fr 90px 80px 80px 100px 100px 90px auto;gap:6px;padding:8px 12px;background:var(--az);border-radius:8px 8px 0 0;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.7)">
           <span>Producto</span>
-          <span>Cantidad</span>
+          <span>Tipo</span>
+          <span>Cant.</span>
           <span>Precio S/</span>
           <span>F. Producción</span>
           <span>F. Vencimiento</span>
@@ -1285,7 +1286,7 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{ m.addEventListener('cli
 let histRows = [];
 
 function addHistRow(){
-  histRows.push({prod:PRODS[0], cant:1, precio:0, fprod:'', fvenc:''});
+  histRows.push({prod:PRODS[0], tipo:'unidad', cant:1, precio:0, fprod:'', fvenc:''});
   renderHistRows();
 }
 
@@ -1299,15 +1300,35 @@ function removeHistRow(i){
 function renderHistRows(){
   const wrap = document.getElementById('h-rows');
   if(!wrap) return;
-  wrap.innerHTML = histRows.map((r,i)=>`
-    <div style="display:grid;grid-template-columns:2fr 80px 80px 100px 100px 90px auto;gap:6px;padding:9px 12px;border-bottom:1px solid var(--g2);align-items:center;background:${i%2===0?'var(--w)':'var(--g1)'}">
-      <select onchange="histRows[${i}].prod=this.value"
+  wrap.innerHTML = histRows.map((r,i)=>{
+    const pack = PACKS[r.prod];
+    const tam  = pack ? pack.tam : 1;
+    // Selector tipo unidad/pack solo si el producto tiene pack
+    const tipoSel = pack
+      ? `<select onchange="histRows[${i}].tipo=this.value;histRows[${i}].cant=1;renderHistRows()"
+                 style="padding:5px 6px;border:1.5px solid var(--g2);border-radius:6px;font-size:.65rem;background:var(--w);width:100%">
+           <option value="unidad"${r.tipo==='unidad'?' selected':''}>Unidad</option>
+           <option value="pack"${r.tipo==='pack'?' selected':''}>📦 ${pack.label}</option>
+         </select>`
+      : `<span style="font-size:.65rem;color:var(--g3);padding:4px 2px">Unidad</span>`;
+
+    // Hint unidades equivalentes si es pack
+    const uds = r.tipo==='pack' ? (r.cant||0)*tam : (r.cant||0);
+    const hint = r.tipo==='pack'
+      ? `<div style="font-size:.58rem;color:var(--az2);font-weight:700;margin-top:2px">= ${uds} uds</div>` : '';
+
+    return `<div style="display:grid;grid-template-columns:2fr 90px 80px 80px 100px 100px 90px auto;gap:6px;padding:9px 12px;border-bottom:1px solid var(--g2);align-items:start;background:${i%2===0?'var(--w)':'var(--g1)'}">
+      <select onchange="histRows[${i}].prod=this.value;histRows[${i}].tipo='unidad';histRows[${i}].cant=1;renderHistRows()"
               style="padding:7px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:.72rem;background:var(--w);color:var(--az)">
         ${PRODS.map(p=>`<option value="${p}"${r.prod===p?' selected':''}>${p}</option>`).join('')}
       </select>
-      <input type="number" min="1" value="${r.cant||1}" placeholder="0"
-             style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;text-align:center;width:100%"
-             oninput="histRows[${i}].cant=parseInt(this.value)||0;calcHistTotal()">
+      <div>${tipoSel}</div>
+      <div>
+        <input type="number" min="1" value="${r.cant||1}" placeholder="0"
+               style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;text-align:center;width:100%"
+               oninput="histRows[${i}].cant=parseInt(this.value)||0;calcHistTotal()">
+        ${hint}
+      </div>
       <input type="number" min="0" step="0.01" value="${r.precio||''}" placeholder="0.00"
              style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;text-align:right;width:100%"
              oninput="histRows[${i}].precio=parseFloat(this.value)||0;calcHistTotal()">
@@ -1317,21 +1338,25 @@ function renderHistRows(){
       <input type="date" value="${r.fvenc||''}"
              style="padding:6px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:.72rem;width:100%;background:var(--w)"
              onchange="histRows[${i}].fvenc=this.value">
-      <span style="font-family:'DM Mono',monospace;font-size:.78rem;font-weight:700;color:var(--az2);text-align:right" id="hsub-${i}">S/ 0.00</span>
+      <span style="font-family:'DM Mono',monospace;font-size:.78rem;font-weight:700;color:var(--az2);text-align:right;padding-top:7px" id="hsub-${i}">S/ 0.00</span>
       <button onclick="removeHistRow(${i})"
-              style="background:var(--rj2);border:1px solid var(--rj);color:var(--rj);border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:700;font-size:.8rem">✕</button>
-    </div>`
-  ).join('');
+              style="background:var(--rj2);border:1px solid var(--rj);color:var(--rj);border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:700;font-size:.8rem;margin-top:2px">✕</button>
+    </div>`;
+  }).join('');
   calcHistTotal();
 }
 
 function calcHistTotal(){
   let total=0;
   histRows.forEach((r,i)=>{
-    const sub=(r.cant||0)*(r.precio||0);
-    total+=sub;
+    const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
+    const sub = (r.cant||0) * tam * (r.precio||0);
+    // Precio es por unidad siempre; si es pack precio = precio por unidad
+    // Subtotal = cant * precio (precio ya sea por pack o por unidad)
+    const subReal = (r.cant||0) * (r.precio||0);
+    total += subReal;
     const el=document.getElementById('hsub-'+i);
-    if(el) el.textContent='S/ '+sub.toFixed(2);
+    if(el) el.textContent='S/ '+subReal.toFixed(2);
   });
   const el=document.getElementById('h-total');
   if(el) el.textContent='S/ '+total.toFixed(2);
@@ -1367,13 +1392,15 @@ async function registrarHistorico(){
 
   try{
     // ── 1. Agrupar producciones por (fprod + fvenc) ──
-    // Productos con mismo lote se agrupan en una sola producción
+    // Convertir packs a unidades reales antes de agrupar
     const loteMap={};
     histRows.forEach(r=>{
       if(!r.cant||r.cant<=0) return;
+      const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
+      const uds = r.cant * tam; // unidades reales
       const key=r.fprod+'|'+r.fvenc;
       if(!loteMap[key]) loteMap[key]={fprod:r.fprod,fvenc:r.fvenc,cantidades:{}};
-      loteMap[key].cantidades[r.prod]=(loteMap[key].cantidades[r.prod]||0)+r.cant;
+      loteMap[key].cantidades[r.prod]=(loteMap[key].cantidades[r.prod]||0)+uds;
     });
 
     // Registrar cada lote de producción
@@ -1399,11 +1426,15 @@ async function registrarHistorico(){
 
     // ── 3. Registrar boleta ──
     const total=histRows.reduce((s,r)=>s+(r.cant||0)*(r.precio||0),0);
-    const items=histRows.map(r=>({
-      prod:r.prod, cant:r.cant, precio:r.precio,
-      unidades:r.cant, tipoLabel:'Unidad',
-      fechaProd:r.fprod, fechaVenc:r.fvenc
-    }));
+    const items=histRows.map(r=>{
+      const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
+      const uds = r.cant * tam;
+      const tipoLabel = r.tipo==='pack' && PACKS[r.prod]
+        ? PACKS[r.prod].label+' ('+r.cant+' packs = '+uds+' uds)'
+        : 'Unidad';
+      return {prod:r.prod, cant:r.cant, precio:r.precio, unidades:uds, tipoLabel,
+              fechaProd:r.fprod, fechaVenc:r.fvenc};
+    });
     const boleta={
       num:numBoleta, fecha:bfecha, cliente:bcli, doc:bdoc,
       dir:document.getElementById('h-bdir').value.trim(),
@@ -1412,9 +1443,13 @@ async function registrarHistorico(){
     await api({action:'guardarBoleta',boleta});
     resultados.push('🧾 Boleta '+numBoleta+' generada · '+bcli+' · S/ '+total.toFixed(2));
 
-    // ── 4. Movimientos de salida ──
+    // ── 4. Movimientos de salida (en unidades reales) ──
     const resumen={};
-    histRows.forEach(r=>{ if(r.cant>0) resumen[r.prod]=(resumen[r.prod]||0)+r.cant; });
+    histRows.forEach(r=>{
+      if(!r.cant||r.cant<=0) return;
+      const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
+      resumen[r.prod]=(resumen[r.prod]||0)+(r.cant*tam);
+    });
     for(const [prod,cant] of Object.entries(resumen)){
       await api({action:'guardarMovimiento',movimiento:{
         fecha:bfecha, tipo:'Boleta', prod, cant,
@@ -1442,7 +1477,7 @@ function limpiarHistorico(){
   ['h-bfecha','h-bcli','h-bdoc','h-bdir','h-pop'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
-  histRows=[{prod:PRODS[0],cant:1,precio:0,fprod:'',fvenc:''}];
+  histRows=[{prod:PRODS[0],tipo:'unidad',cant:1,precio:0,fprod:'',fvenc:''}];
   renderHistRows();
   document.getElementById('h-resultado').style.display='none';
 }
