@@ -283,6 +283,20 @@ table.htbl td{padding:8px 11px;color:var(--az);font-family:'DM Mono',monospace;w
     </div>
     <div class="card-body"><div class="htbl-wrap"><div id="hist-prod"><p class="empty">Cargando...</p></div></div></div>
   </div>
+
+  <!-- CONSOLIDADO DE PRODUCCIÓN -->
+  <div class="card">
+    <div class="card-hdr">
+      <h2>📊 Consolidado de Producción</h2>
+      <button class="btn btn-o btn-sm" onclick="renderConsolidado()">🔄 Actualizar</button>
+    </div>
+    <div class="card-body">
+      <div style="font-size:.65rem;color:var(--g3);margin-bottom:14px;font-weight:600">
+        Total acumulado producido por producto — incluye producciones históricas y actuales.
+      </div>
+      <div id="consolidado-prod"><p class="empty">Cargando...</p></div>
+    </div>
+  </div>
 </div>
 
 <!-- INVENTARIO -->
@@ -493,6 +507,25 @@ const PACKS = {
   'Botella 1 L tapa sport':{ tam: 12, label: 'Pack x12' },
 };
 
+// Vida útil en meses por producto (para auto-calcular fecha vencimiento)
+const VIDA_UTIL = {
+  'Botella 625 ml':        6,
+  'Botella 1 L tapa rosca':6,
+  'Botella 1 L tapa sport':6,
+  'Bidón 8.7 L':           6,
+  'Caja Bag in Box 20 L':  6,
+  'Bidón 20 L con caño':   6,
+  'Bidón 20 L sin caño':   6,
+};
+
+function autoVenc(fprod, prod){
+  if(!fprod) return '';
+  const meses = VIDA_UTIL[prod] || 6;
+  const d = new Date(fprod + 'T12:00:00');
+  d.setMonth(d.getMonth() + meses);
+  return d.toISOString().slice(0,10);
+}
+
 // Cache local (para inventario calculado)
 let cache = { prod:[], movs:[], bols:[] };
 
@@ -555,6 +588,7 @@ async function cargarTodo(){
     cache.bols = (r.bols||[]).map(b=>({
       ...b, fecha:String(b.fecha).slice(0,10),
       total:parseFloat(b.total)||0,
+      historico: b.historico==='SI'||b.historico===true||b.historico==='true' ? 'SI' : 'NO',
       items:(b.items||[]).map(it=>({...it,cant:parseInt(it.cant)||0,precio:parseFloat(it.precio)||0}))
     }));
     renderTodo();
@@ -640,6 +674,7 @@ function renderTodo(){
   renderInv();
   renderHistInv();
   renderHistBol();
+  renderConsolidado();
   actualizarNumBoleta();
 }
 
@@ -1334,10 +1369,13 @@ function renderHistRows(){
              oninput="histRows[${i}].precio=parseFloat(this.value)||0;calcHistTotal()">
       <input type="date" value="${r.fprod||''}"
              style="padding:6px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:.72rem;width:100%;background:var(--w)"
-             onchange="histRows[${i}].fprod=this.value">
-      <input type="date" value="${r.fvenc||''}"
-             style="padding:6px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:.72rem;width:100%;background:var(--w)"
-             onchange="histRows[${i}].fvenc=this.value">
+             onchange="histRows[${i}].fprod=this.value;const av=autoVenc(this.value,histRows[${i}].prod);if(av&&!histRows[${i}].fvenc){histRows[${i}].fvenc=av;renderHistRows();}">
+      <div style="position:relative">
+        <input type="date" value="${r.fvenc||''}"
+               style="padding:6px 8px;border:1.5px solid ${r.fvenc?'var(--vr)':'var(--g2)'};border-radius:6px;font-size:.72rem;width:100%;background:${r.fvenc?'var(--vr2)':'var(--w)'}"
+               onchange="histRows[${i}].fvenc=this.value;renderHistRows()">
+        ${r.fvenc?'':'<span style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:.55rem;color:var(--g3);pointer-events:none">auto</span>'}
+      </div>
       <span style="font-family:'DM Mono',monospace;font-size:.78rem;font-weight:700;color:var(--az2);text-align:right;padding-top:7px" id="hsub-${i}">S/ 0.00</span>
       <button onclick="removeHistRow(${i})"
               style="background:var(--rj2);border:1px solid var(--rj);color:var(--rj);border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:700;font-size:.8rem;margin-top:2px">✕</button>
@@ -1503,6 +1541,65 @@ function renderHistHistorial(){
   });
   h+='</tbody></table>';
   wrap.innerHTML=h;
+}
+
+// ══ CONSOLIDADO DE PRODUCCIÓN ══
+function renderConsolidado(){
+  const wrap=document.getElementById('consolidado-prod');
+  if(!wrap) return;
+
+  // Sumar todo lo producido por producto desde movimientos tipo 'Producción'
+  const totales={};
+  PRODS.forEach(p=>{ totales[p]=0; });
+  cache.movs.forEach(m=>{
+    if(m.tipo==='Producción'&&totales.hasOwnProperty(normProd(m.prod))){
+      totales[normProd(m.prod)]=(totales[normProd(m.prod)]||0)+(parseInt(m.cant)||0);
+    }
+  });
+
+  // También desde registros de producción directamente (por si hay diferencias)
+  // (movs ya los captura, este es el camino correcto)
+
+  const totalUds = Object.values(totales).reduce((s,v)=>s+v,0);
+  if(totalUds===0){ wrap.innerHTML='<p class="empty">Sin producciones registradas</p>'; return; }
+
+  let html=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:18px">`;
+  PRODS.forEach(p=>{
+    const uds=totales[p]||0;
+    if(uds===0) return;
+    const pack=PACKS[p];
+    const packs=pack?Math.floor(uds/pack.tam):null;
+    const sueltas=pack?uds%pack.tam:null;
+    const pct=totalUds>0?Math.round(uds/totalUds*100):0;
+
+    html+=`<div style="background:var(--g1);border:1.5px solid var(--g2);border-radius:10px;padding:14px 16px">
+      <div style="font-size:.68rem;font-weight:700;color:var(--az);margin-bottom:6px;line-height:1.3">${p}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.3rem;font-weight:900;color:var(--az2)">${uds.toLocaleString()}</div>
+      <div style="font-size:.62rem;color:var(--g3);font-weight:600;margin-bottom:8px">unidades totales</div>
+      ${pack?`<div style="font-size:.68rem;font-weight:700;color:#7c5200;background:var(--am2);border-radius:6px;padding:4px 8px;display:inline-block;margin-bottom:8px">
+        📦 ${packs} ${pack.label} + ${sueltas} sueltas
+      </div>`:''}
+      <div style="background:var(--g2);border-radius:4px;height:6px;overflow:hidden">
+        <div style="background:var(--az2);height:100%;width:${pct}%;border-radius:4px;transition:width .4s"></div>
+      </div>
+      <div style="font-size:.58rem;color:var(--g3);margin-top:4px;text-align:right">${pct}% del total</div>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  // Tabla resumen total
+  html+=`<div style="background:linear-gradient(135deg,var(--az),#163a6e);border-radius:10px;padding:16px 20px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;opacity:.7">Total producido (todas las líneas)</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:900;margin-top:2px">${totalUds.toLocaleString()} <span style="font-size:.8rem;opacity:.8">unidades</span></div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;opacity:.7">Productos con producción</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:900;margin-top:2px">${Object.values(totales).filter(v=>v>0).length} <span style="font-size:.8rem;opacity:.8">tipos</span></div>
+    </div>
+  </div>`;
+
+  wrap.innerHTML=html;
 }
 
 </script>
