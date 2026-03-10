@@ -214,6 +214,7 @@ table.htbl td{padding:8px 11px;color:var(--az);font-family:'DM Mono',monospace;w
       <button class="ntab" onclick="ir(1,this)">🏭 Producción</button>
       <button class="ntab" onclick="ir(2,this)">📦 Inventario</button>
       <button class="ntab" onclick="ir(3,this)">🧾 Boletas</button>
+      <button class="ntab" onclick="ir(4,this)">📥 Carga Histórica</button>
     </nav>
   </div>
 </header>
@@ -308,10 +309,23 @@ table.htbl td{padding:8px 11px;color:var(--az);font-family:'DM Mono',monospace;w
 <!-- BOLETAS -->
 <div class="modulo" id="m3">
   <div class="card">
-    <div class="card-hdr"><h2>🧾 Nueva Boleta de Salida</h2></div>
+    <div class="card-hdr">
+      <h2>🧾 Nueva Boleta de Salida</h2>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.68rem;font-weight:700;color:rgba(255,255,255,.8);letter-spacing:1px;text-transform:uppercase;user-select:none">
+        <div style="position:relative;width:40px;height:22px;flex-shrink:0">
+          <input type="checkbox" id="modo-historico" onchange="toggleModoHistorico()" style="opacity:0;width:0;height:0;position:absolute">
+          <span id="toggle-track" style="position:absolute;inset:0;background:#555;border-radius:11px;transition:.3s;cursor:pointer"></span>
+          <span id="toggle-thumb" style="position:absolute;left:3px;top:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.3s"></span>
+        </div>
+        📅 Modo histórico
+      </label>
+    </div>
+    <div id="aviso-historico" style="display:none;background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:10px 16px;margin:0 22px 4px;font-size:.72rem;color:#7c5200;font-weight:600">
+      ⚠️ <strong>Modo histórico activado</strong> — Puedes ingresar boletas con fecha pasada. La validación de stock está desactivada. Úsalo solo para registrar ventas anteriores a la creación del sistema.
+    </div>
     <div class="card-body">
       <div class="form-grid">
-        <div class="fg"><label>N° Boleta</label><input type="text" id="b-num" readonly></div>
+        <div class="fg"><label>N° Boleta</label><input type="text" id="b-num"></div>
         <div class="fg"><label>Fecha de Emisión</label><input type="date" id="b-fecha"></div>
         <div class="fg"><label>Cliente</label><input type="text" id="b-cli" placeholder="Nombre completo"></div>
         <div class="fg"><label>RUC / DNI</label><input type="text" id="b-doc" placeholder="Número de documento"></div>
@@ -379,6 +393,101 @@ table.htbl td{padding:8px 11px;color:var(--az);font-family:'DM Mono',monospace;w
       </div>
     </div>
   </div>
+</div>
+
+<!-- CARGA HISTÓRICA -->
+<div class="modulo" id="m4">
+
+  <div class="card">
+    <div class="card-hdr"><h2>📥 Carga Histórica de Ventas</h2></div>
+    <div class="card-body">
+      <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:.74rem;color:#7c5200;font-weight:600;line-height:1.7">
+        ℹ️ <strong>¿Para qué sirve?</strong> Registra ventas que ocurrieron <em>antes</em> de crear el sistema.<br>
+        El sistema: <strong>1)</strong> Registra la producción necesaria → <strong>2)</strong> Genera la boleta con número automático → <strong>3)</strong> Descuenta del inventario. Todo en un solo paso.
+      </div>
+
+      <!-- PASO 1: PRODUCCIÓN -->
+      <div style="border:2px solid var(--az2);border-radius:12px;padding:18px;margin-bottom:20px">
+        <div style="font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:var(--az2);margin-bottom:14px">
+          🏭 Paso 1 — Producción asociada
+        </div>
+        <div style="background:#e8f4ff;border-radius:8px;padding:10px 14px;font-size:.7rem;color:var(--g3);margin-bottom:14px">
+          Si estos productos <strong>ya tienen producción registrada</strong> en el sistema, deja este paso vacío. Solo complétalo si la producción también es histórica y no fue registrada.
+        </div>
+        <div class="form-grid">
+          <div class="fg"><label>Fecha de Producción</label><input type="date" id="h-pfecha"></div>
+          <div class="fg"><label>Fecha de Vencimiento</label><input type="date" id="h-pvenc"></div>
+          <div class="fg"><label>Operario producción</label><input type="text" id="h-pop" placeholder="Nombre del operario"></div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:.78rem;margin-top:10px">
+          <thead>
+            <tr style="background:var(--g1)">
+              <th style="padding:8px 12px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);border-bottom:2px solid var(--g2)">Producto</th>
+              <th style="padding:8px 12px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);border-bottom:2px solid var(--g2)">Cantidad producida</th>
+              <th style="padding:8px 12px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);border-bottom:2px solid var(--g2)">Packs equivalentes</th>
+            </tr>
+          </thead>
+          <tbody id="h-prod-tbody"></tbody>
+        </table>
+        <div style="margin-top:10px;font-size:.65rem;color:var(--g3)">💡 Deja en 0 los productos que no se produjeron en este lote.</div>
+      </div>
+
+      <!-- PASO 2: BOLETA -->
+      <div style="border:2px solid var(--vr);border-radius:12px;padding:18px;margin-bottom:20px">
+        <div style="font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:var(--vr);margin-bottom:14px">
+          🧾 Paso 2 — Datos de la boleta
+        </div>
+        <div class="form-grid">
+          <div class="fg"><label>Fecha de la Venta</label><input type="date" id="h-bfecha"></div>
+          <div class="fg"><label>Cliente</label><input type="text" id="h-bcli" placeholder="Nombre del cliente"></div>
+          <div class="fg"><label>RUC / DNI</label><input type="text" id="h-bdoc" placeholder="Número de documento"></div>
+          <div class="fg"><label>Dirección (opcional)</label><input type="text" id="h-bdir" placeholder="Dirección"></div>
+        </div>
+        <div style="margin-top:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3)">Productos vendidos</span>
+            <button class="btn btn-o btn-sm" onclick="addHistRow()">➕ Agregar</button>
+          </div>
+          <div style="background:var(--g1);border-radius:8px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:0;background:var(--g2);padding:7px 12px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3)">
+              <span>Producto</span><span>Cantidad</span><span>Precio S/</span><span>Subtotal</span><span></span>
+            </div>
+            <div id="h-rows"></div>
+          </div>
+          <div style="text-align:right;margin-top:12px;padding:12px 16px;background:var(--az);color:#fff;border-radius:8px;font-size:1rem;font-weight:900;font-family:'DM Mono',monospace">
+            Total: <span id="h-total">S/ 0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTÓN REGISTRAR -->
+      <div class="btns-row">
+        <button class="btn btn-p" id="btn-hist" onclick="registrarHistorico()" style="font-size:.8rem;padding:13px 28px">
+          ⚡ Registrar Producción + Generar Boleta + Descontar Inventario
+        </button>
+        <button class="btn btn-o" onclick="limpiarHistorico()">🗑 Limpiar</button>
+      </div>
+
+      <!-- RESULTADO -->
+      <div id="h-resultado" style="display:none;margin-top:20px;background:var(--vr2);border:2px solid var(--vr);border-radius:12px;padding:18px">
+        <div style="font-size:.8rem;font-weight:900;color:#0a6630;margin-bottom:10px">✅ Registro completado exitosamente</div>
+        <div id="h-resultado-body" style="font-size:.74rem;color:#0a6630;line-height:2"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- HISTORIAL CARGAS -->
+  <div class="card">
+    <div class="card-hdr">
+      <h2>📋 Boletas Históricas Registradas</h2>
+      <button class="btn btn-o btn-sm" onclick="cargarTodo()">🔄 Actualizar</button>
+    </div>
+    <div class="card-body">
+      <div class="htbl-wrap" id="hist-hist"><p class="empty">Cargando...</p></div>
+    </div>
+  </div>
+
 </div>
 
 <div class="toast" id="toast"><span id="t-i"></span><span id="t-m"></span></div>
@@ -532,6 +641,12 @@ function ir(idx,btn){
   document.querySelectorAll('.modulo').forEach((m,i)=>m.classList.toggle('on',i===idx));
   document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
+  if(idx===4){
+    initHistProdTable();
+    if(!histRows.length){ histRows=[{prod:PRODS[0],cant:1,precio:0}]; }
+    renderHistRows();
+    renderHistHistorial();
+  }
 }
 
 // ══ RENDER TODO ══
@@ -826,6 +941,36 @@ async function registrarAjuste(){
 function abrirAjuste(){ document.getElementById('modal-ajuste').classList.add('open'); }
 
 // ══ BOLETAS ══
+// ══ MODO HISTÓRICO ══
+let modoHistorico = false;
+
+function toggleModoHistorico(){
+  modoHistorico = document.getElementById('modo-historico').checked;
+  const track = document.getElementById('toggle-track');
+  const thumb = document.getElementById('toggle-thumb');
+  const aviso = document.getElementById('aviso-historico');
+  const numInput = document.getElementById('b-num');
+  if(modoHistorico){
+    track.style.background = '#f59e0b';
+    thumb.style.left = '21px';
+    aviso.style.display = 'block';
+    numInput.removeAttribute('readonly');
+    numInput.style.background = '#fef3c7';
+    numInput.style.borderColor = '#f59e0b';
+    toast('📅','Modo histórico activado — sin validación de stock');
+  } else {
+    track.style.background = '#555';
+    thumb.style.left = '3px';
+    aviso.style.display = 'none';
+    numInput.setAttribute('readonly','');
+    numInput.style.background = '';
+    numInput.style.borderColor = '';
+    actualizarNumBoleta();
+    toast('✅','Modo normal activado');
+  }
+  renderRows();
+}
+
 let boletaRows=[];
 
 function actualizarNumBoleta(){
@@ -954,7 +1099,7 @@ async function emitirBoleta(){
   if(!cliente){ toast('⚠️','Ingrese el nombre del cliente'); return; }
   if(!doc){ toast('⚠️','Ingrese el RUC o DNI'); return; }
 
-  // Validar stock — convertir packs a unidades y verificar contra stock real
+  // Calcular resumen de unidades por producto
   const inv=calcInv();
   const resumen={};
   for(const r of boletaRows){
@@ -963,18 +1108,22 @@ async function emitirBoleta(){
     const unidades=r.cant*tam;
     resumen[r.prod]=(resumen[r.prod]||0)+unidades;
   }
-  for(const [prod,unidades] of Object.entries(resumen)){
-    const stockReal=inv[prod]?.stock||0;
-    if(stockReal<=0){
-      toast('❌',`Sin stock: ${prod}`); return;
-    }
-    if(stockReal<unidades){
-      const tienePack=!!PACKS[prod];
-      const dispStr=tienePack
-        ?`${stockReal} uds (${Math.floor(stockReal/PACKS[prod].tam)} packs + ${stockReal%PACKS[prod].tam} sueltas)`
-        :`${stockReal} uds`;
-      toast('❌',`Stock insuficiente: ${prod} — Disponible: ${dispStr}, solicitado: ${unidades} uds`);
-      return;
+
+  // Validar stock solo en modo normal
+  if(!modoHistorico){
+    for(const [prod,unidades] of Object.entries(resumen)){
+      const stockReal=inv[prod]?.stock||0;
+      if(stockReal<=0){
+        toast('❌',`Sin stock: ${prod}`); return;
+      }
+      if(stockReal<unidades){
+        const tienePack=!!PACKS[prod];
+        const dispStr=tienePack
+          ?`${stockReal} uds (${Math.floor(stockReal/PACKS[prod].tam)} packs + ${stockReal%PACKS[prod].tam} sueltas)`
+          :`${stockReal} uds`;
+        toast('❌',`Stock insuficiente: ${prod} — Disponible: ${dispStr}, solicitado: ${unidades} uds`);
+        return;
+      }
     }
   }
 
@@ -1007,7 +1156,7 @@ async function emitirBoleta(){
         yaAgregado[it.prod]=true;
       }
     });
-    const boleta={num,fecha,cliente,doc,dir,items:itemsConLote,total,lotesInfo};
+    const boleta={num,fecha,cliente,doc,dir,items:itemsConLote,total,lotesInfo,historico:modoHistorico?'SI':'NO'};
     await api({action:'guardarBoleta',boleta});
     // Registrar movimientos usando UNIDADES reales
     for(const [prod,unidades] of Object.entries(resumen)){
@@ -1148,6 +1297,206 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{ m.addEventListener('cli
   // Auto-actualizar cada 60 segundos
   setInterval(cargarTodo, 60000);
 })();
+
+// ══ CARGA HISTÓRICA ══
+let histRows = [];
+
+function initHistProdTable(){
+  document.getElementById('h-prod-tbody').innerHTML = PRODS.map((p,i)=>{
+    const key = PROD_KEYS[i];
+    const pack = PACKS[p];
+    return `<tr style="border-bottom:1px solid var(--g2)">
+      <td style="padding:7px 12px;font-size:.74rem;font-weight:600;color:var(--az)">${p}</td>
+      <td style="padding:7px 12px">
+        <input type="number" id="hprod-${key}" min="0" value="0" placeholder="0"
+               style="width:110px;padding:6px 10px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.82rem;background:var(--g1)"
+               oninput="actualizarPacksHist('${key}','${p}')">
+      </td>
+      <td style="padding:7px 12px;font-size:.72rem;color:var(--g3);font-family:'DM Mono',monospace" id="hpack-${key}">
+        ${pack ? '0 packs + 0 sueltas' : '—'}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function actualizarPacksHist(key, prod){
+  const val = parseInt(document.getElementById('hprod-'+key).value)||0;
+  const el = document.getElementById('hpack-'+key);
+  if(!el) return;
+  if(PACKS[prod]){
+    const {tam} = PACKS[prod];
+    el.textContent = Math.floor(val/tam)+' packs + '+(val%tam)+' sueltas';
+  }
+}
+
+function addHistRow(){
+  histRows.push({prod:PRODS[0], cant:1, precio:0});
+  renderHistRows();
+}
+
+function removeHistRow(i){
+  histRows.splice(i,1);
+  if(!histRows.length) addHistRow();
+  else renderHistRows();
+  calcHistTotal();
+}
+
+function renderHistRows(){
+  document.getElementById('h-rows').innerHTML = histRows.map((r,i)=>
+    `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;padding:8px 12px;border-bottom:1px solid var(--g2);align-items:center">
+      <select onchange="histRows[${i}].prod=this.value;renderHistRows()"
+              style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-size:.72rem;background:var(--g1)">
+        ${PRODS.map(p=>`<option value="${p}"${r.prod===p?' selected':''}>${p}</option>`).join('')}
+      </select>
+      <input type="number" min="1" value="${r.cant}" placeholder="0"
+             style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;background:var(--g1)"
+             oninput="histRows[${i}].cant=parseInt(this.value)||0;calcHistTotal()">
+      <input type="number" min="0" step="0.01" value="${r.precio||''}" placeholder="0.00"
+             style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;background:var(--g1)"
+             oninput="histRows[${i}].precio=parseFloat(this.value)||0;calcHistTotal()">
+      <span style="font-family:'DM Mono',monospace;font-size:.8rem;font-weight:700;color:var(--az2)" id="hsub-${i}">S/ 0.00</span>
+      <button onclick="removeHistRow(${i})" style="background:var(--rj2);border:none;color:var(--rj);border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:700">✕</button>
+    </div>`
+  ).join('');
+  calcHistTotal();
+}
+
+function calcHistTotal(){
+  let total=0;
+  histRows.forEach((r,i)=>{
+    const sub=(r.cant||0)*(r.precio||0);
+    total+=sub;
+    const el=document.getElementById('hsub-'+i);
+    if(el) el.textContent='S/ '+sub.toFixed(2);
+  });
+  document.getElementById('h-total').textContent='S/ '+total.toFixed(2);
+}
+
+async function registrarHistorico(){
+  const bfecha=document.getElementById('h-bfecha').value;
+  const bcli=document.getElementById('h-bcli').value.trim();
+  const bdoc=document.getElementById('h-bdoc').value.trim();
+  if(!bfecha){ toast('⚠️','Ingrese la fecha de la venta'); return; }
+  if(!bcli)  { toast('⚠️','Ingrese el nombre del cliente'); return; }
+  if(!bdoc)  { toast('⚠️','Ingrese el RUC o DNI'); return; }
+  if(!histRows.length||histRows.every(r=>!r.cant||r.cant<=0)){
+    toast('⚠️','Agregue al menos un producto vendido'); return;
+  }
+
+  const btn=document.getElementById('btn-hist');
+  btn.disabled=true;
+  showLoad('Procesando carga histórica...');
+  const resultados=[];
+
+  try{
+    // PASO 1: Producción (si se completó)
+    const pfecha=document.getElementById('h-pfecha').value;
+    const pvenc=document.getElementById('h-pvenc').value;
+    const pop=document.getElementById('h-pop').value.trim();
+    const cantidades={};
+    let hayProd=false;
+    PRODS.forEach((p,i)=>{
+      const v=parseInt(document.getElementById('hprod-'+PROD_KEYS[i]).value)||0;
+      cantidades[p]=v;
+      if(v>0) hayProd=true;
+    });
+
+    let prodId=null;
+    if(hayProd){
+      if(!pfecha||!pvenc||!pop){ toast('⚠️','Complete fecha, vencimiento y operario de producción'); btn.disabled=false; hideLoad(); return; }
+      const reg={id:Date.now(),fecha:pfecha,venc:pvenc,operario:pop,cantidades};
+      await api({action:'guardarProduccion',registro:reg});
+      prodId=reg.id;
+      for(const p of PRODS){
+        if(cantidades[p]>0){
+          await api({action:'guardarMovimiento',movimiento:{
+            fecha:pfecha,tipo:'Producción',prod:p,cant:cantidades[p],
+            motivo:'Carga histórica - Lote '+fmt(pfecha),ref:'PROD-'+prodId
+          }});
+        }
+      }
+      resultados.push('🏭 Producción registrada — Lote '+fmt(pfecha)+', vence '+fmt(pvenc));
+    }
+
+    // PASO 2: Número de boleta automático
+    await cargarTodo();
+    const numBoleta='B-'+String(cache.bols.length+1).padStart(4,'0');
+
+    // PASO 3: Boleta
+    const total=histRows.reduce((s,r)=>s+(r.cant||0)*(r.precio||0),0);
+    const items=histRows.map(r=>({
+      prod:r.prod,cant:r.cant,precio:r.precio,unidades:r.cant,
+      tipoLabel:'Unidad',fechaProd:pfecha||'',fechaVenc:pvenc||''
+    }));
+    const boleta={
+      num:numBoleta,fecha:bfecha,cliente:bcli,doc:bdoc,
+      dir:document.getElementById('h-bdir').value.trim(),
+      items,total,lotesInfo:[],historico:'SI'
+    };
+    await api({action:'guardarBoleta',boleta});
+    resultados.push('🧾 Boleta '+numBoleta+' · '+bcli+' · S/ '+total.toFixed(2));
+
+    // PASO 4: Movimientos de salida
+    const resumen={};
+    histRows.forEach(r=>{ resumen[r.prod]=(resumen[r.prod]||0)+(r.cant||0); });
+    for(const [prod,cant] of Object.entries(resumen)){
+      if(cant>0){
+        await api({action:'guardarMovimiento',movimiento:{
+          fecha:bfecha,tipo:'Boleta',prod,cant,motivo:'Carga histórica',ref:numBoleta
+        }});
+      }
+    }
+    resultados.push('📦 Descontado: '+Object.entries(resumen).filter(([,v])=>v>0).map(([p,v])=>p+': '+v+' uds').join(' · '));
+
+    document.getElementById('h-resultado').style.display='block';
+    document.getElementById('h-resultado-body').innerHTML=resultados.map(r=>'✔ '+r).join('<br>');
+    toast('✅','Carga histórica completada: '+numBoleta);
+    await cargarTodo();
+    renderHistHistorial();
+
+  } catch(e){
+    toast('❌','Error: '+e.message);
+  } finally {
+    btn.disabled=false; hideLoad();
+  }
+}
+
+function limpiarHistorico(){
+  ['h-pfecha','h-pvenc','h-pop','h-bfecha','h-bcli','h-bdoc','h-bdir'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  PROD_KEYS.forEach((k,i)=>{
+    const el=document.getElementById('hprod-'+k); if(el) el.value='0';
+    actualizarPacksHist(k,PRODS[i]);
+  });
+  histRows=[{prod:PRODS[0],cant:1,precio:0}];
+  renderHistRows();
+  document.getElementById('h-resultado').style.display='none';
+}
+
+function renderHistHistorial(){
+  const bols=cache.bols.filter(b=>b.historico==='SI'||b.historico===true);
+  const wrap=document.getElementById('hist-hist');
+  if(!wrap) return;
+  if(!bols.length){ wrap.innerHTML='<p class="empty">Sin boletas históricas registradas</p>'; return; }
+  let h=`<table class="htbl"><thead><tr>
+    <th>N° Boleta</th><th>Fecha</th><th>Cliente</th><th>Documento</th><th>Productos</th><th>Total</th>
+  </tr></thead><tbody>`;
+  bols.forEach(b=>{
+    const prods=(b.items||[]).map(it=>it.prod+' x'+it.cant).join(', ');
+    h+=`<tr>
+      <td><span class="badge b-am">${b.num}</span></td>
+      <td>${fmt(b.fecha)}</td>
+      <td style="font-family:'Montserrat',sans-serif;font-weight:600;font-size:.68rem;white-space:normal">${b.cliente}</td>
+      <td>${b.doc||'—'}</td>
+      <td style="font-family:'Montserrat',sans-serif;font-size:.65rem;white-space:normal;max-width:280px">${prods}</td>
+      <td style="font-weight:700;color:var(--az2)">S/ ${parseFloat(b.total||0).toFixed(2)}</td>
+    </tr>`;
+  });
+  h+='</tbody></table>';
+  wrap.innerHTML=h;
+}
+
 </script>
 </body>
 </html>
