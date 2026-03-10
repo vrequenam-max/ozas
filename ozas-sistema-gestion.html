@@ -401,87 +401,70 @@ table.htbl td{padding:8px 11px;color:var(--az);font-family:'DM Mono',monospace;w
   <div class="card">
     <div class="card-hdr"><h2>📥 Carga Histórica de Ventas</h2></div>
     <div class="card-body">
-      <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:.74rem;color:#7c5200;font-weight:600;line-height:1.7">
-        ℹ️ <strong>¿Para qué sirve?</strong> Registra ventas que ocurrieron <em>antes</em> de crear el sistema.<br>
-        El sistema: <strong>1)</strong> Registra la producción necesaria → <strong>2)</strong> Genera la boleta con número automático → <strong>3)</strong> Descuenta del inventario. Todo en un solo paso.
+
+      <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:.74rem;color:#7c5200;font-weight:600;line-height:1.8">
+        ℹ️ <strong>¿Para qué sirve?</strong> Registra ventas anteriores a la creación del sistema.<br>
+        El sistema automáticamente: <strong>① Registra la producción</strong> → <strong>② Genera boleta numerada</strong> → <strong>③ Descuenta del inventario</strong>
       </div>
 
-      <!-- PASO 1: PRODUCCIÓN -->
-      <div style="border:2px solid var(--az2);border-radius:12px;padding:18px;margin-bottom:20px">
-        <div style="font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:var(--az2);margin-bottom:14px">
-          🏭 Paso 1 — Producción asociada
-        </div>
-        <div style="background:#e8f4ff;border-radius:8px;padding:10px 14px;font-size:.7rem;color:var(--g3);margin-bottom:14px">
-          Si estos productos <strong>ya tienen producción registrada</strong> en el sistema, deja este paso vacío. Solo complétalo si la producción también es histórica y no fue registrada.
-        </div>
+      <!-- DATOS GENERALES DE LA BOLETA -->
+      <div style="background:var(--g1);border-radius:10px;padding:16px;margin-bottom:20px">
+        <div style="font-size:.65rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:var(--g3);margin-bottom:12px">🧾 Datos generales de la venta</div>
         <div class="form-grid">
-          <div class="fg"><label>Fecha de Producción</label><input type="date" id="h-pfecha"></div>
-          <div class="fg"><label>Fecha de Vencimiento</label><input type="date" id="h-pvenc"></div>
-          <div class="fg"><label>Operario producción</label><input type="text" id="h-pop" placeholder="Nombre del operario"></div>
-        </div>
-        <table style="width:100%;border-collapse:collapse;font-size:.78rem;margin-top:10px">
-          <thead>
-            <tr style="background:var(--g1)">
-              <th style="padding:8px 12px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);border-bottom:2px solid var(--g2)">Producto</th>
-              <th style="padding:8px 12px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);border-bottom:2px solid var(--g2)">Cantidad producida</th>
-              <th style="padding:8px 12px;text-align:left;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);border-bottom:2px solid var(--g2)">Packs equivalentes</th>
-            </tr>
-          </thead>
-          <tbody id="h-prod-tbody"></tbody>
-        </table>
-        <div style="margin-top:10px;font-size:.65rem;color:var(--g3)">💡 Deja en 0 los productos que no se produjeron en este lote.</div>
-      </div>
-
-      <!-- PASO 2: BOLETA -->
-      <div style="border:2px solid var(--vr);border-radius:12px;padding:18px;margin-bottom:20px">
-        <div style="font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:var(--vr);margin-bottom:14px">
-          🧾 Paso 2 — Datos de la boleta
-        </div>
-        <div class="form-grid">
-          <div class="fg"><label>Fecha de la Venta</label><input type="date" id="h-bfecha"></div>
-          <div class="fg"><label>Cliente</label><input type="text" id="h-bcli" placeholder="Nombre del cliente"></div>
-          <div class="fg"><label>RUC / DNI</label><input type="text" id="h-bdoc" placeholder="Número de documento"></div>
-          <div class="fg"><label>Dirección (opcional)</label><input type="text" id="h-bdir" placeholder="Dirección"></div>
-        </div>
-        <div style="margin-top:16px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3)">Productos vendidos</span>
-            <button class="btn btn-o btn-sm" onclick="addHistRow()">➕ Agregar</button>
-          </div>
-          <div style="background:var(--g1);border-radius:8px;overflow:hidden">
-            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:0;background:var(--g2);padding:7px 12px;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3)">
-              <span>Producto</span><span>Cantidad</span><span>Precio S/</span><span>Subtotal</span><span></span>
-            </div>
-            <div id="h-rows"></div>
-          </div>
-          <div style="text-align:right;margin-top:12px;padding:12px 16px;background:var(--az);color:#fff;border-radius:8px;font-size:1rem;font-weight:900;font-family:'DM Mono',monospace">
-            Total: <span id="h-total">S/ 0.00</span>
-          </div>
+          <div class="fg"><label>📅 Fecha de salida de productos</label><input type="date" id="h-bfecha"></div>
+          <div class="fg"><label>👤 Cliente</label><input type="text" id="h-bcli" placeholder="Nombre del cliente"></div>
+          <div class="fg"><label>🪪 RUC / DNI</label><input type="text" id="h-bdoc" placeholder="Número de documento"></div>
+          <div class="fg"><label>📍 Dirección (opcional)</label><input type="text" id="h-bdir" placeholder="Dirección"></div>
+          <div class="fg"><label>👷 Operario responsable</label><input type="text" id="h-pop" placeholder="Quien despachó"></div>
         </div>
       </div>
 
-      <!-- BOTÓN REGISTRAR -->
+      <!-- PRODUCTOS -->
+      <div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:.65rem;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:var(--g3)">📦 Productos vendidos — con datos de producción</div>
+          <button class="btn btn-o btn-sm" onclick="addHistRow()">➕ Agregar producto</button>
+        </div>
+
+        <!-- Cabecera tabla -->
+        <div style="display:grid;grid-template-columns:2fr 80px 80px 100px 100px 90px auto;gap:6px;padding:8px 12px;background:var(--az);border-radius:8px 8px 0 0;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.7)">
+          <span>Producto</span>
+          <span>Cantidad</span>
+          <span>Precio S/</span>
+          <span>F. Producción</span>
+          <span>F. Vencimiento</span>
+          <span>Subtotal</span>
+          <span></span>
+        </div>
+        <div id="h-rows" style="border:1.5px solid var(--g2);border-top:none;border-radius:0 0 8px 8px;overflow:hidden"></div>
+
+        <div style="text-align:right;margin-top:10px;padding:12px 18px;background:linear-gradient(135deg,var(--az),#163a6e);color:#fff;border-radius:8px;font-size:1rem;font-weight:900;font-family:'DM Mono',monospace">
+          Total: <span id="h-total">S/ 0.00</span>
+        </div>
+      </div>
+
+      <!-- BOTÓN -->
       <div class="btns-row">
-        <button class="btn btn-p" id="btn-hist" onclick="registrarHistorico()" style="font-size:.8rem;padding:13px 28px">
-          ⚡ Registrar Producción + Generar Boleta + Descontar Inventario
+        <button class="btn btn-p" id="btn-hist" onclick="registrarHistorico()" style="padding:13px 28px">
+          ⚡ Registrar — Producción + Boleta + Inventario
         </button>
         <button class="btn btn-o" onclick="limpiarHistorico()">🗑 Limpiar</button>
       </div>
 
       <!-- RESULTADO -->
       <div id="h-resultado" style="display:none;margin-top:20px;background:var(--vr2);border:2px solid var(--vr);border-radius:12px;padding:18px">
-        <div style="font-size:.8rem;font-weight:900;color:#0a6630;margin-bottom:10px">✅ Registro completado exitosamente</div>
-        <div id="h-resultado-body" style="font-size:.74rem;color:#0a6630;line-height:2"></div>
+        <div style="font-size:.8rem;font-weight:900;color:#0a6630;margin-bottom:10px">✅ Registro completado</div>
+        <div id="h-resultado-body" style="font-size:.74rem;color:#0a6630;line-height:2.2"></div>
       </div>
 
     </div>
   </div>
 
-  <!-- HISTORIAL CARGAS -->
+  <!-- HISTORIAL -->
   <div class="card">
     <div class="card-hdr">
       <h2>📋 Boletas Históricas Registradas</h2>
-      <button class="btn btn-o btn-sm" onclick="cargarTodo()">🔄 Actualizar</button>
+      <button class="btn btn-o btn-sm" onclick="cargarTodo();renderHistHistorial()">🔄 Actualizar</button>
     </div>
     <div class="card-body">
       <div class="htbl-wrap" id="hist-hist"><p class="empty">Cargando...</p></div>
@@ -1301,36 +1284,8 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{ m.addEventListener('cli
 // ══ CARGA HISTÓRICA ══
 let histRows = [];
 
-function initHistProdTable(){
-  document.getElementById('h-prod-tbody').innerHTML = PRODS.map((p,i)=>{
-    const key = PROD_KEYS[i];
-    const pack = PACKS[p];
-    return `<tr style="border-bottom:1px solid var(--g2)">
-      <td style="padding:7px 12px;font-size:.74rem;font-weight:600;color:var(--az)">${p}</td>
-      <td style="padding:7px 12px">
-        <input type="number" id="hprod-${key}" min="0" value="0" placeholder="0"
-               style="width:110px;padding:6px 10px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.82rem;background:var(--g1)"
-               oninput="actualizarPacksHist('${key}','${p}')">
-      </td>
-      <td style="padding:7px 12px;font-size:.72rem;color:var(--g3);font-family:'DM Mono',monospace" id="hpack-${key}">
-        ${pack ? '0 packs + 0 sueltas' : '—'}
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-function actualizarPacksHist(key, prod){
-  const val = parseInt(document.getElementById('hprod-'+key).value)||0;
-  const el = document.getElementById('hpack-'+key);
-  if(!el) return;
-  if(PACKS[prod]){
-    const {tam} = PACKS[prod];
-    el.textContent = Math.floor(val/tam)+' packs + '+(val%tam)+' sueltas';
-  }
-}
-
 function addHistRow(){
-  histRows.push({prod:PRODS[0], cant:1, precio:0});
+  histRows.push({prod:PRODS[0], cant:1, precio:0, fprod:'', fvenc:''});
   renderHistRows();
 }
 
@@ -1342,20 +1297,29 @@ function removeHistRow(i){
 }
 
 function renderHistRows(){
-  document.getElementById('h-rows').innerHTML = histRows.map((r,i)=>
-    `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;padding:8px 12px;border-bottom:1px solid var(--g2);align-items:center">
-      <select onchange="histRows[${i}].prod=this.value;renderHistRows()"
-              style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-size:.72rem;background:var(--g1)">
+  const wrap = document.getElementById('h-rows');
+  if(!wrap) return;
+  wrap.innerHTML = histRows.map((r,i)=>`
+    <div style="display:grid;grid-template-columns:2fr 80px 80px 100px 100px 90px auto;gap:6px;padding:9px 12px;border-bottom:1px solid var(--g2);align-items:center;background:${i%2===0?'var(--w)':'var(--g1)'}">
+      <select onchange="histRows[${i}].prod=this.value"
+              style="padding:7px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:.72rem;background:var(--w);color:var(--az)">
         ${PRODS.map(p=>`<option value="${p}"${r.prod===p?' selected':''}>${p}</option>`).join('')}
       </select>
-      <input type="number" min="1" value="${r.cant}" placeholder="0"
-             style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;background:var(--g1)"
+      <input type="number" min="1" value="${r.cant||1}" placeholder="0"
+             style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;text-align:center;width:100%"
              oninput="histRows[${i}].cant=parseInt(this.value)||0;calcHistTotal()">
       <input type="number" min="0" step="0.01" value="${r.precio||''}" placeholder="0.00"
-             style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;background:var(--g1)"
+             style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;text-align:right;width:100%"
              oninput="histRows[${i}].precio=parseFloat(this.value)||0;calcHistTotal()">
-      <span style="font-family:'DM Mono',monospace;font-size:.8rem;font-weight:700;color:var(--az2)" id="hsub-${i}">S/ 0.00</span>
-      <button onclick="removeHistRow(${i})" style="background:var(--rj2);border:none;color:var(--rj);border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:700">✕</button>
+      <input type="date" value="${r.fprod||''}"
+             style="padding:6px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:.72rem;width:100%;background:var(--w)"
+             onchange="histRows[${i}].fprod=this.value">
+      <input type="date" value="${r.fvenc||''}"
+             style="padding:6px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:.72rem;width:100%;background:var(--w)"
+             onchange="histRows[${i}].fvenc=this.value">
+      <span style="font-family:'DM Mono',monospace;font-size:.78rem;font-weight:700;color:var(--az2);text-align:right" id="hsub-${i}">S/ 0.00</span>
+      <button onclick="removeHistRow(${i})"
+              style="background:var(--rj2);border:1px solid var(--rj);color:var(--rj);border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:700;font-size:.8rem">✕</button>
     </div>`
   ).join('');
   calcHistTotal();
@@ -1369,18 +1333,31 @@ function calcHistTotal(){
     const el=document.getElementById('hsub-'+i);
     if(el) el.textContent='S/ '+sub.toFixed(2);
   });
-  document.getElementById('h-total').textContent='S/ '+total.toFixed(2);
+  const el=document.getElementById('h-total');
+  if(el) el.textContent='S/ '+total.toFixed(2);
 }
 
 async function registrarHistorico(){
-  const bfecha=document.getElementById('h-bfecha').value;
-  const bcli=document.getElementById('h-bcli').value.trim();
-  const bdoc=document.getElementById('h-bdoc').value.trim();
-  if(!bfecha){ toast('⚠️','Ingrese la fecha de la venta'); return; }
+  // Validar datos generales
+  const bfecha = document.getElementById('h-bfecha').value;
+  const bcli   = document.getElementById('h-bcli').value.trim();
+  const bdoc   = document.getElementById('h-bdoc').value.trim();
+  const pop    = document.getElementById('h-pop').value.trim();
+
+  if(!bfecha){ toast('⚠️','Ingrese la fecha de salida de productos'); return; }
   if(!bcli)  { toast('⚠️','Ingrese el nombre del cliente'); return; }
   if(!bdoc)  { toast('⚠️','Ingrese el RUC o DNI'); return; }
   if(!histRows.length||histRows.every(r=>!r.cant||r.cant<=0)){
-    toast('⚠️','Agregue al menos un producto vendido'); return;
+    toast('⚠️','Agregue al menos un producto'); return;
+  }
+
+  // Validar que cada fila tenga fechas de producción y vencimiento
+  for(let i=0;i<histRows.length;i++){
+    const r=histRows[i];
+    if(!r.cant||r.cant<=0) continue;
+    if(!r.fprod){ toast('⚠️',`Fila ${i+1}: ingrese la fecha de producción`); return; }
+    if(!r.fvenc){ toast('⚠️',`Fila ${i+1}: ingrese la fecha de vencimiento`); return; }
+    if(r.fvenc<=r.fprod){ toast('⚠️',`Fila ${i+1}: vencimiento debe ser posterior a producción`); return; }
   }
 
   const btn=document.getElementById('btn-hist');
@@ -1389,68 +1366,68 @@ async function registrarHistorico(){
   const resultados=[];
 
   try{
-    // PASO 1: Producción (si se completó)
-    const pfecha=document.getElementById('h-pfecha').value;
-    const pvenc=document.getElementById('h-pvenc').value;
-    const pop=document.getElementById('h-pop').value.trim();
-    const cantidades={};
-    let hayProd=false;
-    PRODS.forEach((p,i)=>{
-      const v=parseInt(document.getElementById('hprod-'+PROD_KEYS[i]).value)||0;
-      cantidades[p]=v;
-      if(v>0) hayProd=true;
+    // ── 1. Agrupar producciones por (fprod + fvenc) ──
+    // Productos con mismo lote se agrupan en una sola producción
+    const loteMap={};
+    histRows.forEach(r=>{
+      if(!r.cant||r.cant<=0) return;
+      const key=r.fprod+'|'+r.fvenc;
+      if(!loteMap[key]) loteMap[key]={fprod:r.fprod,fvenc:r.fvenc,cantidades:{}};
+      loteMap[key].cantidades[r.prod]=(loteMap[key].cantidades[r.prod]||0)+r.cant;
     });
 
-    let prodId=null;
-    if(hayProd){
-      if(!pfecha||!pvenc||!pop){ toast('⚠️','Complete fecha, vencimiento y operario de producción'); btn.disabled=false; hideLoad(); return; }
-      const reg={id:Date.now(),fecha:pfecha,venc:pvenc,operario:pop,cantidades};
+    // Registrar cada lote de producción
+    for(const lote of Object.values(loteMap)){
+      const reg={id:Date.now()+'_'+lote.fprod, fecha:lote.fprod, venc:lote.fvenc, operario:pop||'Carga histórica', cantidades:lote.cantidades};
       await api({action:'guardarProduccion',registro:reg});
-      prodId=reg.id;
-      for(const p of PRODS){
-        if(cantidades[p]>0){
+      for(const [prod,cant] of Object.entries(lote.cantidades)){
+        if(cant>0){
           await api({action:'guardarMovimiento',movimiento:{
-            fecha:pfecha,tipo:'Producción',prod:p,cant:cantidades[p],
-            motivo:'Carga histórica - Lote '+fmt(pfecha),ref:'PROD-'+prodId
+            fecha:lote.fprod, tipo:'Producción', prod, cant,
+            motivo:'Carga histórica - Lote '+fmt(lote.fprod),
+            ref:'PROD-'+reg.id
           }});
         }
       }
-      resultados.push('🏭 Producción registrada — Lote '+fmt(pfecha)+', vence '+fmt(pvenc));
+      const prods=Object.entries(lote.cantidades).filter(([,v])=>v>0).map(([p,v])=>p+': '+v).join(', ');
+      resultados.push('🏭 Producción: Lote '+fmt(lote.fprod)+' → vence '+fmt(lote.fvenc)+' | '+prods);
     }
 
-    // PASO 2: Número de boleta automático
+    // ── 2. Número de boleta automático ──
     await cargarTodo();
     const numBoleta='B-'+String(cache.bols.length+1).padStart(4,'0');
 
-    // PASO 3: Boleta
+    // ── 3. Registrar boleta ──
     const total=histRows.reduce((s,r)=>s+(r.cant||0)*(r.precio||0),0);
     const items=histRows.map(r=>({
-      prod:r.prod,cant:r.cant,precio:r.precio,unidades:r.cant,
-      tipoLabel:'Unidad',fechaProd:pfecha||'',fechaVenc:pvenc||''
+      prod:r.prod, cant:r.cant, precio:r.precio,
+      unidades:r.cant, tipoLabel:'Unidad',
+      fechaProd:r.fprod, fechaVenc:r.fvenc
     }));
     const boleta={
-      num:numBoleta,fecha:bfecha,cliente:bcli,doc:bdoc,
+      num:numBoleta, fecha:bfecha, cliente:bcli, doc:bdoc,
       dir:document.getElementById('h-bdir').value.trim(),
-      items,total,lotesInfo:[],historico:'SI'
+      items, total, lotesInfo:[], historico:'SI'
     };
     await api({action:'guardarBoleta',boleta});
-    resultados.push('🧾 Boleta '+numBoleta+' · '+bcli+' · S/ '+total.toFixed(2));
+    resultados.push('🧾 Boleta '+numBoleta+' generada · '+bcli+' · S/ '+total.toFixed(2));
 
-    // PASO 4: Movimientos de salida
+    // ── 4. Movimientos de salida ──
     const resumen={};
-    histRows.forEach(r=>{ resumen[r.prod]=(resumen[r.prod]||0)+(r.cant||0); });
+    histRows.forEach(r=>{ if(r.cant>0) resumen[r.prod]=(resumen[r.prod]||0)+r.cant; });
     for(const [prod,cant] of Object.entries(resumen)){
-      if(cant>0){
-        await api({action:'guardarMovimiento',movimiento:{
-          fecha:bfecha,tipo:'Boleta',prod,cant,motivo:'Carga histórica',ref:numBoleta
-        }});
-      }
+      await api({action:'guardarMovimiento',movimiento:{
+        fecha:bfecha, tipo:'Boleta', prod, cant,
+        motivo:'Carga histórica', ref:numBoleta
+      }});
     }
-    resultados.push('📦 Descontado: '+Object.entries(resumen).filter(([,v])=>v>0).map(([p,v])=>p+': '+v+' uds').join(' · '));
+    const descuentos=Object.entries(resumen).map(([p,v])=>p+': '+v+' uds').join(' · ');
+    resultados.push('📦 Inventario descontado: '+descuentos);
 
+    // Mostrar resultado
     document.getElementById('h-resultado').style.display='block';
     document.getElementById('h-resultado-body').innerHTML=resultados.map(r=>'✔ '+r).join('<br>');
-    toast('✅','Carga histórica completada: '+numBoleta);
+    toast('✅','Completado — Boleta '+numBoleta);
     await cargarTodo();
     renderHistHistorial();
 
@@ -1462,14 +1439,10 @@ async function registrarHistorico(){
 }
 
 function limpiarHistorico(){
-  ['h-pfecha','h-pvenc','h-pop','h-bfecha','h-bcli','h-bdoc','h-bdir'].forEach(id=>{
+  ['h-bfecha','h-bcli','h-bdoc','h-bdir','h-pop'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
-  PROD_KEYS.forEach((k,i)=>{
-    const el=document.getElementById('hprod-'+k); if(el) el.value='0';
-    actualizarPacksHist(k,PRODS[i]);
-  });
-  histRows=[{prod:PRODS[0],cant:1,precio:0}];
+  histRows=[{prod:PRODS[0],cant:1,precio:0,fprod:'',fvenc:''}];
   renderHistRows();
   document.getElementById('h-resultado').style.display='none';
 }
@@ -1480,16 +1453,16 @@ function renderHistHistorial(){
   if(!wrap) return;
   if(!bols.length){ wrap.innerHTML='<p class="empty">Sin boletas históricas registradas</p>'; return; }
   let h=`<table class="htbl"><thead><tr>
-    <th>N° Boleta</th><th>Fecha</th><th>Cliente</th><th>Documento</th><th>Productos</th><th>Total</th>
+    <th>N° Boleta</th><th>Fecha Venta</th><th>Cliente</th><th>Documento</th><th>Productos</th><th>Total</th>
   </tr></thead><tbody>`;
   bols.forEach(b=>{
-    const prods=(b.items||[]).map(it=>it.prod+' x'+it.cant).join(', ');
+    const prods=(b.items||[]).map(it=>`${it.prod} x${it.cant} (prod:${fmt(it.fechaProd)||'—'})`).join('<br>');
     h+=`<tr>
       <td><span class="badge b-am">${b.num}</span></td>
       <td>${fmt(b.fecha)}</td>
-      <td style="font-family:'Montserrat',sans-serif;font-weight:600;font-size:.68rem;white-space:normal">${b.cliente}</td>
+      <td style="font-family:'Montserrat',sans-serif;font-weight:600;font-size:.68rem">${b.cliente}</td>
       <td>${b.doc||'—'}</td>
-      <td style="font-family:'Montserrat',sans-serif;font-size:.65rem;white-space:normal;max-width:280px">${prods}</td>
+      <td style="font-family:'Montserrat',sans-serif;font-size:.62rem;white-space:normal;line-height:1.6">${prods}</td>
       <td style="font-weight:700;color:var(--az2)">S/ ${parseFloat(b.total||0).toFixed(2)}</td>
     </tr>`;
   });
