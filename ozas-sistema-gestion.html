@@ -496,7 +496,7 @@ const API = 'https://script.google.com/macros/s/AKfycbwZ1-LBoPGdNOMAYn9kwUORXJv5
 
 const PRODS = [
   'Botella 625 ml','Botella 1 L tapa rosca','Botella 1 L tapa sport',
-  'Bidón 8.7 L','Caja Bag in Box 20 L','Bidón 20 L con caño','Bidón 20 L sin caño'
+  'Botellón 8.7 L','Caja Bag in Box 20 L','Bidón 20 L con caño','Bidón 20 L sin caño'
 ];
 const PROD_KEYS = ['b625','b1r','b1s','b87','bag20','d20c','d20s'];
 
@@ -507,15 +507,61 @@ const PACKS = {
   'Botella 1 L tapa sport':{ tam: 12, label: 'Pack x12' },
 };
 
-// Vida útil en meses por producto (para auto-calcular fecha vencimiento)
+// Vida útil en meses por producto
 const VIDA_UTIL = {
   'Botella 625 ml':        6,
   'Botella 1 L tapa rosca':6,
   'Botella 1 L tapa sport':6,
-  'Bidón 8.7 L':           6,
+  'Botellón 8.7 L':        6,
   'Caja Bag in Box 20 L':  6,
   'Bidón 20 L con caño':   6,
   'Bidón 20 L sin caño':   6,
+};
+
+// Materiales consumidos por unidad producida de cada producto
+const MATERIALES = {
+  'Botella 625 ml': [
+    {mat:'Botella PET 625 ml',        cant:1, unidad:'und'},
+    {mat:'Tapa rosca',                cant:1, unidad:'und'},
+    {mat:'Etiqueta',                  cant:1, unidad:'und'},
+    {mat:'Manga termocontraíble',     cant:1, unidad:'und'},
+  ],
+  'Botella 1 L tapa rosca': [
+    {mat:'Botella PET 1 L',           cant:1, unidad:'und'},
+    {mat:'Tapa rosca',                cant:1, unidad:'und'},
+    {mat:'Etiqueta',                  cant:1, unidad:'und'},
+  ],
+  'Botella 1 L tapa sport': [
+    {mat:'Botella PET 1 L',           cant:1, unidad:'und'},
+    {mat:'Tapa sport',                cant:1, unidad:'und'},
+    {mat:'Etiqueta',                  cant:1, unidad:'und'},
+  ],
+  'Botellón 8.7 L': [
+    {mat:'Botella PET 8.7 L',         cant:1, unidad:'und'},
+    {mat:'Tapa rosca',                cant:1, unidad:'und'},
+    {mat:'Manga tapa seguridad',      cant:1, unidad:'und'},
+    {mat:'Etiqueta',                  cant:1, unidad:'und'},
+  ],
+  'Caja Bag in Box 20 L': [
+    {mat:'Bolsa laminada c/válvula',  cant:1, unidad:'und'},
+    {mat:'Caja cartón',               cant:1, unidad:'und'},
+    {mat:'Bolsa termocontraíble ext', cant:1, unidad:'und'},
+    {mat:'Etiqueta',                  cant:1, unidad:'und'},
+  ],
+  'Bidón 20 L con caño': [
+    {mat:'Envase bidón 20 L',         cant:1, unidad:'und'},
+    {mat:'Tapa bidón',                cant:1, unidad:'und'},
+    {mat:'Manga tapa seguridad',      cant:1, unidad:'und'},
+    {mat:'Caño dispensador',          cant:1, unidad:'und'},
+    {mat:'Manga caño',                cant:1, unidad:'und'},
+    {mat:'Etiqueta',                  cant:1, unidad:'und'},
+  ],
+  'Bidón 20 L sin caño': [
+    {mat:'Envase bidón 20 L',         cant:1, unidad:'und'},
+    {mat:'Tapa bidón',                cant:1, unidad:'und'},
+    {mat:'Manga tapa seguridad',      cant:1, unidad:'und'},
+    {mat:'Etiqueta',                  cant:1, unidad:'und'},
+  ],
 };
 
 function autoVenc(fprod, prod){
@@ -578,7 +624,7 @@ async function cargarTodo(){
         'Botella 625 ml':parseInt(p.b625)||0,
         'Botella 1 L tapa rosca':parseInt(p.b1r)||0,
         'Botella 1 L tapa sport':parseInt(p.b1s)||0,
-        'Bidón 8.7 L':parseInt(p.b87)||0,
+        'Botellón 8.7 L':parseInt(p.b87)||0,
         'Caja Bag in Box 20 L':parseInt(p.bag20)||0,
         'Bidón 20 L con caño':parseInt(p.d20c)||0,
         'Bidón 20 L sin caño':parseInt(p.d20s)||0
@@ -629,3 +675,1060 @@ function calcInv(){
     prodPorRef[key]={fechaProd:r.fecha, fechaVenc:r.venc};
   });
 
+  // Construir lotes desde movimientos de entrada tipo 'Producción'
+  cache.movs
+    .filter(m=>m.tipo==='Producción')
+    .forEach(m=>{
+      const p=resolverProd(m.prod); if(!p||!m.cant) return;
+      const ref=m.ref||('PROD-'+m.fecha);
+      const prodInfo=prodPorRef[ref];
+      const fechaProd=prodInfo?prodInfo.fechaProd:m.fecha;
+      const fechaVenc=prodInfo?prodInfo.fechaVenc:addMeses(m.fecha,6);
+      const loteKey=p+'|'+ref;
+      if(!lotesMap[loteKey]) lotesMap[loteKey]={cant:0,fechaProd,fechaVenc,prod:p};
+      lotesMap[loteKey].cant+=m.cant;
+    });
+
+  // Agregar entradas manuales como lotes
+  cache.movs
+    .filter(m=>m.tipo==='Entrada')
+    .forEach(m=>{
+      const p=resolverProd(m.prod); if(!p||!m.cant) return;
+      const loteKey=p+'|ENT|'+m.fecha+m.ref;
+      lotesMap[loteKey]={cant:m.cant,fechaProd:m.fecha,fechaVenc:addMeses(m.fecha,6),prod:p};
+    });
+
+  // Poblar inv con lotes ordenados FIFO
+  Object.values(lotesMap).forEach(l=>{
+    inv[l.prod].lotes.push({cant:l.cant,fechaProd:l.fechaProd,fechaVenc:l.fechaVenc});
+  });
+  PRODS.forEach(p=>{
+    inv[p].lotes.sort((a,b)=>String(a.fechaVenc).localeCompare(String(b.fechaVenc)));
+  });
+
+  // Aplicar salidas FIFO
+  [...cache.movs]
+    .filter(m=>m.tipo==='Boleta'||m.tipo==='Ajuste -')
+    .sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)))
+    .forEach(m=>{
+      const p=resolverProd(m.prod); if(!p) return;
+      let restante=m.cant;
+      for(const lote of inv[p].lotes){
+        if(restante<=0) break;
+        const desc=Math.min(lote.cant,restante);
+        lote.cant=Math.max(0,lote.cant-desc);
+        restante-=desc;
+      }
+    });
+
+  // Stock total = suma de lotes restantes
+  PRODS.forEach(p=>{
+    inv[p].stock=inv[p].lotes.reduce((s,l)=>s+Math.max(0,l.cant),0);
+  });
+
+  return inv;
+}
+
+// ══ NAV ══
+function ir(idx,btn){
+  document.querySelectorAll('.modulo').forEach((m,i)=>m.classList.toggle('on',i===idx));
+  document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(idx===4){
+    initHistProdTable();
+    if(!histRows.length){ histRows=[{prod:PRODS[0],cant:1,precio:0}]; }
+    renderHistRows();
+    renderHistHistorial();
+  }
+}
+
+// ══ RENDER TODO ══
+function renderTodo(){
+  renderDash();
+  renderHistProd();
+  renderInv();
+  renderHistInv();
+  renderHistBol();
+  renderConsolidado();
+  actualizarNumBoleta();
+}
+
+// ══ DASHBOARD ══
+function renderDash(){
+  const inv=calcInv();
+  const hoyStr=hoy();
+  let totalStock=0;
+  PRODS.forEach(p=>totalStock+=inv[p].stock);
+  document.getElementById('ds-stock').textContent=totalStock;
+  document.getElementById('ds-hoy').textContent=cache.bols.filter(b=>b.fecha===hoyStr).length;
+  document.getElementById('ds-bols').textContent=cache.bols.length;
+  document.getElementById('ds-prods').textContent=cache.prod.length;
+
+  // ── Detalle stock por producto ──
+  let detHtml=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">`;
+  PRODS.forEach(p=>{
+    const d=inv[p];
+    const stock=d.stock;
+    const lotesCon=d.lotes.filter(l=>l.cant>0);
+    // Color general
+    const proxDias=lotesCon.length?diasHasta(lotesCon[0].fechaVenc):null;
+    let borde='var(--g2)',bg='var(--g1)',icoProd='✅';
+    if(stock===0){borde='#ccc';bg='#f8f8f8';icoProd='⚫';}
+    else if(proxDias!==null&&proxDias<=0){borde='var(--rj)';bg='var(--rj2)';icoProd='⛔';}
+    else if(proxDias!==null&&proxDias<=30){borde='var(--rj)';bg='#fff5f5';icoProd='🔴';}
+    else if(proxDias!==null&&proxDias<=60){borde='var(--am)';bg='#fffbf0';icoProd='🟡';}
+
+    // Packs
+    let packStr='';
+    if(PACKS[p]&&stock>0){
+      const {tam,label}=PACKS[p];
+      packStr=`<span style="font-size:.62rem;color:var(--az2);font-weight:700;background:#dbeafe;border-radius:5px;padding:2px 8px">📦 ${Math.floor(stock/tam)} packs + ${stock%tam} sueltas</span>`;
+    }
+
+    // Lotes
+    let lotesStr='';
+    if(lotesCon.length){
+      lotesStr=lotesCon.map(l=>{
+        const dv=diasHasta(l.fechaVenc);
+        const c=dv<=0?'var(--rj)':dv<=30?'var(--rj)':dv<=60?'#b07000':'#0a6630';
+        const bg2=dv<=0?'var(--rj2)':dv<=30?'var(--rj2)':dv<=60?'var(--am2)':'var(--vr2)';
+        const ico=dv<=0?'⛔':dv<=30?'🔴':dv<=60?'🟡':'✅';
+        const pkInfo=PACKS[p]?` (${Math.floor(l.cant/PACKS[p].tam)}pk+${l.cant%PACKS[p].tam}u)`:'';
+        return `<div style="background:${bg2};border-radius:5px;padding:3px 9px;font-size:.62rem;font-weight:700;color:${c};display:flex;justify-content:space-between">
+          <span>${ico} ${l.cant} uds${pkInfo}</span>
+          <span>Vce: ${fmt(l.fechaVenc)} · ${dv<=0?'VENCIDO':dv===1?'mañana':`${dv}d`}</span>
+        </div>`;
+      }).join('');
+    } else {
+      lotesStr=`<div style="font-size:.65rem;color:var(--g3);text-align:center;padding:6px">Sin lotes</div>`;
+    }
+
+    detHtml+=`<div style="background:${bg};border:1.5px solid ${borde};border-radius:10px;padding:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:.7rem;font-weight:700;color:var(--az)">${icoProd} ${p}</span>
+        <span style="font-size:1.4rem;font-weight:900;color:var(--az2);font-family:'DM Mono',monospace">${stock}</span>
+      </div>
+      ${packStr?`<div style="margin-bottom:6px">${packStr}</div>`:''}
+      <div style="display:flex;flex-direction:column;gap:3px">${lotesStr}</div>
+    </div>`;
+  });
+  detHtml+='</div>';
+  document.getElementById('stock-detalle-body').innerHTML=detHtml;
+
+  // ── Alertas ──
+  const alertas=[];
+  PRODS.forEach(p=>{
+    const d=inv[p];
+    if(!d.lotes.length||d.stock===0) return;
+    const lotesVenc=d.lotes.filter(l=>l.cant>0&&diasHasta(l.fechaVenc)<=60);
+    lotesVenc.forEach(l=>{
+      const dias=diasHasta(l.fechaVenc);
+      const cls=dias<=30?'av-rojo':'av-amari', ico=dias<=30?'🔴':'🟡';
+      const packInfo=PACKS[p]?` · ${Math.floor(l.cant/PACKS[p].tam)} packs + ${l.cant%PACKS[p].tam} sueltas`:'';
+      alertas.push(`<div class="av-item ${cls}">
+        <span>${ico} <strong>${p}</strong></span>
+        <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+          <span>${l.cant} uds${packInfo}</span>
+          <span style="font-size:.65rem;opacity:.8">Vence ${fmt(l.fechaVenc)} · ${dias<=0?'VENCIDO':dias===1?'mañana':`en ${dias} días`}</span>
+        </span>
+      </div>`);
+    });
+  });
+  document.getElementById('dash-alertas').innerHTML=alertas.length?alertas.join(''):'<p class="empty">✅ Sin alertas de vencimiento</p>';
+
+  // Últimas producciones
+  if(!cache.prod.length){ document.getElementById('dash-prods-lista').innerHTML='<p class="empty">Sin registros</p>'; }
+  else{
+    let h=`<table class="htbl"><thead><tr><th>Fecha</th><th>Operario</th><th>Total uds.</th><th>Vencimiento</th></tr></thead><tbody>`;
+    cache.prod.slice(0,5).forEach(r=>{
+      const tot=PRODS.reduce((s,p)=>s+(r.cantidades[p]||0),0);
+      h+=`<tr><td>${fmt(r.fecha)}</td><td style="font-family:'Montserrat',sans-serif;font-weight:600;font-size:.7rem;white-space:normal">${r.operario}</td><td>${tot}</td><td>${fmt(r.venc)}</td></tr>`;
+    });
+    h+='</tbody></table>';
+    document.getElementById('dash-prods-lista').innerHTML=h;
+  }
+
+  // Últimas boletas
+  if(!cache.bols.length){ document.getElementById('dash-bols-lista').innerHTML='<p class="empty">Sin boletas</p>'; }
+  else{
+    let h=`<table class="htbl"><thead><tr><th>N°</th><th>Fecha</th><th>Cliente</th><th>Total</th></tr></thead><tbody>`;
+    cache.bols.slice(0,5).forEach(b=>{
+      h+=`<tr><td><span class="badge b-az">${b.num}</span></td><td>${fmt(b.fecha)}</td><td style="font-family:'Montserrat',sans-serif;font-weight:600;font-size:.7rem;white-space:normal">${b.cliente}</td><td style="font-weight:700;color:var(--az2)">S/ ${parseFloat(b.total).toFixed(2)}</td></tr>`;
+    });
+    h+='</tbody></table>';
+    document.getElementById('dash-bols-lista').innerHTML=h;
+  }
+}
+
+// ══ PRODUCCIÓN ══
+function calcMateriales(cantidades){
+  // Suma materiales totales para un lote dado las cantidades por producto
+  const totMat={};
+  PRODS.forEach(p=>{
+    const cant=cantidades[p]||0;
+    if(!cant) return;
+    (MATERIALES[p]||[]).forEach(m=>{
+      totMat[m.mat]=(totMat[m.mat]||0)+(m.cant*cant);
+    });
+  });
+  return totMat;
+}
+
+function renderHistProd(){
+  const wrap=document.getElementById('hist-prod');
+  if(!cache.prod.length){ wrap.innerHTML='<p class="empty">Sin registros de producción</p>'; return; }
+  let h='';
+  // Sort by fecha desc
+  [...cache.prod].sort((a,b)=>b.fecha.localeCompare(a.fecha)).forEach(r=>{
+    const esHist=String(r.id).startsWith('HIST_');
+    const totalUds=PRODS.reduce((s,p)=>s+(r.cantidades[p]||0),0);
+    const mats=calcMateriales(r.cantidades);
+    const prodItems=PRODS.filter(p=>r.cantidades[p]>0).map(p=>{
+      const pack=PACKS[p];
+      const uds=r.cantidades[p];
+      const packStr=pack?` <span style="font-size:.58rem;color:var(--az2)">(${Math.floor(uds/pack.tam)} packs + ${uds%pack.tam} sueltas)</span>`:'';
+      return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--g2)">
+        <span style="font-size:.7rem;font-weight:600;color:var(--az)">${p}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:.75rem;font-weight:700">${uds} uds${packStr}</span>
+      </div>`;
+    }).join('');
+    const matItems=Object.entries(mats).map(([mat,cant])=>
+      `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed var(--g2)">
+        <span style="font-size:.65rem;color:var(--g3)">${mat}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:.68rem;font-weight:700;color:var(--g3)">${cant.toLocaleString()}</span>
+      </div>`
+    ).join('');
+
+    h+=`<div style="background:var(--w);border:1.5px solid var(--g2);border-radius:10px;margin-bottom:12px;overflow:hidden">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:${esHist?'var(--am2)':'var(--g1)'};border-bottom:1.5px solid var(--g2)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:.7rem;font-weight:900;color:${esHist?'#7c5200':'var(--az)'}">
+            ${esHist?'📅 HISTÓRICO':'🏭 PRODUCCIÓN'}
+          </span>
+          <span style="font-size:.75rem;font-weight:700;color:var(--az2)">${fmt(r.fecha)}</span>
+          <span style="font-size:.65rem;color:var(--g3)">vence ${fmt(r.venc)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:.65rem;color:var(--g3)">👷 ${r.operario}</span>
+          <span style="background:var(--az);color:#fff;border-radius:20px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:.72rem;font-weight:700">${totalUds.toLocaleString()} uds</span>
+        </div>
+      </div>
+      <!-- Productos + Materiales -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+        <div style="padding:12px 16px;border-right:1.5px solid var(--g2)">
+          <div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);margin-bottom:6px">📦 Productos producidos</div>
+          ${prodItems}
+        </div>
+        <div style="padding:12px 16px">
+          <div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);margin-bottom:6px">🧱 Materiales utilizados</div>
+          ${matItems||'<div style="font-size:.65rem;color:var(--g3)">Sin detalle</div>'}
+        </div>
+      </div>
+    </div>`;
+  });
+  wrap.innerHTML=h;
+}
+
+async function registrarProd(){
+  const fecha=document.getElementById('p-fecha').value;
+  const venc=document.getElementById('p-venc').value;
+  const op=document.getElementById('p-op').value.trim();
+  if(!fecha){ toast('⚠️','Ingrese la fecha de producción'); return; }
+  if(!op){ toast('⚠️','Ingrese el nombre del operario'); return; }
+  const cantidades={};
+  let total=0;
+  PRODS.forEach((p,i)=>{ const v=parseInt(document.getElementById('pc-'+i).value)||0; cantidades[p]=v; total+=v; });
+  if(!total){ toast('⚠️','Ingrese al menos una cantidad'); return; }
+
+  const btn=document.getElementById('btn-regprod');
+  btn.disabled=true;
+  showLoad('Guardando producción en Google Sheets...');
+  try{
+    const reg={id:Date.now(),fecha,venc,operario:op,cantidades};
+    await api({action:'guardarProduccion',registro:reg});
+    // Guardar movimientos
+    for(const p of PRODS){
+      if(cantidades[p]>0){
+        await api({action:'guardarMovimiento',movimiento:{fecha,tipo:'Producción',prod:p,cant:cantidades[p],motivo:'Lote '+fmt(fecha),ref:'PROD-'+reg.id}});
+      }
+    }
+    toast('✅','Producción registrada en Google Sheets');
+    limpiarProd();
+    await cargarTodo();
+  } catch(e){ toast('❌','Error: '+e.message); }
+  finally{ btn.disabled=false; hideLoad(); }
+}
+
+function limpiarProd(){
+  PRODS.forEach((_,i)=>{ const el=document.getElementById('pc-'+i); if(el)el.value=''; });
+  document.getElementById('p-op').value='';
+  document.getElementById('p-fecha').value=hoy();
+  document.getElementById('p-venc').value=addMeses(hoy(),6);
+}
+
+// ══ INVENTARIO ══
+function renderInv(){
+  const inv=calcInv();
+  document.getElementById('inv-grid').innerHTML=PRODS.map(p=>{
+    const d=inv[p]; const stock=d.stock;
+    const lotesCon=d.lotes.filter(l=>l.cant>0);
+    const proxLote=lotesCon[0]||null;
+    const proxVenc=proxLote?proxLote.fechaVenc:null;
+    const dias=proxVenc?diasHasta(proxVenc):null;
+    let cls='',vcls='sin',vtxt='Sin stock';
+    if(stock>0&&proxVenc){
+      if(dias<=0)       { cls='alerta-rj'; vcls='danger'; vtxt=`⛔ VENCIDO`; }
+      else if(dias<=30) { cls='alerta-rj'; vcls='danger'; vtxt=`🔴 Próximo vence en ${dias} días`; }
+      else if(dias<=60) { cls='alerta-am'; vcls='warn';   vtxt=`🟡 Próximo vence en ${dias} días`; }
+      else              { vcls='ok';                      vtxt=`✅ Stock en buen estado`; }
+    }
+
+    // Packs si aplica
+    let packHtml='';
+    if(PACKS[p]){
+      const {tam,label}=PACKS[p];
+      const packs=Math.floor(stock/tam), sueltas=stock%tam;
+      packHtml=`<div style="padding:7px 10px;background:rgba(13,110,253,.07);border-radius:8px;border:1px solid var(--g2);margin-bottom:8px">
+        <div style="font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);margin-bottom:3px">📦 ${label}</div>
+        <div style="display:flex;gap:12px;align-items:baseline">
+          <div><span style="font-size:1.2rem;font-weight:900;color:var(--az2);font-family:'DM Mono',monospace">${packs}</span><span style="font-size:.58rem;color:var(--g3);font-weight:600"> packs</span></div>
+          <div style="color:var(--g3)">+</div>
+          <div><span style="font-size:1.2rem;font-weight:900;color:#6b7c9a;font-family:'DM Mono',monospace">${sueltas}</span><span style="font-size:.58rem;color:var(--g3);font-weight:600"> sueltas</span></div>
+        </div>
+      </div>`;
+    }
+
+    // Detalle de lotes por vencimiento
+    let lotesHtml='';
+    if(lotesCon.length){
+      lotesHtml=`<div style="margin-top:8px">
+        <div style="font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--g3);margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--g2)">📋 Detalle por lote</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+        ${lotesCon.map(l=>{
+          const dv=diasHasta(l.fechaVenc);
+          let bg,color,ico;
+          if(dv<=0)       { bg='var(--rj2)'; color='var(--rj)'; ico='⛔'; }
+          else if(dv<=30) { bg='var(--rj2)'; color='var(--rj)'; ico='🔴'; }
+          else if(dv<=60) { bg='var(--am2)'; color='#7c5200';   ico='🟡'; }
+          else            { bg='var(--vr2)'; color='#0a6630';   ico='✅'; }
+          // Packs de este lote si aplica
+          let packLote='';
+          if(PACKS[p]){
+            const {tam,label}=PACKS[p];
+            const pk=Math.floor(l.cant/tam), su=l.cant%tam;
+            packLote=`<span style="font-size:.6rem;color:${color};opacity:.8"> (${pk} pack${pk!==1?'s':''}${su>0?` +${su}`:''})</span>`;
+          }
+          return `<div style="background:${bg};border-radius:6px;padding:5px 9px;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
+            <div>
+              <span style="font-size:.7rem;font-weight:900;color:${color};font-family:'DM Mono',monospace">${l.cant} uds${packLote?packLote:''}</span>
+              <div style="font-size:.58rem;color:${color};opacity:.8;margin-top:1px">Prod: ${fmt(l.fechaProd)}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:.62rem;font-weight:700;color:${color}">${ico} Vence: ${fmt(l.fechaVenc)}</div>
+              <div style="font-size:.6rem;color:${color};opacity:.8">${dv<=0?'VENCIDO':dv===1?'Mañana':`en ${dv} días`}</div>
+            </div>
+          </div>`;
+        }).join('')}
+        </div>
+      </div>`;
+    } else {
+      lotesHtml=`<div style="margin-top:8px;text-align:center;padding:10px;background:var(--g1);border-radius:8px;font-size:.72rem;color:var(--g3)">Sin lotes registrados</div>`;
+    }
+
+    return `<div class="inv-card ${cls}">
+      <div class="inv-prod">💧 ${p}</div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin:4px 0 8px">
+        <div class="inv-stock">${stock}</div>
+        <div class="inv-unid">unidades totales</div>
+      </div>
+      ${packHtml}
+      <div class="inv-venc ${vcls}">${vtxt}</div>
+      ${lotesHtml}
+    </div>`;
+  }).join('');
+}
+
+function renderHistInv(){
+  const wrap=document.getElementById('hist-inv');
+  if(!cache.movs.length){ wrap.innerHTML='<p class="empty">Sin movimientos</p>'; return; }
+  let h=`<table class="htbl"><thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Cant.</th><th>Referencia / Motivo</th></tr></thead><tbody>`;
+  cache.movs.slice(0,150).forEach(m=>{
+    const bc=m.tipo==='Producción'||m.tipo==='Entrada'?'b-vr':m.tipo==='Boleta'?'b-rj':'b-am';
+    h+=`<tr><td>${fmt(m.fecha)}</td><td><span class="badge ${bc}">${m.tipo}</span></td><td style="font-family:'Montserrat',sans-serif;white-space:normal;font-size:.7rem">${m.prod}</td><td>${m.cant}</td><td style="font-family:'Montserrat',sans-serif;font-size:.7rem;white-space:normal">${m.motivo||''} ${m.ref||''}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  wrap.innerHTML=h;
+}
+
+async function registrarAjuste(){
+  const prod=document.getElementById('aj-prod').value;
+  const tipo=document.getElementById('aj-tipo').value;
+  const cant=parseInt(document.getElementById('aj-cant').value)||0;
+  const motivo=document.getElementById('aj-motivo').value.trim();
+  if(!cant||cant<=0){ toast('⚠️','Ingrese una cantidad válida'); return; }
+  if(tipo==='salida'){
+    const inv=calcInv();
+    if((inv[prod]?.stock||0)<cant){ toast('⚠️','Stock insuficiente para este ajuste'); return; }
+  }
+  const btn=document.getElementById('btn-ajuste');
+  btn.disabled=true;
+  showLoad('Guardando ajuste...');
+  try{
+    const tipoLabel=tipo==='salida'?'Ajuste -':'Entrada';
+    await api({action:'guardarMovimiento',movimiento:{fecha:hoy(),tipo:tipoLabel,prod,cant,motivo:motivo||'Ajuste manual',ref:''}});
+    toast('✅','Ajuste registrado en Google Sheets');
+    cerrarModal('modal-ajuste');
+    document.getElementById('aj-cant').value='';
+    document.getElementById('aj-motivo').value='';
+    await cargarTodo();
+  } catch(e){ toast('❌','Error: '+e.message); }
+  finally{ btn.disabled=false; hideLoad(); }
+}
+
+function abrirAjuste(){ document.getElementById('modal-ajuste').classList.add('open'); }
+
+// ══ BOLETAS ══
+// ══ MODO HISTÓRICO ══
+let modoHistorico = false;
+
+function toggleModoHistorico(){
+  modoHistorico = document.getElementById('modo-historico').checked;
+  const track = document.getElementById('toggle-track');
+  const thumb = document.getElementById('toggle-thumb');
+  const aviso = document.getElementById('aviso-historico');
+  const numInput = document.getElementById('b-num');
+  if(modoHistorico){
+    track.style.background = '#f59e0b';
+    thumb.style.left = '21px';
+    aviso.style.display = 'block';
+    numInput.removeAttribute('readonly');
+    numInput.style.background = '#fef3c7';
+    numInput.style.borderColor = '#f59e0b';
+    toast('📅','Modo histórico activado — sin validación de stock');
+  } else {
+    track.style.background = '#555';
+    thumb.style.left = '3px';
+    aviso.style.display = 'none';
+    numInput.setAttribute('readonly','');
+    numInput.style.background = '';
+    numInput.style.borderColor = '';
+    actualizarNumBoleta();
+    toast('✅','Modo normal activado');
+  }
+  renderRows();
+}
+
+let boletaRows=[];
+
+function actualizarNumBoleta(){
+  document.getElementById('b-num').value='B-'+String(cache.bols.length+1).padStart(4,'0');
+}
+
+function addRow(){ boletaRows.push({prod:PRODS[0],tipo:'unidad',cant:1,precio:0}); renderRows(); }
+function removeRow(i){ boletaRows.splice(i,1); if(!boletaRows.length)addRow(); else renderRows(); calcTotal(); }
+
+function renderRows(){
+  const inv=calcInv();
+  document.getElementById('b-items').innerHTML=boletaRows.map((r,i)=>{
+    const d=inv[r.prod];
+    const tienePack=!!PACKS[r.prod];
+    const tam=tienePack?PACKS[r.prod].tam:1;
+    const packLabel=tienePack?PACKS[r.prod].label:'';
+    const stockDisp=d?.stock||0;
+    const stockPacks=tienePack?Math.floor(stockDisp/tam):0;
+    const maxCant=r.tipo==='pack'?stockPacks:stockDisp;
+    const unidadesEq=r.tipo==='pack'?(r.cant||0)*tam:(r.cant||0);
+    const sinStock=stockDisp<=0;
+    const insuf=unidadesEq>stockDisp;
+
+    // Selector tipo
+    const tipoSel=tienePack
+      ?`<select onchange="boletaRows[${i}].tipo=this.value;boletaRows[${i}].cant=1;renderRows()" style="font-size:.72rem">
+           <option value="unidad"${r.tipo==='unidad'?' selected':''}>Unidad</option>
+           <option value="pack"${r.tipo==='pack'?' selected':''}>📦 ${packLabel}</option>
+         </select>`
+      :`<span style="font-size:.68rem;color:var(--g3);padding:7px 4px">Unidad</span>`;
+
+    const eqHint=tienePack&&r.tipo==='pack'
+      ?`<div style="font-size:.58rem;color:var(--g3);margin-top:2px">(=${unidadesEq} uds)</div>`:'';
+
+    // Stock badge con color
+    let stockBadge='';
+    if(sinStock){
+      stockBadge=`<div style="font-size:.62rem;font-weight:700;color:var(--rj);background:var(--rj2);border-radius:5px;padding:3px 7px;margin-top:3px">⛔ Sin stock</div>`;
+    } else {
+      const color=stockDisp<=5?'var(--rj)':stockDisp<=20?'#b07000':'var(--vr)';
+      const ico=stockDisp<=5?'🔴':stockDisp<=20?'🟡':'🟢';
+      const dispTxt=tienePack&&r.tipo==='pack'
+        ?`${stockPacks} packs disp.`
+        :`${stockDisp} uds disp.`;
+      stockBadge=`<div style="font-size:.6rem;font-weight:700;color:${color};margin-top:3px">${ico} ${dispTxt}</div>`;
+    }
+
+    // Lotes disponibles con colores
+    const lotesCon=(d?.lotes||[]).filter(l=>l.cant>0);
+    let lotesHtml='';
+    if(lotesCon.length){
+      lotesHtml=`<div style="margin-top:4px;display:flex;flex-direction:column;gap:2px">`;
+      lotesCon.forEach(l=>{
+        const dv=diasHasta(l.fechaVenc);
+        const color=dv<=0?'var(--rj)':dv<=30?'var(--rj)':dv<=60?'#b07000':'#0a6630';
+        const bg=dv<=0?'var(--rj2)':dv<=30?'var(--rj2)':dv<=60?'var(--am2)':'var(--vr2)';
+        const ico=dv<=0?'⛔':dv<=30?'🔴':dv<=60?'🟡':'✅';
+        const cantDisp=tienePack&&r.tipo==='pack'?`${Math.floor(l.cant/tam)}pk+${l.cant%tam}u`:`${l.cant}u`;
+        lotesHtml+=`<div style="background:${bg};border-radius:5px;padding:3px 7px;font-size:.58rem;font-weight:700;color:${color};display:flex;justify-content:space-between">
+          <span>${ico} ${cantDisp}</span>
+          <span>Vce: ${fmt(l.fechaVenc)}</span>
+        </div>`;
+      });
+      lotesHtml+=`</div>`;
+    }
+
+    // Input con borde rojo si cantidad supera stock
+    const inputBorder=insuf&&!sinStock?'border-color:var(--rj);background:var(--rj2)':'';
+
+    // Fechas del lote que se usará (FIFO = primero)
+    const lote=lotesCon[0]||null;
+    const fprod=lote?`<span style="color:var(--az2);font-size:.7rem;font-family:'DM Mono',monospace">${fmt(lote.fechaProd)}</span>`
+                    :`<span style="color:var(--g3);font-size:.68rem">—</span>`;
+    const fvenc=lote?(()=>{
+      const dv=diasHasta(lote.fechaVenc);
+      const color=dv<=0?'var(--rj)':dv<=30?'var(--rj)':dv<=60?'#b07000':'#0a6630';
+      return `<span style="color:${color};font-size:.7rem;font-family:'DM Mono',monospace;font-weight:700">${fmt(lote.fechaVenc)}</span>`;
+    })():`<span style="color:var(--g3);font-size:.68rem">—</span>`;
+
+    return `<div class="boleta-row" style="${sinStock?'opacity:.6':''}">
+      <div>
+        <select onchange="boletaRows[${i}].prod=this.value;boletaRows[${i}].tipo='unidad';boletaRows[${i}].cant=1;renderRows()">
+          ${PRODS.map(p=>`<option value="${p}"${r.prod===p?' selected':''}>${p}</option>`).join('')}
+        </select>
+        ${stockBadge}
+        ${lotesHtml}
+      </div>
+      <div>${tipoSel}</div>
+      <div>
+        <input type="number" min="0" max="${maxCant}" value="${r.cant}" placeholder="0"
+               style="${inputBorder}"
+               onchange="boletaRows[${i}].cant=parseInt(this.value)||0;calcTotal()"
+               ${sinStock?'disabled':''}>
+        ${insuf&&!sinStock?`<div style="font-size:.58rem;color:var(--rj);font-weight:700;margin-top:2px">⚠️ Máx: ${maxCant}</div>`:''}
+        ${eqHint}
+      </div>
+      <input type="number" min="0" step="0.01" value="${r.precio||''}" placeholder="0.00"
+             onchange="boletaRows[${i}].precio=parseFloat(this.value)||0;calcTotal()">
+      <div style="padding:4px 0">${fprod}</div>
+      <div style="padding:4px 0">${fvenc}</div>
+      <div class="subtotal-disp" id="sub-${i}">S/ 0.00</div>
+      <button class="btn btn-rj btn-sm" onclick="removeRow(${i})">✕</button>
+    </div>`;
+  }).join('');
+  calcTotal();
+}
+
+function calcTotal(){
+  let total=0;
+  boletaRows.forEach((r,i)=>{
+    // El precio siempre es por la unidad de venta (pack o unidad)
+    const s=(r.cant||0)*(r.precio||0);
+    total+=s;
+    const el=document.getElementById('sub-'+i);
+    if(el) el.textContent='S/ '+s.toFixed(2);
+  });
+  document.getElementById('b-total').textContent='S/ '+total.toFixed(2);
+}
+
+async function emitirBoleta(){
+  const cliente=document.getElementById('b-cli').value.trim();
+  const doc=document.getElementById('b-doc').value.trim();
+  const fecha=document.getElementById('b-fecha').value;
+  const num=document.getElementById('b-num').value;
+  const dir=document.getElementById('b-dir').value.trim();
+  if(!cliente){ toast('⚠️','Ingrese el nombre del cliente'); return; }
+  if(!doc){ toast('⚠️','Ingrese el RUC o DNI'); return; }
+
+  // Calcular resumen de unidades por producto
+  const inv=calcInv();
+  const resumen={};
+  for(const r of boletaRows){
+    if(!r.cant||r.cant<=0){ toast('⚠️','Verifique las cantidades — hay filas en cero'); return; }
+    const tam=r.tipo==='pack'&&PACKS[r.prod]?PACKS[r.prod].tam:1;
+    const unidades=r.cant*tam;
+    resumen[r.prod]=(resumen[r.prod]||0)+unidades;
+  }
+
+  // Validar stock solo en modo normal
+  if(!modoHistorico){
+    for(const [prod,unidades] of Object.entries(resumen)){
+      const stockReal=inv[prod]?.stock||0;
+      if(stockReal<=0){
+        toast('❌',`Sin stock: ${prod}`); return;
+      }
+      if(stockReal<unidades){
+        const tienePack=!!PACKS[prod];
+        const dispStr=tienePack
+          ?`${stockReal} uds (${Math.floor(stockReal/PACKS[prod].tam)} packs + ${stockReal%PACKS[prod].tam} sueltas)`
+          :`${stockReal} uds`;
+        toast('❌',`Stock insuficiente: ${prod} — Disponible: ${dispStr}, solicitado: ${unidades} uds`);
+        return;
+      }
+    }
+  }
+
+  const btn=document.getElementById('btn-emitir');
+  btn.disabled=true;
+  showLoad('Emitiendo boleta en Google Sheets...');
+  try{
+    const total=boletaRows.reduce((s,r)=>s+(r.cant*r.precio),0);
+    // Capturar lote + convertir packs → unidades para cada item
+    const itemsConLote=boletaRows.map(r=>{
+      const lote=inv[r.prod]?.lotes?.find(l=>l.cant>0);
+      const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
+      const unidades = r.cant * tam;
+      const tipoLabel = r.tipo==='pack' && PACKS[r.prod]
+        ? `${PACKS[r.prod].label} (${r.cant} packs = ${unidades} uds)`
+        : 'Unidad';
+      return {
+        ...r,
+        unidades,        // unidades reales descontadas
+        tipoLabel,
+        fechaProd: lote?lote.fechaProd:'',
+        fechaVenc: lote?lote.fechaVenc:''
+      };
+    });
+    const lotesInfo=[];
+    const yaAgregado={};
+    itemsConLote.forEach(it=>{
+      if(it.fechaProd&&!yaAgregado[it.prod]){
+        lotesInfo.push({prod:it.prod,cant:it.unidades,fechaProd:it.fechaProd,fechaVenc:it.fechaVenc});
+        yaAgregado[it.prod]=true;
+      }
+    });
+    const boleta={num,fecha,cliente,doc,dir,items:itemsConLote,total,lotesInfo,historico:modoHistorico?'SI':'NO'};
+    await api({action:'guardarBoleta',boleta});
+    // Registrar movimientos usando UNIDADES reales
+    for(const [prod,unidades] of Object.entries(resumen)){
+      await api({action:'guardarMovimiento',movimiento:{fecha,tipo:'Boleta',prod,cant:unidades,motivo:'',ref:num}});
+    }
+    toast('✅','Boleta emitida y registrada en Google Sheets');
+    mostrarBoleta(boleta);
+    limpiarBoleta();
+    await cargarTodo();
+  } catch(e){ toast('❌','Error: '+e.message); }
+  finally{ btn.disabled=false; hideLoad(); }
+}
+
+function limpiarBoleta(){
+  document.getElementById('b-cli').value='';
+  document.getElementById('b-doc').value='';
+  document.getElementById('b-dir').value='';
+  document.getElementById('b-fecha').value=hoy();
+  boletaRows=[];
+  actualizarNumBoleta();
+  addRow();
+}
+
+function mostrarBoleta(reg){
+  document.getElementById('boleta-content').innerHTML=`
+    <div class="boleta-print">
+      <div class="bp-header">
+        <div class="bp-brand">OZ<span>À</span>S</div>
+        <div class="bp-sub">Agua Alcalina sin Gas · Producto Natural</div>
+        <div class="bp-num">BOLETA DE VENTA N° ${reg.num}</div>
+      </div>
+      <div class="bp-datos">
+        <div><div class="lbl">Fecha de Emisión</div><div class="val">${fmt(reg.fecha)}</div></div>
+        <div><div class="lbl">N° Boleta</div><div class="val">${reg.num}</div></div>
+        <div><div class="lbl">Cliente</div><div class="val">${reg.cliente}</div></div>
+        <div><div class="lbl">RUC / DNI</div><div class="val">${reg.doc}</div></div>
+        ${reg.dir?`<div style="grid-column:1/-1"><div class="lbl">Dirección</div><div class="val">${reg.dir}</div></div>`:''}
+      </div>
+      <table class="bp-table">
+        <thead><tr><th>#</th><th>Producto</th><th>Tipo</th><th>Cant.</th><th>Precio Unit.</th><th>F. Producción</th><th>Vencimiento</th><th>Subtotal</th></tr></thead>
+        <tbody>${reg.items.map((it,i)=>`
+          <tr>
+            <td>${i+1}</td>
+            <td>${it.prod}</td>
+            <td style="font-size:.7rem;color:var(--g3)">${it.tipoLabel||'Unidad'}</td>
+            <td>${it.cant}</td>
+            <td>S/ ${(it.precio||0).toFixed(2)}</td>
+            <td style="color:#0d6efd;font-weight:600">${it.fechaProd?fmt(it.fechaProd):'—'}</td>
+            <td style="color:${it.fechaVenc&&diasHasta(it.fechaVenc)<=30?'#e02020':it.fechaVenc&&diasHasta(it.fechaVenc)<=60?'#b07000':'#0a6630'};font-weight:700">${it.fechaVenc?fmt(it.fechaVenc):'—'}</td>
+            <td>S/ ${((it.cant||0)*(it.precio||0)).toFixed(2)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div class="bp-total">TOTAL: S/ ${parseFloat(reg.total).toFixed(2)}</div>
+      <div class="bp-footer">OZÀS – Agua Alcalina sin Gas<br>Gracias por su preferencia · Producto garantizado de calidad<br>Este documento es válido como comprobante de venta</div>
+    </div>`;
+  document.getElementById('modal-boleta').classList.add('open');
+}
+
+function verBoleta(num){
+  const b=cache.bols.find(x=>x.num===num);
+  if(b) mostrarBoleta(b);
+}
+
+function renderHistBol(){
+  const wrap=document.getElementById('hist-bol');
+  if(!cache.bols.length){ wrap.innerHTML='<p class="empty">Sin boletas emitidas</p>'; return; }
+  let h=`<table class="htbl"><thead><tr><th>N° Boleta</th><th>Fecha</th><th>Cliente</th><th>Doc.</th><th>Total</th><th></th></tr></thead><tbody>`;
+  cache.bols.forEach(b=>{
+    h+=`<tr><td><span class="badge b-az">${b.num}</span></td><td>${fmt(b.fecha)}</td><td style="font-family:'Montserrat',sans-serif;font-weight:600;font-size:.7rem;white-space:normal">${b.cliente}</td><td>${b.doc}</td><td style="font-weight:700;color:var(--az2)">S/ ${parseFloat(b.total).toFixed(2)}</td><td><button class="btn btn-o btn-sm" onclick="verBoleta('${b.num}')">👁 Ver</button></td></tr>`;
+  });
+  h+='</tbody></table>';
+  wrap.innerHTML=h;
+}
+
+// ══ EXPORT CSV ══
+function exportCSV(mod){
+  let csv='',fn='';
+  if(mod==='prod'){
+    csv='Fecha Produccion,Vencimiento,Operario,'+PRODS.join(',')+'\n';
+    cache.prod.forEach(r=>{ csv+=`"${r.fecha}","${r.venc}","${r.operario}",`+PRODS.map(p=>r.cantidades[p]||0).join(',')+'\n'; });
+    fn='OZAS_Produccion';
+  } else if(mod==='inv'){
+    csv='Fecha,Tipo,Producto,Cantidad,Motivo,Referencia\n';
+    cache.movs.forEach(m=>{ csv+=`"${m.fecha}","${m.tipo}","${m.prod}","${m.cant}","${m.motivo||''}","${m.ref||''}"\n`; });
+    fn='OZAS_Movimientos';
+  } else if(mod==='bol'){
+    csv='N° Boleta,Fecha,Cliente,Doc,Producto,Cantidad,Precio,F.Produccion,Vencimiento,Subtotal,Total\n';
+    cache.bols.forEach(b=>{ b.items.forEach(it=>{ csv+=`"${b.num}","${b.fecha}","${b.cliente}","${b.doc}","${it.prod}","${it.cant}","${(it.precio||0).toFixed(2)}","${it.fechaProd||''}","${it.fechaVenc||''}","${((it.cant||0)*(it.precio||0)).toFixed(2)}","${parseFloat(b.total).toFixed(2)}"\n`; }); });
+    fn='OZAS_Boletas';
+  }
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=fn+'_'+hoy()+'.csv'; a.click();
+  URL.revokeObjectURL(url);
+  toast('📊','CSV exportado');
+}
+
+// ══ TOAST ══
+function toast(ico,msg){
+  document.getElementById('t-i').textContent=ico;
+  document.getElementById('t-m').textContent=msg;
+  const t=document.getElementById('toast'); t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3800);
+}
+function cerrarModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>{ m.addEventListener('click',e=>{ if(e.target===m)m.classList.remove('open'); }); });
+
+// ══ INIT ══
+(function(){
+  const pf=document.getElementById('p-fecha');
+  pf.value=hoy();
+  pf.addEventListener('change',()=>{ document.getElementById('p-venc').value=addMeses(pf.value,6); });
+  document.getElementById('p-venc').value=addMeses(hoy(),6);
+  document.getElementById('b-fecha').value=hoy();
+  const tb=document.getElementById('prod-tbody');
+  PRODS.forEach((p,i)=>{
+    const packInfo=PACKS[p]?`<span style="font-size:.6rem;color:var(--g3);font-weight:400"> (${PACKS[p].tam} uds = 1 pack)</span>`:'';
+    tb.innerHTML+=`<tr>
+      <td>${p}${packInfo}</td>
+      <td><input type="number" min="0" placeholder="0" id="pc-${i}"></td>
+      <td id="pc-pack-${i}" style="font-size:.72rem;color:var(--g3);font-family:'DM Mono',monospace">—</td>
+    </tr>`;
+    // Actualizar packs en tiempo real al escribir
+    const input=document.getElementById('pc-'+i);
+    if(PACKS[p]){
+      input.addEventListener('input',()=>{
+        const v=parseInt(input.value)||0;
+        const packs=Math.floor(v/PACKS[p].tam), sueltas=v%PACKS[p].tam;
+        document.getElementById('pc-pack-'+i).textContent=v>0?`${packs} pack${packs!==1?'s':''} + ${sueltas} suelta${sueltas!==1?'s':''}` :'—';
+      });
+    }
+  });
+  const aj=document.getElementById('aj-prod');
+  PRODS.forEach(p=>{ aj.innerHTML+=`<option value="${p}">${p}</option>`; });
+  addRow();
+  cargarTodo();
+  // Auto-actualizar cada 60 segundos
+  setInterval(cargarTodo, 60000);
+})();
+
+// ══ CARGA HISTÓRICA ══
+let histRows = [];
+
+function addHistRow(){
+  histRows.push({prod:PRODS[0], tipo:'unidad', cant:1, precio:0, fprod:'', fvenc:''});
+  renderHistRows();
+}
+
+function removeHistRow(i){
+  histRows.splice(i,1);
+  if(!histRows.length) addHistRow();
+  else renderHistRows();
+  calcHistTotal();
+}
+
+function renderHistRows(){
+  const wrap = document.getElementById('h-rows');
+  if(!wrap) return;
+  wrap.innerHTML = histRows.map((r,i)=>{
+    const pack = PACKS[r.prod];
+    const tam  = pack ? pack.tam : 1;
+    // Selector tipo unidad/pack solo si el producto tiene pack
+    const tipoSel = pack
+      ? `<select onchange="histRows[${i}].tipo=this.value;histRows[${i}].cant=1;renderHistRows()"
+                 style="padding:5px 6px;border:1.5px solid var(--g2);border-radius:6px;font-size:.65rem;background:var(--w);width:100%">
+           <option value="unidad"${r.tipo==='unidad'?' selected':''}>Unidad</option>
+           <option value="pack"${r.tipo==='pack'?' selected':''}>📦 ${pack.label}</option>
+         </select>`
+      : `<span style="font-size:.65rem;color:var(--g3);padding:4px 2px">Unidad</span>`;
+
+    // Hint unidades equivalentes si es pack
+    const uds = r.tipo==='pack' ? (r.cant||0)*tam : (r.cant||0);
+    const hint = r.tipo==='pack'
+      ? `<div style="font-size:.58rem;color:var(--az2);font-weight:700;margin-top:2px">= ${uds} uds</div>` : '';
+
+    return `<div style="display:grid;grid-template-columns:2fr 90px 80px 80px 100px 100px 90px auto;gap:6px;padding:9px 12px;border-bottom:1px solid var(--g2);align-items:start;background:${i%2===0?'var(--w)':'var(--g1)'}">
+      <select onchange="histRows[${i}].prod=this.value;histRows[${i}].tipo='unidad';histRows[${i}].cant=1;renderHistRows()"
+              style="padding:7px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:.72rem;background:var(--w);color:var(--az)">
+        ${PRODS.map(p=>`<option value="${p}"${r.prod===p?' selected':''}>${p}</option>`).join('')}
+      </select>
+      <div>${tipoSel}</div>
+      <div>
+        <input type="number" min="1" value="${r.cant||1}" placeholder="0"
+               style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;text-align:center;width:100%"
+               oninput="histRows[${i}].cant=parseInt(this.value)||0;calcHistTotal()">
+        ${hint}
+      </div>
+      <input type="number" min="0" step="0.01" value="${r.precio||''}" placeholder="0.00"
+             style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;text-align:right;width:100%"
+             oninput="histRows[${i}].precio=parseFloat(this.value)||0;calcHistTotal()">
+      <input type="date" value="${r.fprod||''}"
+             style="padding:6px 8px;border:1.5px solid var(--g2);border-radius:6px;font-size:.72rem;width:100%;background:var(--w)"
+             onchange="histRows[${i}].fprod=this.value;const av=autoVenc(this.value,histRows[${i}].prod);if(av&&!histRows[${i}].fvenc){histRows[${i}].fvenc=av;renderHistRows();}">
+      <div style="position:relative">
+        <input type="date" value="${r.fvenc||''}"
+               style="padding:6px 8px;border:1.5px solid ${r.fvenc?'var(--vr)':'var(--g2)'};border-radius:6px;font-size:.72rem;width:100%;background:${r.fvenc?'var(--vr2)':'var(--w)'}"
+               onchange="histRows[${i}].fvenc=this.value;renderHistRows()">
+        ${r.fvenc?'':'<span style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:.55rem;color:var(--g3);pointer-events:none">auto</span>'}
+      </div>
+      <span style="font-family:'DM Mono',monospace;font-size:.78rem;font-weight:700;color:var(--az2);text-align:right;padding-top:7px" id="hsub-${i}">S/ 0.00</span>
+      <button onclick="removeHistRow(${i})"
+              style="background:var(--rj2);border:1px solid var(--rj);color:var(--rj);border-radius:6px;padding:5px 10px;cursor:pointer;font-weight:700;font-size:.8rem;margin-top:2px">✕</button>
+    </div>`;
+  }).join('');
+  calcHistTotal();
+}
+
+function calcHistTotal(){
+  let total=0;
+  histRows.forEach((r,i)=>{
+    const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
+    const sub = (r.cant||0) * tam * (r.precio||0);
+    // Precio es por unidad siempre; si es pack precio = precio por unidad
+    // Subtotal = cant * precio (precio ya sea por pack o por unidad)
+    const subReal = (r.cant||0) * (r.precio||0);
+    total += subReal;
+    const el=document.getElementById('hsub-'+i);
+    if(el) el.textContent='S/ '+subReal.toFixed(2);
+  });
+  const el=document.getElementById('h-total');
+  if(el) el.textContent='S/ '+total.toFixed(2);
+}
+
+async function registrarHistorico(){
+  // Validar datos generales
+  const bfecha = document.getElementById('h-bfecha').value;
+  const bcli   = document.getElementById('h-bcli').value.trim();
+  const bdoc   = document.getElementById('h-bdoc').value.trim();
+  const pop    = document.getElementById('h-pop').value.trim();
+
+  if(!bfecha){ toast('⚠️','Ingrese la fecha de salida de productos'); return; }
+  if(!bcli)  { toast('⚠️','Ingrese el nombre del cliente'); return; }
+  if(!bdoc)  { toast('⚠️','Ingrese el RUC o DNI'); return; }
+  if(!histRows.length||histRows.every(r=>!r.cant||r.cant<=0)){
+    toast('⚠️','Agregue al menos un producto'); return;
+  }
+
+  // Validar que cada fila tenga fechas de producción y vencimiento
+  for(let i=0;i<histRows.length;i++){
+    const r=histRows[i];
+    if(!r.cant||r.cant<=0) continue;
+    if(!r.fprod){ toast('⚠️',`Fila ${i+1}: ingrese la fecha de producción`); return; }
+    if(!r.fvenc){ toast('⚠️',`Fila ${i+1}: ingrese la fecha de vencimiento`); return; }
+    if(r.fvenc<=r.fprod){ toast('⚠️',`Fila ${i+1}: vencimiento debe ser posterior a producción`); return; }
+  }
+
+  const btn=document.getElementById('btn-hist');
+  btn.disabled=true;
+  showLoad('Procesando carga histórica...');
+  const resultados=[];
+
+  try{
+    // ── 1. Agrupar producciones por (fprod + fvenc) ──
+    // Convertir packs a unidades reales antes de agrupar
+    const loteMap={};
+    histRows.forEach(r=>{
+      if(!r.cant||r.cant<=0) return;
+      const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
+      const uds = r.cant * tam; // unidades reales
+      const key=r.fprod+'|'+r.fvenc;
+      if(!loteMap[key]) loteMap[key]={fprod:r.fprod,fvenc:r.fvenc,cantidades:{}};
+      loteMap[key].cantidades[r.prod]=(loteMap[key].cantidades[r.prod]||0)+uds;
+    });
+
+    // Registrar cada lote de producción (SIN movimiento de inventario)
+    // Las cargas históricas NO afectan el stock actual — solo el historial
+    for(const lote of Object.values(loteMap)){
+      const reg={id:'HIST_'+Date.now()+'_'+lote.fprod, fecha:lote.fprod, venc:lote.fvenc, operario:pop||'Carga histórica', cantidades:lote.cantidades};
+      await api({action:'guardarProduccion',registro:reg});
+      // Movimiento tipo 'Histórico' — ignorado por calcInv, solo para registro
+      for(const [prod,cant] of Object.entries(lote.cantidades)){
+        if(cant>0){
+          await api({action:'guardarMovimiento',movimiento:{
+            fecha:lote.fprod, tipo:'Histórico', prod, cant,
+            motivo:'Carga histórica - Lote '+fmt(lote.fprod),
+            ref:'PROD-'+reg.id
+          }});
+        }
+      }
+      const prods=Object.entries(lote.cantidades).filter(([,v])=>v>0).map(([p,v])=>p+': '+v).join(', ');
+      resultados.push('🏭 Producción registrada: Lote '+fmt(lote.fprod)+' → vence '+fmt(lote.fvenc)+' | '+prods);
+    }
+
+    // ── 2. Número de boleta automático ──
+    await cargarTodo();
+    const numBoleta='B-'+String(cache.bols.length+1).padStart(4,'0');
+
+    // ── 3. Registrar boleta ──
+    const total=histRows.reduce((s,r)=>s+(r.cant||0)*(r.precio||0),0);
+    const items=histRows.map(r=>{
+      const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
+      const uds = r.cant * tam;
+      const tipoLabel = r.tipo==='pack' && PACKS[r.prod]
+        ? PACKS[r.prod].label+' ('+r.cant+' packs = '+uds+' uds)'
+        : 'Unidad';
+      return {prod:r.prod, cant:r.cant, precio:r.precio, unidades:uds, tipoLabel,
+              fechaProd:r.fprod, fechaVenc:r.fvenc};
+    });
+    const boleta={
+      num:numBoleta, fecha:bfecha, cliente:bcli, doc:bdoc,
+      dir:document.getElementById('h-bdir').value.trim(),
+      items, total, lotesInfo:[], historico:'SI'
+    };
+    await api({action:'guardarBoleta',boleta});
+    resultados.push('🧾 Boleta '+numBoleta+' generada · '+bcli+' · S/ '+total.toFixed(2));
+
+    // ── 4. NO se registran movimientos de salida para históricas ──
+    // El stock actual no debe verse afectado por ventas pasadas
+    const resumen={};
+    histRows.forEach(r=>{
+      if(!r.cant||r.cant<=0) return;
+      const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
+      resumen[r.prod]=(resumen[r.prod]||0)+(r.cant*tam);
+    });
+    const descuentos=Object.entries(resumen).map(([p,v])=>p+': '+v+' uds').join(' · ');
+    resultados.push('📦 Productos registrados (sin afectar stock actual): '+descuentos);
+
+    // Mostrar resultado
+    document.getElementById('h-resultado').style.display='block';
+    document.getElementById('h-resultado-body').innerHTML=resultados.map(r=>'✔ '+r).join('<br>');
+    toast('✅','Completado — Boleta '+numBoleta);
+    await cargarTodo();
+    renderHistHistorial();
+
+  } catch(e){
+    toast('❌','Error: '+e.message);
+  } finally {
+    btn.disabled=false; hideLoad();
+  }
+}
+
+function limpiarHistorico(){
+  ['h-bfecha','h-bcli','h-bdoc','h-bdir','h-pop'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  histRows=[{prod:PRODS[0],tipo:'unidad',cant:1,precio:0,fprod:'',fvenc:''}];
+  renderHistRows();
+  document.getElementById('h-resultado').style.display='none';
+}
+
+function renderHistHistorial(){
+  const bols=cache.bols.filter(b=>b.historico==='SI');
+  const wrap=document.getElementById('hist-hist');
+  if(!wrap) return;
+  if(!bols.length){ wrap.innerHTML='<p class="empty">Sin boletas históricas registradas</p>'; return; }
+  let h=`<table class="htbl"><thead><tr>
+    <th>N° Boleta</th><th>Fecha Venta</th><th>Cliente</th><th>Documento</th><th>Productos</th><th>Total</th>
+  </tr></thead><tbody>`;
+  bols.forEach(b=>{
+    const prods=(b.items||[]).map(it=>`${it.prod} x${it.cant} (prod:${fmt(it.fechaProd)||'—'})`).join('<br>');
+    h+=`<tr>
+      <td><span class="badge b-am">${b.num}</span></td>
+      <td>${fmt(b.fecha)}</td>
+      <td style="font-family:'Montserrat',sans-serif;font-weight:600;font-size:.68rem">${b.cliente}</td>
+      <td>${b.doc||'—'}</td>
+      <td style="font-family:'Montserrat',sans-serif;font-size:.62rem;white-space:normal;line-height:1.6">${prods}</td>
+      <td style="font-weight:700;color:var(--az2)">S/ ${parseFloat(b.total||0).toFixed(2)}</td>
+    </tr>`;
+  });
+  h+='</tbody></table>';
+  wrap.innerHTML=h;
+}
+
+// ══ CONSOLIDADO DE PRODUCCIÓN ══
+function renderConsolidado(){
+  const wrap=document.getElementById('consolidado-prod');
+  if(!wrap) return;
+
+  // Sumar todo lo producido: movimientos tipo 'Producción' (actuales) + 'Histórico' (cargas históricas)
+  const totales={};
+  PRODS.forEach(p=>{ totales[p]=0; });
+  cache.movs.forEach(m=>{
+    if((m.tipo==='Producción'||m.tipo==='Histórico')&&resolverProd(m.prod)){
+      const p=resolverProd(m.prod);
+      totales[p]=(totales[p]||0)+(parseInt(m.cant)||0);
+    }
+  });
+
+  // También desde registros de producción directamente (por si hay diferencias)
+  // (movs ya los captura, este es el camino correcto)
+
+  const totalUds = Object.values(totales).reduce((s,v)=>s+v,0);
+  if(totalUds===0){ wrap.innerHTML='<p class="empty">Sin producciones registradas</p>'; return; }
+
+  let html=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:18px">`;
+  PRODS.forEach(p=>{
+    const uds=totales[p]||0;
+    if(uds===0) return;
+    const pack=PACKS[p];
+    const packs=pack?Math.floor(uds/pack.tam):null;
+    const sueltas=pack?uds%pack.tam:null;
+    const pct=totalUds>0?Math.round(uds/totalUds*100):0;
+
+    html+=`<div style="background:var(--g1);border:1.5px solid var(--g2);border-radius:10px;padding:14px 16px">
+      <div style="font-size:.68rem;font-weight:700;color:var(--az);margin-bottom:6px;line-height:1.3">${p}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.3rem;font-weight:900;color:var(--az2)">${uds.toLocaleString()}</div>
+      <div style="font-size:.62rem;color:var(--g3);font-weight:600;margin-bottom:8px">unidades totales</div>
+      ${pack?`<div style="font-size:.68rem;font-weight:700;color:#7c5200;background:var(--am2);border-radius:6px;padding:4px 8px;display:inline-block;margin-bottom:8px">
+        📦 ${packs} ${pack.label} + ${sueltas} sueltas
+      </div>`:''}
+      <div style="background:var(--g2);border-radius:4px;height:6px;overflow:hidden">
+        <div style="background:var(--az2);height:100%;width:${pct}%;border-radius:4px;transition:width .4s"></div>
+      </div>
+      <div style="font-size:.58rem;color:var(--g3);margin-top:4px;text-align:right">${pct}% del total</div>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  // Tabla resumen total
+  html+=`<div style="background:linear-gradient(135deg,var(--az),#163a6e);border-radius:10px;padding:16px 20px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;opacity:.7">Total producido (todas las líneas)</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:900;margin-top:2px">${totalUds.toLocaleString()} <span style="font-size:.8rem;opacity:.8">unidades</span></div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;opacity:.7">Productos con producción</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:900;margin-top:2px">${Object.values(totales).filter(v=>v>0).length} <span style="font-size:.8rem;opacity:.8">tipos</span></div>
+    </div>
+  </div>`;
+
+  wrap.innerHTML=html;
+}
+
+</script>
+</body>
+</html>
