@@ -874,44 +874,58 @@ function calcMateriales(cantidades){
 function renderHistProd(){
   const wrap=document.getElementById('hist-prod');
   if(!cache.prod.length){ wrap.innerHTML='<p class="empty">Sin registros de producción</p>'; return; }
+
+  // Agrupar por fecha de producción: misma fecha → un solo bloque
+  const grupos={}; // key: fecha
+  cache.prod.forEach(r=>{
+    const k=r.fecha;
+    if(!grupos[k]) grupos[k]={fecha:r.fecha, operario:r.operario, esHist:String(r.id).startsWith('HIST_'), cantidades:{}, vencPorProd:{}};
+    PRODS.forEach(p=>{
+      grupos[k].cantidades[p]=(grupos[k].cantidades[p]||0)+(r.cantidades[p]||0);
+      // Guardar fecha de vencimiento por producto (puede variar entre registros del mismo día)
+      if(r.cantidades[p]>0 && r.venc) grupos[k].vencPorProd[p]=r.venc;
+    });
+  });
+
   let h='';
-  // Sort by fecha desc
-  [...cache.prod].sort((a,b)=>b.fecha.localeCompare(a.fecha)).forEach(r=>{
-    const esHist=String(r.id).startsWith('HIST_');
-    const totalUds=PRODS.reduce((s,p)=>s+(r.cantidades[p]||0),0);
-    const mats=calcMateriales(r.cantidades);
-    const prodItems=PRODS.filter(p=>r.cantidades[p]>0).map(p=>{
+  Object.values(grupos).sort((a,b)=>b.fecha.localeCompare(a.fecha)).forEach(g=>{
+    const {fecha,operario,esHist,cantidades,vencPorProd}=g;
+    const totalUds=PRODS.reduce((s,p)=>s+(cantidades[p]||0),0);
+    const mats=calcMateriales(cantidades);
+
+    // Mostrar vencimiento: si todos igual → uno solo; si varían → por producto
+    const vencs=[...new Set(Object.values(vencPorProd))];
+    const vencLabel=vencs.length===1?`vence ${fmt(vencs[0])}`:vencs.length>1?`${vencs.length} vencimientos`:'';
+
+    const prodItems=PRODS.filter(p=>cantidades[p]>0).map(p=>{
       const pack=PACKS[p];
-      const uds=r.cantidades[p];
+      const uds=cantidades[p];
       const packStr=pack?` <span style="font-size:.58rem;color:var(--az2)">(${Math.floor(uds/pack.tam)} packs + ${uds%pack.tam} sueltas)</span>`:'';
-      return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--g2)">
-        <span style="font-size:.7rem;font-weight:600;color:var(--az)">${p}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:.75rem;font-weight:700">${uds} uds${packStr}</span>
+      const vp=vencPorProd[p]?`<span style="font-size:.58rem;color:var(--g3);margin-left:6px">· vce ${fmt(vencPorProd[p])}</span>`:'';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--g2)">
+        <span style="font-size:.7rem;font-weight:600;color:var(--az)">${p}${vp}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:.75rem;font-weight:700;white-space:nowrap;margin-left:8px">${uds} uds${packStr}</span>
       </div>`;
     }).join('');
+
     const matItems=Object.entries(mats).map(([mat,cant])=>
       `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed var(--g2)">
         <span style="font-size:.65rem;color:var(--g3)">${mat}</span>
         <span style="font-family:'DM Mono',monospace;font-size:.68rem;font-weight:700;color:var(--g3)">${cant.toLocaleString()}</span>
-      </div>`
-    ).join('');
+      </div>`).join('');
 
     h+=`<div style="background:var(--w);border:1.5px solid var(--g2);border-radius:10px;margin-bottom:12px;overflow:hidden">
-      <!-- Header -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:${esHist?'var(--am2)':'var(--g1)'};border-bottom:1.5px solid var(--g2)">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:.7rem;font-weight:900;color:${esHist?'#7c5200':'var(--az)'}">
-            ${esHist?'📅 HISTÓRICO':'🏭 PRODUCCIÓN'}
-          </span>
-          <span style="font-size:.75rem;font-weight:700;color:var(--az2)">${fmt(r.fecha)}</span>
-          <span style="font-size:.65rem;color:var(--g3)">vence ${fmt(r.venc)}</span>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:.7rem;font-weight:900;color:${esHist?'#7c5200':'var(--az)'}">${esHist?'📅 HISTÓRICO':'🏭 PRODUCCIÓN'}</span>
+          <span style="font-size:.75rem;font-weight:700;color:var(--az2)">${fmt(fecha)}</span>
+          ${vencLabel?`<span style="font-size:.65rem;color:var(--g3)">${vencLabel}</span>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:12px">
-          <span style="font-size:.65rem;color:var(--g3)">👷 ${r.operario}</span>
+          <span style="font-size:.65rem;color:var(--g3)">👷 ${operario}</span>
           <span style="background:var(--az);color:#fff;border-radius:20px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:.72rem;font-weight:700">${totalUds.toLocaleString()} uds</span>
         </div>
       </div>
-      <!-- Productos + Materiales -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
         <div style="padding:12px 16px;border-right:1.5px solid var(--g2)">
           <div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);margin-bottom:6px">📦 Productos producidos</div>
@@ -1330,7 +1344,7 @@ function mostrarBoleta(reg){
     <div class="boleta-print">
       <div class="bp-header">
         <div class="bp-brand">OZ<span>À</span>S</div>
-        <div class="bp-sub">Agua Alcalina sin Gas · Producto Natural</div>
+        <div class="bp-sub">Agua de mesa alcalina sin gas - OZÀS tu equilibrio en cada gota</div>
         <div class="bp-num">BOLETA DE VENTA N° ${reg.num}</div>
       </div>
       <div class="bp-datos">
@@ -1356,7 +1370,7 @@ function mostrarBoleta(reg){
         </tbody>
       </table>
       <div class="bp-total">TOTAL: S/ ${parseFloat(reg.total).toFixed(2)}</div>
-      <div class="bp-footer">OZÀS – Agua Alcalina sin Gas<br>Gracias por su preferencia · Producto garantizado de calidad<br>Este documento es válido como comprobante de venta</div>
+      <div class="bp-footer">OZÀS – Agua de mesa alcalina sin gas<br>Gracias por su preferencia · Producto garantizado de calidad<br>Este documento es válido como comprobante de venta</div>
     </div>`;
   document.getElementById('modal-boleta').classList.add('open');
 }
@@ -1485,12 +1499,12 @@ function renderHistRows(){
       </select>
       <div>${tipoSel}</div>
       <div>
-        <input type="number" min="1" value="${r.cant||1}" placeholder="0"
+        <input type="number" id="hcant-${i}" min="1" value="${r.cant||1}" placeholder="0"
                style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;text-align:center;width:100%"
                oninput="histRows[${i}].cant=parseInt(this.value)||0;calcHistTotal()">
         ${hint}
       </div>
-      <input type="number" min="0" step="0.01" value="${r.precio||''}" placeholder="0.00"
+      <input type="number" id="hprecio-${i}" min="0" step="0.01" value="${r.precio||''}" placeholder="0.00"
              style="padding:7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.8rem;text-align:right;width:100%"
              oninput="histRows[${i}].precio=parseFloat(this.value)||0;calcHistTotal()">
       <input type="date" id="hfp-${i}" value="${r.fprod||''}"
@@ -1536,6 +1550,14 @@ async function registrarHistorico(){
   if(!histRows.length||histRows.every(r=>!r.cant||r.cant<=0)){
     toast('⚠️','Agregue al menos un producto'); return;
   }
+
+  // Sincronizar fechas desde los inputs DOM (pueden haberse seleccionado sin disparar onchange)
+  histRows.forEach((r,i)=>{
+    const fp=document.getElementById('hfp-'+i);
+    const fv=document.getElementById('hfv-'+i);
+    if(fp) r.fprod=fp.value;
+    if(fv) r.fvenc=fv.value;
+  });
 
   // Validar que cada fila tenga fechas de producción y vencimiento
   for(let i=0;i<histRows.length;i++){
@@ -1589,6 +1611,13 @@ async function registrarHistorico(){
 
     // ── 3. Registrar boleta ──
     const total=histRows.reduce((s,r)=>s+(r.cant||0)*(r.precio||0),0);
+    // Sincronizar cantidades y precios desde DOM también
+    histRows.forEach((r,i)=>{
+      const ci=document.getElementById('hcant-'+i);
+      const pi=document.getElementById('hprecio-'+i);
+      if(ci) r.cant=parseFloat(ci.value)||0;
+      if(pi) r.precio=parseFloat(pi.value)||0;
+    });
     const items=histRows.map(r=>{
       const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
       const uds = r.cant * tam;
