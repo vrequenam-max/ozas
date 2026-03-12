@@ -888,7 +888,8 @@ function renderHistProd(){
   });
 
   let h='';
-  Object.values(grupos).sort((a,b)=>b.fecha.localeCompare(a.fecha)).forEach(g=>{
+  Object.values(grupos).filter(g=>PRODS.reduce((s,p)=>s+(g.cantidades[p]||0),0)>0)
+    .sort((a,b)=>b.fecha.localeCompare(a.fecha)).forEach(g=>{
     const {fecha,operario,esHist,cantidades,vencPorProd}=g;
     const totalUds=PRODS.reduce((s,p)=>s+(cantidades[p]||0),0);
     const mats=calcMateriales(cantidades);
