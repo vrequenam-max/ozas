@@ -957,7 +957,10 @@ async function registrarProd(){
   btn.disabled=true;
   showLoad('Guardando producción en Google Sheets...');
   try{
-    const reg={id:Date.now(),fecha,venc,operario:op,cantidades};
+    // Enviar también por clave corta (b625, b87, etc.) para mayor compatibilidad
+    const cantidadesKeys={};
+    PRODS.forEach((p,i)=>{ if(cantidades[p]>0) cantidadesKeys[PROD_KEYS[i]]=cantidades[p]; });
+    const reg={id:Date.now(),fecha,venc,operario:op,cantidades,cantidadesKeys};
     await api({action:'guardarProduccion',registro:reg});
     // Guardar movimientos
     for(const p of PRODS){
@@ -1615,7 +1618,11 @@ async function registrarHistorico(){
       idxLote++;
       const cantidades={};
       cantidades[r.prod]=uds;
-      const reg={id, fecha:r.fprod, venc:r.fvenc, operario:pop||'Carga histórica', cantidades};
+      // Enviar también por clave corta para evitar problemas de encoding
+      const cantidadesKeys={};
+      const ki=PRODS.indexOf(r.prod);
+      if(ki>=0) cantidadesKeys[PROD_KEYS[ki]]=uds;
+      const reg={id, fecha:r.fprod, venc:r.fvenc, operario:pop||'Carga histórica', cantidades, cantidadesKeys};
       await api({action:'guardarProduccion',registro:reg});
       await api({action:'guardarMovimiento',movimiento:{
         fecha:r.fprod, tipo:'Histórico', prod:r.prod, cant:uds,
