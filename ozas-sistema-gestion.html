@@ -1564,7 +1564,6 @@ function calcHistTotal(){
 }
 
 async function registrarHistorico(){
-  // Validar datos generales
   const bfecha = document.getElementById('h-bfecha').value;
   const bcli   = document.getElementById('h-bcli').value.trim();
   const bdoc   = document.getElementById('h-bdoc').value.trim();
@@ -1573,25 +1572,31 @@ async function registrarHistorico(){
   if(!bfecha){ toast('⚠️','Ingrese la fecha de salida de productos'); return; }
   if(!bcli)  { toast('⚠️','Ingrese el nombre del cliente'); return; }
   if(!bdoc)  { toast('⚠️','Ingrese el RUC o DNI'); return; }
-  if(!histRows.length||histRows.every(r=>!r.cant||r.cant<=0)){
-    toast('⚠️','Agregue al menos un producto'); return;
-  }
 
-  // Sincronizar fechas desde los inputs DOM (pueden haberse seleccionado sin disparar onchange)
+  // ── Sincronizar TODOS los valores desde DOM antes de cualquier validación ──
   histRows.forEach((r,i)=>{
-    const fp=document.getElementById('hfp-'+i);
-    const fv=document.getElementById('hfv-'+i);
-    if(fp) r.fprod=fp.value;
-    if(fv) r.fvenc=fv.value;
+    const fp =document.getElementById('hfp-'+i);
+    const fv =document.getElementById('hfv-'+i);
+    const ci =document.getElementById('hcant-'+i);
+    const pi =document.getElementById('hprecio-'+i);
+    if(fp)  r.fprod  = fp.value;
+    if(fv)  r.fvenc  = fv.value;
+    if(ci)  r.cant   = parseFloat(ci.value)||0;
+    if(pi)  r.precio = parseFloat(pi.value)||0;
+    // Auto-calcular fvenc si falta
+    if(r.fprod && !r.fvenc){
+      r.fvenc = autoVenc(r.fprod, r.prod);
+      if(fv) fv.value = r.fvenc;
+    }
   });
 
-  // Validar que cada fila tenga fechas de producción y vencimiento
-  for(let i=0;i<histRows.length;i++){
-    const r=histRows[i];
-    if(!r.cant||r.cant<=0) continue;
-    if(!r.fprod){ toast('⚠️',`Fila ${i+1}: ingrese la fecha de producción`); return; }
-    if(!r.fvenc){ toast('⚠️',`Fila ${i+1}: ingrese la fecha de vencimiento`); return; }
-    if(r.fvenc<=r.fprod){ toast('⚠️',`Fila ${i+1}: vencimiento debe ser posterior a producción`); return; }
+  const filas = histRows.filter(r=>r.cant>0);
+  if(!filas.length){ toast('⚠️','Agregue al menos un producto con cantidad'); return; }
+
+  for(let i=0;i<filas.length;i++){
+    const r=filas[i];
+    if(!r.fprod){ toast('⚠️',`Fila ${i+1} (${r.prod}): ingrese la fecha de producción`); return; }
+    if(!r.fvenc){ toast('⚠️',`Fila ${i+1} (${r.prod}): ingrese la fecha de vencimiento`); return; }
   }
 
   const btn=document.getElementById('btn-hist');
@@ -1600,79 +1605,49 @@ async function registrarHistorico(){
   const resultados=[];
 
   try{
-    // ── 1. Agrupar producciones por (fprod + fvenc) ──
-    // Convertir packs a unidades reales antes de agrupar
-    const loteMap={};
-    histRows.forEach(r=>{
-      if(!r.cant||r.cant<=0) return;
+    // ── 1. Un registro de producción por CADA PRODUCTO (no agrupado por fecha) ──
+    // Esto evita colisiones de ID y garantiza que cada producto aparezca correctamente
+    let idxLote=0;
+    for(const r of filas){
       const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
-      const uds = r.cant * tam; // unidades reales
-      const key=r.fprod+'|'+r.fvenc;
-      if(!loteMap[key]) loteMap[key]={fprod:r.fprod,fvenc:r.fvenc,cantidades:{}};
-      loteMap[key].cantidades[r.prod]=(loteMap[key].cantidades[r.prod]||0)+uds;
-    });
-
-    // Registrar cada lote de producción (SIN movimiento de inventario)
-    // Las cargas históricas NO afectan el stock actual — solo el historial
-    for(const lote of Object.values(loteMap)){
-      const reg={id:'HIST_'+Date.now()+'_'+lote.fprod, fecha:lote.fprod, venc:lote.fvenc, operario:pop||'Carga histórica', cantidades:lote.cantidades};
+      const uds = r.cant * tam;
+      const id  = 'HIST_'+(Date.now()+idxLote)+'_'+r.fprod.replace(/-/g,'');
+      idxLote++;
+      const cantidades={};
+      cantidades[r.prod]=uds;
+      const reg={id, fecha:r.fprod, venc:r.fvenc, operario:pop||'Carga histórica', cantidades};
       await api({action:'guardarProduccion',registro:reg});
-      // Movimiento tipo 'Histórico' — ignorado por calcInv, solo para registro
-      for(const [prod,cant] of Object.entries(lote.cantidades)){
-        if(cant>0){
-          await api({action:'guardarMovimiento',movimiento:{
-            fecha:lote.fprod, tipo:'Histórico', prod, cant,
-            motivo:'Carga histórica - Lote '+fmt(lote.fprod),
-            ref:'PROD-'+reg.id
-          }});
-        }
-      }
-      const prods=Object.entries(lote.cantidades).filter(([,v])=>v>0).map(([p,v])=>p+': '+v).join(', ');
-      resultados.push('🏭 Producción registrada: Lote '+fmt(lote.fprod)+' → vence '+fmt(lote.fvenc)+' | '+prods);
+      await api({action:'guardarMovimiento',movimiento:{
+        fecha:r.fprod, tipo:'Histórico', prod:r.prod, cant:uds,
+        motivo:'Carga histórica', ref:'PROD-'+id
+      }});
+      resultados.push('🏭 '+r.prod+': '+uds+' uds · prod '+fmt(r.fprod)+' · vce '+fmt(r.fvenc));
     }
 
-    // ── 2. Número de boleta automático ──
+    // ── 2. Número de boleta ──
     await cargarTodo();
     const numBoleta='B-'+String(cache.bols.length+1).padStart(4,'0');
 
-    // ── 3. Registrar boleta ──
-    const total=histRows.reduce((s,r)=>s+(r.cant||0)*(r.precio||0),0);
-    // Sincronizar cantidades y precios desde DOM también
-    histRows.forEach((r,i)=>{
-      const ci=document.getElementById('hcant-'+i);
-      const pi=document.getElementById('hprecio-'+i);
-      if(ci) r.cant=parseFloat(ci.value)||0;
-      if(pi) r.precio=parseFloat(pi.value)||0;
-    });
-    const items=histRows.map(r=>{
+    // ── 3. Boleta con fechas por item ──
+    const total=filas.reduce((s,r)=>s+(r.cant||0)*(r.precio||0),0);
+    const items=filas.map(r=>{
       const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
       const uds = r.cant * tam;
-      const tipoLabel = r.tipo==='pack' && PACKS[r.prod]
-        ? PACKS[r.prod].label+' ('+r.cant+' packs = '+uds+' uds)'
-        : 'Unidad';
-      return {prod:r.prod, cant:r.cant, precio:r.precio, unidades:uds, tipoLabel,
-              fechaProd:r.fprod, fechaVenc:r.fvenc};
+      return {
+        prod:r.prod, cant:r.cant, precio:r.precio, unidades:uds,
+        tipoLabel: r.tipo==='pack'&&PACKS[r.prod]
+          ? PACKS[r.prod].label+' ('+r.cant+' packs = '+uds+' uds)' : 'Unidad',
+        fechaProd:r.fprod, fechaVenc:r.fvenc
+      };
     });
-    const boleta={
+    await api({action:'guardarBoleta',boleta:{
       num:numBoleta, fecha:bfecha, cliente:bcli, doc:bdoc,
       dir:document.getElementById('h-bdir').value.trim(),
       items, total, lotesInfo:[], historico:'SI'
-    };
-    await api({action:'guardarBoleta',boleta});
-    resultados.push('🧾 Boleta '+numBoleta+' generada · '+bcli+' · S/ '+total.toFixed(2));
+    }});
+    resultados.push('🧾 Boleta '+numBoleta+' · '+bcli+' · S/ '+total.toFixed(2));
+    resultados.push('📦 Sin impacto en stock actual');
 
-    // ── 4. NO se registran movimientos de salida para históricas ──
-    // El stock actual no debe verse afectado por ventas pasadas
-    const resumen={};
-    histRows.forEach(r=>{
-      if(!r.cant||r.cant<=0) return;
-      const tam = r.tipo==='pack' && PACKS[r.prod] ? PACKS[r.prod].tam : 1;
-      resumen[r.prod]=(resumen[r.prod]||0)+(r.cant*tam);
-    });
-    const descuentos=Object.entries(resumen).map(([p,v])=>p+': '+v+' uds').join(' · ');
-    resultados.push('📦 Productos registrados (sin afectar stock actual): '+descuentos);
-
-    // Mostrar resultado
     document.getElementById('h-resultado').style.display='block';
     document.getElementById('h-resultado-body').innerHTML=resultados.map(r=>'✔ '+r).join('<br>');
     toast('✅','Completado — Boleta '+numBoleta);
@@ -1681,6 +1656,7 @@ async function registrarHistorico(){
 
   } catch(e){
     toast('❌','Error: '+e.message);
+    console.error(e);
   } finally {
     btn.disabled=false; hideLoad();
   }
