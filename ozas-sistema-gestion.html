@@ -521,20 +521,22 @@ const VIDA_UTIL = {
 // Materiales consumidos por unidad producida de cada producto
 const MATERIALES = {
   'Botella 625 ml': [
-    {mat:'Botella PET 625 ml',        cant:1, unidad:'und'},
-    {mat:'Tapa rosca',                cant:1, unidad:'und'},
-    {mat:'Etiqueta',                  cant:1, unidad:'und'},
-    {mat:'Manga termocontraíble',     cant:1, unidad:'und'},
+    {mat:'Botella PET 625 ml',        cant:1,      unidad:'und'},
+    {mat:'Tapa rosca',                cant:1,      unidad:'und'},
+    {mat:'Etiqueta',                  cant:1,      unidad:'und'},
+    {mat:'Manga termocontraíble',     cant:1/15,   unidad:'pack x15'},
   ],
   'Botella 1 L tapa rosca': [
-    {mat:'Botella PET 1 L',           cant:1, unidad:'und'},
-    {mat:'Tapa rosca',                cant:1, unidad:'und'},
-    {mat:'Etiqueta',                  cant:1, unidad:'und'},
+    {mat:'Botella PET 1 L',           cant:1,      unidad:'und'},
+    {mat:'Tapa rosca',                cant:1,      unidad:'und'},
+    {mat:'Etiqueta',                  cant:1,      unidad:'und'},
+    {mat:'Manga termocontraíble',     cant:1/12,   unidad:'pack x12'},
   ],
   'Botella 1 L tapa sport': [
-    {mat:'Botella PET 1 L',           cant:1, unidad:'und'},
-    {mat:'Tapa sport',                cant:1, unidad:'und'},
-    {mat:'Etiqueta',                  cant:1, unidad:'und'},
+    {mat:'Botella PET 1 L',           cant:1,      unidad:'und'},
+    {mat:'Tapa sport',                cant:1,      unidad:'und'},
+    {mat:'Etiqueta',                  cant:1,      unidad:'und'},
+    {mat:'Manga termocontraíble',     cant:1/12,   unidad:'pack x12'},
   ],
   'Botellón 8.7 L': [
     {mat:'Botella PET 8.7 L',         cant:1, unidad:'und'},
@@ -860,6 +862,7 @@ function renderDash(){
 // ══ PRODUCCIÓN ══
 function calcMateriales(cantidades){
   // Suma materiales totales para un lote dado las cantidades por producto
+  // Para mangas termocontraíbles: cant=1/15 o 1/12 → resultado = nro de packs (redondeado)
   const totMat={};
   PRODS.forEach(p=>{
     const cant=cantidades[p]||0;
@@ -868,6 +871,8 @@ function calcMateriales(cantidades){
       totMat[m.mat]=(totMat[m.mat]||0)+(m.cant*cant);
     });
   });
+  // Redondear a entero (los packs son enteros)
+  Object.keys(totMat).forEach(k=>{ totMat[k]=Math.round(totMat[k]); });
   return totMat;
 }
 
