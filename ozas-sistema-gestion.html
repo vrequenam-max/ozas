@@ -215,6 +215,8 @@ table.htbl td{padding:8px 11px;color:var(--az);font-family:'DM Mono',monospace;w
       <button class="ntab" onclick="ir(2,this)">📦 Inventario</button>
       <button class="ntab" onclick="ir(3,this)">🧾 Boletas</button>
       <button class="ntab" onclick="ir(4,this)">📥 Carga Histórica</button>
+      <button class="ntab" onclick="ir(5,this)">💰 Costos</button>
+      <button class="ntab" onclick="ir(6,this)">📊 Análisis</button>
     </nav>
   </div>
 </header>
@@ -488,6 +490,135 @@ table.htbl td{padding:8px 11px;color:var(--az);font-family:'DM Mono',monospace;w
 
 </div>
 
+<!-- COSTOS DE PRODUCCIÓN -->
+<div class="modulo" id="mod-costos">
+
+  <!-- FILA SUPERIOR: Materiales + Operarios -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+
+    <!-- Precios de materiales -->
+    <div class="card">
+      <div class="card-hdr" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🧱 Precios de Materiales</span>
+        <button class="btn btn-o btn-sm" onclick="guardarPrecios()">💾 Guardar</button>
+      </div>
+      <div class="card-body">
+        <p style="font-size:.68rem;color:var(--g3);margin-bottom:14px">Costo unitario de cada insumo (S/ por unidad)</p>
+        <div id="tabla-precios-mat" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+
+    <!-- Operarios + Costos fijos -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <!-- Operarios -->
+      <div class="card">
+        <div class="card-hdr" style="display:flex;justify-content:space-between;align-items:center">
+          <span>👷 Pago de Operarios</span>
+          <button class="btn btn-o btn-sm" onclick="agregarOperario()">+ Agregar</button>
+        </div>
+        <div class="card-body">
+          <p style="font-size:.68rem;color:var(--g3);margin-bottom:14px">Ingresa el pago mensual o por lote de cada operario</p>
+          <div id="tabla-operarios" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+      </div>
+      <!-- Costos fijos -->
+      <div class="card">
+        <div class="card-hdr" style="display:flex;justify-content:space-between;align-items:center">
+          <span>🏭 Costos Fijos Mensuales</span>
+          <button class="btn btn-o btn-sm" onclick="agregarCostoFijo()">+ Agregar</button>
+        </div>
+        <div class="card-body">
+          <p style="font-size:.68rem;color:var(--g3);margin-bottom:14px">Agua, luz, alquiler, etc.</p>
+          <div id="tabla-costos-fijos" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen costo por producto -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-hdr" style="display:flex;justify-content:space-between;align-items:center">
+      <span>📋 Costo por Unidad Producida — Mes Actual</span>
+      <button class="btn btn-az btn-sm" onclick="guardarPrecios()">💾 Guardar y Calcular</button>
+    </div>
+    <div class="card-body">
+      <div id="costo-por-prod"><p class="empty">Ingresa los precios y haz clic en Guardar y Calcular</p></div>
+    </div>
+  </div>
+
+  <!-- Resumen mensual de costos -->
+  <div class="card">
+    <div class="card-hdr">📅 Resumen de Costos — Comparativo Mensual</div>
+    <div class="card-body">
+      <div id="costos-mensual"><p class="empty">Guarda los precios para ver el comparativo</p></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ANÁLISIS -->
+<div class="modulo" id="mod-analisis">
+  <!-- Filtro de período -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-hdr">📅 Período de Análisis</div>
+    <div class="card-body">
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+        <div>
+          <label style="font-size:.65rem;font-weight:700;color:var(--g3);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Período</label>
+          <select id="an-periodo" onchange="renderAnalisis()"
+            style="padding:8px 12px;border:1.5px solid var(--g2);border-radius:8px;font-family:'Montserrat',sans-serif;font-size:.75rem;font-weight:600;color:var(--az);background:var(--w)">
+            <option value="mes">Este mes</option>
+            <option value="mes-ant">Mes anterior</option>
+            <option value="trim">Últimos 3 meses</option>
+            <option value="sem">Últimos 6 meses</option>
+            <option value="anio">Este año</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </div>
+        <div id="an-custom" style="display:none;gap:12px;align-items:center">
+          <div>
+            <label style="font-size:.65rem;font-weight:700;color:var(--g3);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Desde</label>
+            <input type="date" id="an-desde" onchange="renderAnalisis()"
+              style="padding:8px;border:1.5px solid var(--g2);border-radius:8px;font-size:.75rem">
+          </div>
+          <div>
+            <label style="font-size:.65rem;font-weight:700;color:var(--g3);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Hasta</label>
+            <input type="date" id="an-hasta" onchange="renderAnalisis()"
+              style="padding:8px;border:1.5px solid var(--g2);border-radius:8px;font-size:.75rem">
+          </div>
+        </div>
+        <button class="btn btn-az btn-sm" onclick="renderAnalisis()" style="margin-top:16px">🔄 Actualizar</button>
+      </div>
+    </div>
+  </div>
+  <!-- KPIs del período -->
+  <div id="an-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:20px"></div>
+  <!-- Producción vs Ventas -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+    <div class="card">
+      <div class="card-hdr">🏭 Producción del Período</div>
+      <div class="card-body"><div id="an-prod-tabla"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">🧾 Ventas del Período</div>
+      <div class="card-body"><div id="an-ventas-tabla"></div></div>
+    </div>
+  </div>
+  <!-- Promedio mensual y proyección de pedidos -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-hdr">📦 Promedio Mensual y Proyección de Pedidos</div>
+    <div class="card-body">
+      <p style="font-size:.72rem;color:var(--g3);margin-bottom:14px">Basado en el historial de ventas. Ayuda a planificar cuánto producir para no quedarse sin stock.</p>
+      <div id="an-proyeccion"></div>
+    </div>
+  </div>
+  <!-- Alertas inteligentes -->
+  <div class="card">
+    <div class="card-hdr">🚨 Alertas Inteligentes</div>
+    <div class="card-body"><div id="an-alertas"></div></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><span id="t-i"></span><span id="t-m"></span></div>
 
 <script>
@@ -739,6 +870,8 @@ function ir(idx,btn){
     renderHistRows();
     renderHistHistorial();
   }
+  if(idx===5) renderCostos();
+  if(idx===6){ renderAnalisis(); }
 }
 
 // ══ RENDER TODO ══
@@ -1774,6 +1907,534 @@ function renderConsolidado(){
   }
 
   wrap.innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════
+// ══ MÓDULO COSTOS ══
+// ══════════════════════════════════════════════════════
+
+const TODOS_MATERIALES = [
+  'Botella PET 625 ml','Tapa rosca','Etiqueta','Manga termocontraíble',
+  'Botella PET 1 L','Tapa sport',
+  'Botella PET 8.7 L','Manga tapa seguridad',
+  'Bolsa laminada c/válvula','Caja cartón','Bolsa termocontraíble ext',
+  'Envase bidón 20 L','Tapa bidón','Caño dispensador','Manga caño',
+];
+
+const COSTOS_FIJOS_DEF = [
+  {nombre:'Agua / servicio',valor:0},
+  {nombre:'Luz',valor:0},
+  {nombre:'Alquiler',valor:0},
+];
+
+const OPERARIOS_DEF = [
+  {nombre:'Operario 1',valor:0,tipo:'mes'},
+];
+
+function lsGet(k,def){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+
+function getPrecios(){ return lsGet('ozas_precios',{}); }
+function setPrecios(p){ lsSet('ozas_precios',p); }
+function getCostosFijos(){ return lsGet('ozas_costos_fijos', COSTOS_FIJOS_DEF.map(x=>({...x}))); }
+function setCostosFijos(cf){ lsSet('ozas_costos_fijos',cf); }
+function getOperarios(){ return lsGet('ozas_operarios', OPERARIOS_DEF.map(x=>({...x}))); }
+function setOperarios(op){ lsSet('ozas_operarios',op); }
+
+// ── Temp state ──
+let _preciosTemp={};
+let _fijosTemp=null;
+let _operariosTemp=null;
+
+function renderCostos(){
+  _preciosTemp={...getPrecios()};
+  _fijosTemp=null;
+  _operariosTemp=null;
+  renderTablaPrecios();
+  renderTablaFijos();
+  renderTablaOperarios();
+  renderCostoPorProducto();
+  renderCostosMensual();
+}
+
+// ── Materiales ──
+function renderTablaPrecios(){
+  const wrap=document.getElementById('tabla-precios-mat');
+  if(!wrap) return;
+  wrap.innerHTML=TODOS_MATERIALES.map(mat=>{
+    const val=(_preciosTemp[mat]||0).toFixed(4);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--g1);border:1px solid var(--g2);border-radius:7px">
+      <span style="font-size:.71rem;font-weight:600;color:var(--az)">${mat}</span>
+      <div style="display:flex;align-items:center;gap:5px">
+        <span style="font-size:.65rem;color:var(--g3)">S/</span>
+        <input type="number" min="0" step="0.0001" value="${val}"
+          style="width:88px;padding:5px 7px;border:1.5px solid var(--g2);border-radius:6px;font-family:'DM Mono',monospace;font-size:.78rem;font-weight:700;text-align:right"
+          oninput="_preciosTemp['${mat.replace(/'/g,"\'")}']=(parseFloat(this.value)||0)">
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Operarios ──
+function renderTablaOperarios(){
+  const wrap=document.getElementById('tabla-operarios');
+  if(!wrap) return;
+  if(!_operariosTemp) _operariosTemp=getOperarios();
+  wrap.innerHTML=_operariosTemp.map((op,i)=>`
+    <div style="display:flex;align-items:center;gap:8px">
+      <input type="text" value="${op.nombre}" placeholder="Nombre"
+        style="flex:1;padding:7px 10px;border:1.5px solid var(--g2);border-radius:7px;font-size:.72rem;font-weight:600"
+        oninput="_operariosTemp[${i}].nombre=this.value">
+      <span style="font-size:.65rem;color:var(--g3)">S/</span>
+      <input type="number" min="0" step="0.01" value="${op.valor.toFixed(2)}"
+        style="width:100px;padding:7px;border:1.5px solid var(--g2);border-radius:7px;font-family:'DM Mono',monospace;font-size:.78rem;font-weight:700;text-align:right"
+        oninput="_operariosTemp[${i}].valor=(parseFloat(this.value)||0)">
+      <select style="padding:7px 6px;border:1.5px solid var(--g2);border-radius:7px;font-size:.68rem;font-weight:700"
+        onchange="_operariosTemp[${i}].tipo=this.value">
+        <option value="mes" ${op.tipo==='mes'?'selected':''}>/ mes</option>
+        <option value="lote" ${op.tipo==='lote'?'selected':''}>/ lote</option>
+      </select>
+      <button onclick="eliminarOperario(${i})"
+        style="background:var(--rj2);border:1px solid var(--rj);color:var(--rj);border-radius:6px;padding:5px 9px;cursor:pointer;font-weight:700;font-size:.75rem">✕</button>
+    </div>`).join('');
+}
+function agregarOperario(){
+  if(!_operariosTemp) _operariosTemp=getOperarios();
+  _operariosTemp.push({nombre:'Operario',valor:0,tipo:'mes'});
+  renderTablaOperarios();
+}
+function eliminarOperario(i){
+  if(!_operariosTemp) _operariosTemp=getOperarios();
+  _operariosTemp.splice(i,1);
+  renderTablaOperarios();
+}
+
+// ── Costos fijos ──
+function renderTablaFijos(){
+  const wrap=document.getElementById('tabla-costos-fijos');
+  if(!wrap) return;
+  if(!_fijosTemp) _fijosTemp=getCostosFijos();
+  wrap.innerHTML=_fijosTemp.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:8px">
+      <input type="text" value="${f.nombre}" placeholder="Nombre"
+        style="flex:1;padding:7px 10px;border:1.5px solid var(--g2);border-radius:7px;font-size:.72rem;font-weight:600"
+        oninput="_fijosTemp[${i}].nombre=this.value">
+      <span style="font-size:.65rem;color:var(--g3)">S/</span>
+      <input type="number" min="0" step="0.01" value="${f.valor.toFixed(2)}"
+        style="width:100px;padding:7px;border:1.5px solid var(--g2);border-radius:7px;font-family:'DM Mono',monospace;font-size:.78rem;font-weight:700;text-align:right"
+        oninput="_fijosTemp[${i}].valor=(parseFloat(this.value)||0)">
+      <span style="font-size:.6rem;color:var(--g3)">/mes</span>
+      <button onclick="eliminarCostoFijo(${i})"
+        style="background:var(--rj2);border:1px solid var(--rj);color:var(--rj);border-radius:6px;padding:5px 9px;cursor:pointer;font-weight:700;font-size:.75rem">✕</button>
+    </div>`).join('');
+}
+function agregarCostoFijo(){
+  if(!_fijosTemp) _fijosTemp=getCostosFijos();
+  _fijosTemp.push({nombre:'Nuevo costo',valor:0});
+  renderTablaFijos();
+}
+function eliminarCostoFijo(i){
+  if(!_fijosTemp) _fijosTemp=getCostosFijos();
+  _fijosTemp.splice(i,1);
+  renderTablaFijos();
+}
+
+function guardarPrecios(){
+  setPrecios(_preciosTemp);
+  if(_fijosTemp) setCostosFijos(_fijosTemp);
+  if(_operariosTemp) setOperarios(_operariosTemp);
+  renderCostoPorProducto();
+  renderCostosMensual();
+  toast('✅','Costos guardados correctamente');
+}
+function resetPrecios(){
+  if(!confirm('¿Restaurar todos los precios a 0?')) return;
+  setPrecios({}); _preciosTemp={};
+  renderTablaPrecios(); renderCostoPorProducto(); renderCostosMensual();
+}
+
+// ── Costo por producto ──
+function calcCostoMes(mes){
+  // mes = 'YYYY-MM', calcula costos de producción de ese mes
+  const precios=getPrecios();
+  const fijos=getCostosFijos();
+  const operarios=getOperarios();
+
+  const totalFijoMes=fijos.reduce((s,f)=>s+(f.valor||0),0);
+  // Operarios: tipo 'mes' = mensual; tipo 'lote' = por lote producido en ese mes
+  const lotesMes=cache.prod.filter(r=>String(r.fecha).slice(0,7)===mes).length;
+  const totalOperMes=operarios.reduce((s,op)=>{
+    if(op.tipo==='mes') return s+(op.valor||0);
+    if(op.tipo==='lote') return s+(op.valor||0)*lotesMes;
+    return s;
+  },0);
+  const totalFijoTotal=totalFijoMes+totalOperMes;
+
+  const prodMes={};
+  PRODS.forEach(p=>{ prodMes[p]=0; });
+  cache.prod.filter(r=>String(r.fecha).slice(0,7)===mes)
+    .forEach(r=>{ PRODS.forEach(p=>{ prodMes[p]+=(r.cantidades[p]||0); }); });
+  const totalUdsMes=Object.values(prodMes).reduce((s,v)=>s+v,0);
+
+  const costos={};
+  PRODS.forEach(p=>{
+    const mats=MATERIALES[p]||[];
+    const costoMat=mats.reduce((s,m)=>s+(m.cant*(precios[m.mat]||0)),0);
+    const uds=prodMes[p]||0;
+    const fijoPorUd=totalUdsMes>0&&uds>0?(totalFijoTotal*(uds/totalUdsMes)/uds):0;
+    costos[p]={costoMat, fijoPorUd, total:costoMat+fijoPorUd, uds, totalProd:uds*costoMat};
+  });
+  return {costos, totalFijoMes, totalOperMes, totalFijoTotal, totalUdsMes, prodMes, lotesMes};
+}
+
+function renderCostoPorProducto(){
+  const wrap=document.getElementById('costo-por-prod');
+  if(!wrap) return;
+  const mesActual=hoy().slice(0,7);
+  const {costos,totalFijoMes,totalOperMes,totalFijoTotal,totalUdsMes}=calcCostoMes(mesActual);
+
+  const prodsConCosto=PRODS.filter(p=>costos[p].costoMat>0||costos[p].uds>0);
+  if(!prodsConCosto.length){
+    wrap.innerHTML='<p class="empty">Sin datos de precios ni producción este mes. Ingresa los precios y haz clic en Guardar y Calcular.</p>'; return;
+  }
+
+  let h=`<div style="overflow-x:auto"><table class="htbl">
+    <thead><tr>
+      <th>Producto</th><th>Uds producidas</th><th>Costo materiales/ud</th>
+      <th>Operarios+Fijos/ud</th><th style="color:var(--az2)">Costo total/ud</th>
+      <th>Costo total lote</th>
+    </tr></thead><tbody>`;
+
+  let grandTotal=0;
+  prodsConCosto.forEach(p=>{
+    const d=costos[p];
+    const matDetalle=(MATERIALES[p]||[]).filter(m=>getPrecios()[m.mat]>0)
+      .map(m=>`${m.mat}: S/${(m.cant*(getPrecios()[m.mat]||0)).toFixed(4)}`).join(' · ');
+    const loteCost=d.uds*d.total;
+    grandTotal+=loteCost;
+    h+=`<tr>
+      <td style="font-weight:700;font-size:.72rem">${p}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:700;text-align:center">${d.uds.toLocaleString()}</td>
+      <td>
+        <span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--az2)">S/ ${d.costoMat.toFixed(4)}</span>
+        ${matDetalle?`<div style="font-size:.55rem;color:var(--g3);margin-top:2px;line-height:1.5">${matDetalle}</div>`:''}
+      </td>
+      <td style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--g3);text-align:center">S/ ${d.fijoPorUd.toFixed(4)}</td>
+      <td style="text-align:center"><span style="font-family:'DM Mono',monospace;font-weight:900;font-size:.88rem;color:var(--az)">S/ ${d.total.toFixed(4)}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--vr);text-align:center">S/ ${loteCost.toFixed(2)}</td>
+    </tr>`;
+  });
+  h+=`</tbody></table></div>`;
+
+  // Resumen pie
+  h+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:16px">
+    ${[
+      {lbl:'Total materiales',val:'S/ '+(prodsConCosto.reduce((s,p)=>s+costos[p].totalProd,0)).toFixed(2),color:'var(--az2)'},
+      {lbl:'Total operarios mes',val:'S/ '+totalOperMes.toFixed(2),color:'#7c5200'},
+      {lbl:'Total fijos mes',val:'S/ '+totalFijoMes.toFixed(2),color:'var(--g3)'},
+      {lbl:'COSTO TOTAL MES',val:'S/ '+grandTotal.toFixed(2),color:'var(--az)'},
+    ].map(k=>`<div style="background:var(--g1);border:1.5px solid var(--g2);border-radius:9px;padding:12px;text-align:center">
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3)">${k.lbl}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:900;color:${k.color};margin-top:4px">${k.val}</div>
+    </div>`).join('')}
+  </div>`;
+
+  wrap.innerHTML=h;
+}
+
+// ── Comparativo mensual ──
+function renderCostosMensual(){
+  const wrap=document.getElementById('costos-mensual');
+  if(!wrap) return;
+
+  // Obtener últimos 6 meses con producción
+  const mesesConProd=new Set();
+  cache.prod.forEach(r=>{ if(r.fecha) mesesConProd.add(r.fecha.slice(0,7)); });
+  const meses=[...mesesConProd].sort().slice(-6);
+
+  if(!meses.length){
+    wrap.innerHTML='<p class="empty">Sin datos de producción para comparar</p>'; return;
+  }
+
+  // Calcular ingresos por mes (ventas)
+  const ingresosPorMes={};
+  meses.forEach(m=>{ ingresosPorMes[m]=0; });
+  cache.bols.forEach(b=>{
+    const m=b.fecha.slice(0,7);
+    if(ingresosPorMes.hasOwnProperty(m)) ingresosPorMes[m]+=(b.total||0);
+  });
+
+  const datos=meses.map(mes=>{
+    const {costos,totalFijoTotal,totalUdsMes}=calcCostoMes(mes);
+    const costoTotal=PRODS.reduce((s,p)=>s+(costos[p].uds*costos[p].total),0);
+    const ingresos=ingresosPorMes[mes]||0;
+    const margen=ingresos>0?((ingresos-costoTotal)/ingresos*100):null;
+    return {mes,costoTotal,ingresos,margen,totalUdsMes};
+  });
+
+  // Max para barras
+  const maxVal=Math.max(...datos.map(d=>Math.max(d.costoTotal,d.ingresos)),1);
+
+  let h=`<div style="overflow-x:auto;margin-bottom:20px">
+    <table class="htbl"><thead><tr>
+      <th>Mes</th><th>Uds producidas</th><th>Costo total S/</th>
+      <th>Ingresos S/</th><th>Margen bruto</th><th>Balance</th>
+    </tr></thead><tbody>`;
+
+  datos.forEach(d=>{
+    const balance=d.ingresos-d.costoTotal;
+    const margenColor=d.margen===null?'var(--g3)':d.margen>30?'var(--vr)':d.margen>0?'var(--am)':'var(--rj)';
+    const mes_label=new Date(d.mes+'-15').toLocaleDateString('es-PE',{month:'short',year:'numeric'});
+    h+=`<tr>
+      <td style="font-weight:700">${mes_label}</td>
+      <td style="font-family:'DM Mono',monospace;text-align:center">${d.totalUdsMes.toLocaleString()}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--rj)">S/ ${d.costoTotal.toFixed(2)}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--vr)">S/ ${d.ingresos.toFixed(2)}</td>
+      <td style="font-weight:700;color:${margenColor}">${d.margen!==null?d.margen.toFixed(1)+'%':'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:900;color:${balance>=0?'var(--vr)':'var(--rj)'}">
+        ${balance>=0?'+':''}S/ ${balance.toFixed(2)}
+      </td>
+    </tr>`;
+  });
+  h+=`</tbody></table></div>`;
+
+  // Gráfico de barras simple
+  h+=`<div style="background:var(--g1);border:1.5px solid var(--g2);border-radius:10px;padding:16px">
+    <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--g3);margin-bottom:14px">
+      Costos vs Ingresos por mes
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end;height:120px">
+      ${datos.map(d=>{
+        const hCosto=d.costoTotal>0?Math.round(d.costoTotal/maxVal*100):2;
+        const hIng=d.ingresos>0?Math.round(d.ingresos/maxVal*100):2;
+        const mes_s=new Date(d.mes+'-15').toLocaleDateString('es-PE',{month:'short'});
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div style="width:100%;display:flex;gap:2px;align-items:flex-end;height:100px">
+            <div style="flex:1;background:var(--rj);border-radius:4px 4px 0 0;height:${hCosto}%;min-height:3px;opacity:.75" title="Costo S/${d.costoTotal.toFixed(0)}"></div>
+            <div style="flex:1;background:var(--vr);border-radius:4px 4px 0 0;height:${hIng}%;min-height:3px;opacity:.75" title="Ingreso S/${d.ingresos.toFixed(0)}"></div>
+          </div>
+          <span style="font-size:.55rem;font-weight:700;color:var(--g3)">${mes_s}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:16px;margin-top:10px;justify-content:center">
+      <span style="font-size:.62rem;color:var(--g3)"><span style="display:inline-block;width:10px;height:10px;background:var(--rj);border-radius:2px;margin-right:4px;opacity:.75"></span>Costo</span>
+      <span style="font-size:.62rem;color:var(--g3)"><span style="display:inline-block;width:10px;height:10px;background:var(--vr);border-radius:2px;margin-right:4px;opacity:.75"></span>Ingreso</span>
+    </div>
+  </div>`;
+
+  wrap.innerHTML=h;
+}
+
+// ══════════════════════════════════════════════════════
+// ══ MÓDULO ANÁLISIS ══
+// ══════════════════════════════════════════════════════
+
+function getRango(){
+  const p=document.getElementById('an-periodo')?.value||'mes';
+  const hoyD=new Date(hoy()+'T12:00:00');
+  let desde,hasta=hoy();
+  if(p==='mes'){
+    desde=hoyD.toISOString().slice(0,7)+'-01';
+  } else if(p==='mes-ant'){
+    const d=new Date(hoyD); d.setDate(1); d.setMonth(d.getMonth()-1);
+    desde=d.toISOString().slice(0,8)+'01';
+    const fin=new Date(d); fin.setMonth(fin.getMonth()+1); fin.setDate(0);
+    hasta=fin.toISOString().slice(0,10);
+  } else if(p==='trim'){
+    const d=new Date(hoyD); d.setMonth(d.getMonth()-3);
+    desde=d.toISOString().slice(0,10);
+  } else if(p==='sem'){
+    const d=new Date(hoyD); d.setMonth(d.getMonth()-6);
+    desde=d.toISOString().slice(0,10);
+  } else if(p==='anio'){
+    desde=hoyD.getFullYear()+'-01-01';
+  } else {
+    desde=document.getElementById('an-desde')?.value||hoy();
+    hasta=document.getElementById('an-hasta')?.value||hoy();
+  }
+  return {desde,hasta};
+}
+
+function renderAnalisis(){
+  const p=document.getElementById('an-periodo')?.value;
+  const customDiv=document.getElementById('an-custom');
+  if(customDiv) customDiv.style.display=p==='custom'?'flex':'none';
+  const {desde,hasta}=getRango();
+
+  const prodRango={};
+  PRODS.forEach(p=>{ prodRango[p]=0; });
+  cache.prod.forEach(r=>{
+    if(r.fecha>=desde&&r.fecha<=hasta)
+      PRODS.forEach(p=>{ prodRango[p]+=(r.cantidades[p]||0); });
+  });
+
+  const ventasRango={};
+  PRODS.forEach(p=>{ ventasRango[p]=0; });
+  cache.bols.forEach(b=>{
+    if(b.fecha>=desde&&b.fecha<=hasta){
+      (b.items||[]).forEach(it=>{
+        const p=resolverProd(it.prod);
+        if(p) ventasRango[p]+=(it.unidades||it.cant||0);
+      });
+    }
+  });
+
+  const totalProd=Object.values(prodRango).reduce((s,v)=>s+v,0);
+  const totalVentas=Object.values(ventasRango).reduce((s,v)=>s+v,0);
+  const bolsRango=cache.bols.filter(b=>b.fecha>=desde&&b.fecha<=hasta);
+  const totalIngresos=bolsRango.reduce((s,b)=>s+(b.total||0),0);
+
+  const kpisEl=document.getElementById('an-kpis');
+  if(kpisEl) kpisEl.innerHTML=[
+    {ico:'🏭',val:totalProd.toLocaleString(),lbl:'Uds Producidas'},
+    {ico:'📦',val:totalVentas.toLocaleString(),lbl:'Uds Vendidas'},
+    {ico:'🧾',val:bolsRango.length,lbl:'Boletas'},
+    {ico:'💰',val:'S/ '+totalIngresos.toFixed(2),lbl:'Ingresos'},
+    {ico:'📊',val:totalProd>0?Math.round(totalVentas/totalProd*100)+'%':'—',lbl:'Tasa de Salida'},
+  ].map(k=>`<div style="background:var(--w);border:1.5px solid var(--g2);border-radius:10px;padding:16px;text-align:center">
+    <div style="font-size:1.5rem;margin-bottom:4px">${k.ico}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:1.2rem;font-weight:900;color:var(--az2)">${k.val}</div>
+    <div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g3);margin-top:3px">${k.lbl}</div>
+  </div>`).join('');
+
+  const prodTabEl=document.getElementById('an-prod-tabla');
+  const ventTabEl=document.getElementById('an-ventas-tabla');
+  const rowsProd=PRODS.filter(p=>prodRango[p]>0).map(p=>{
+    const pack=PACKS[p]; const uds=prodRango[p];
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--g2)">
+      <span style="font-size:.72rem;font-weight:600;color:var(--az)">${p}</span>
+      <span style="font-family:'DM Mono',monospace;font-weight:700;font-size:.78rem">${uds.toLocaleString()} uds${pack?` <span style="font-size:.6rem;color:var(--g3)">(${Math.floor(uds/pack.tam)}p)</span>`:''}
+      </span></div>`;
+  }).join('');
+  if(prodTabEl) prodTabEl.innerHTML=rowsProd||'<p class="empty">Sin producción</p>';
+
+  const rowsVent=PRODS.filter(p=>ventasRango[p]>0).map(p=>`
+    <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--g2)">
+      <span style="font-size:.72rem;font-weight:600;color:var(--az)">${p}</span>
+      <span style="font-family:'DM Mono',monospace;font-weight:700;font-size:.78rem">${ventasRango[p].toLocaleString()} uds</span>
+    </div>`).join('');
+  if(ventTabEl) ventTabEl.innerHTML=rowsVent||'<p class="empty">Sin ventas</p>';
+
+  renderProyeccion();
+  renderAlertasInteligentes();
+}
+
+function renderProyeccion(){
+  const wrap=document.getElementById('an-proyeccion');
+  if(!wrap) return;
+  const hace6=new Date(hoy()+'T12:00:00');
+  hace6.setMonth(hace6.getMonth()-6);
+  const desde6=hace6.toISOString().slice(0,10);
+
+  const ventasPorMes={};
+  PRODS.forEach(p=>{ ventasPorMes[p]={}; });
+  cache.bols.forEach(b=>{
+    if(b.fecha<desde6) return;
+    const mes=b.fecha.slice(0,7);
+    (b.items||[]).forEach(it=>{
+      const p=resolverProd(it.prod);
+      if(!p) return;
+      ventasPorMes[p][mes]=(ventasPorMes[p][mes]||0)+(it.unidades||it.cant||0);
+    });
+  });
+
+  const inv=calcInv();
+  const rows=PRODS.map(p=>{
+    const meses=Object.values(ventasPorMes[p]);
+    if(!meses.length) return null;
+    const totalVend=meses.reduce((s,v)=>s+v,0);
+    const nMeses=Math.max(1,Object.keys(ventasPorMes[p]).length);
+    const promMens=Math.round(totalVend/nMeses);
+    const stockActual=inv[p]?.stock||0;
+    const diasStock=promMens>0?Math.round(stockActual/promMens*30):null;
+    const pedidoSug=Math.max(0,promMens*2-stockActual);
+    const urgencia=diasStock===null?'sin-venta':diasStock<=7?'critico':diasStock<=20?'bajo':diasStock<=45?'ok':'alto';
+    const colU={critico:'var(--rj)',bajo:'var(--am)',ok:'var(--vr)',alto:'var(--az2)','sin-venta':'var(--g3)'};
+    const lblU={critico:'🚨 CRÍTICO',bajo:'⚠️ Bajo',ok:'✅ OK',alto:'📦 Abundante','sin-venta':'—'};
+    return {p,promMens,stockActual,diasStock,pedidoSug,urgencia,colU,lblU};
+  }).filter(Boolean);
+
+  if(!rows.length){ wrap.innerHTML='<p class="empty">Sin datos de ventas suficientes</p>'; return; }
+
+  wrap.innerHTML=`<div style="overflow-x:auto"><table class="htbl">
+    <thead><tr><th>Producto</th><th>Prom. mensual</th><th>Stock actual</th><th>Días stock</th><th>Estado</th><th>Producir para 2 meses</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td style="font-weight:700;font-size:.72rem">${r.p}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:700;text-align:center">${r.promMens}/mes</td>
+      <td style="font-family:'DM Mono',monospace;text-align:center">${r.stockActual}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:900;color:${r.colU[r.urgencia]};text-align:center">${r.diasStock!==null?r.diasStock+'d':'—'}</td>
+      <td style="font-size:.7rem;font-weight:700;color:${r.colU[r.urgencia]}">${r.lblU[r.urgencia]}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--az2);text-align:center">${r.pedidoSug>0?r.pedidoSug+' uds':'✔ Suficiente'}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function renderAlertasInteligentes(){
+  const wrap=document.getElementById('an-alertas');
+  if(!wrap) return;
+  const alertas=[];
+  const inv=calcInv();
+  const hoyStr=hoy();
+
+  // Promedio de ventas por producto
+  const ventasPM={};
+  PRODS.forEach(p=>{ ventasPM[p]={}; });
+  cache.bols.forEach(b=>{
+    const mes=b.fecha.slice(0,7);
+    (b.items||[]).forEach(it=>{
+      const p=resolverProd(it.prod);
+      if(!p) return;
+      ventasPM[p][mes]=(ventasPM[p][mes]||0)+(it.unidades||it.cant||0);
+    });
+  });
+
+  PRODS.forEach(p=>{
+    const stock=inv[p]?.stock||0;
+    const meses=Object.values(ventasPM[p]);
+    if(meses.length){
+      const prom=meses.reduce((s,v)=>s+v,0)/Math.max(1,meses.length);
+      const dias=prom>0?Math.round(stock/prom*30):999;
+      if(dias<=7)  alertas.push({t:'rojo',msg:`🚨 <strong>${p}</strong>: solo <strong>${dias} días</strong> de stock (${stock} uds)`});
+      else if(dias<=20) alertas.push({t:'am',msg:`⚠️ <strong>${p}</strong>: stock bajo — <strong>${dias} días</strong> estimados`});
+    }
+    // Vencimientos
+    (inv[p]?.lotes||[]).filter(l=>l.cant>0).forEach(l=>{
+      const d=diasHasta(l.fechaVenc);
+      if(d<=0)  alertas.push({t:'rojo',msg:`❌ <strong>${p}</strong>: ${l.cant} uds <strong>VENCIDAS</strong> (${fmt(l.fechaVenc)})`});
+      else if(d<=30) alertas.push({t:'am',msg:`📅 <strong>${p}</strong>: ${l.cant} uds vencen en <strong>${d} días</strong> (${fmt(l.fechaVenc)})`});
+    });
+  });
+
+  // Baja rotación > 45 días
+  const ultVenta={};
+  cache.bols.forEach(b=>{
+    (b.items||[]).forEach(it=>{
+      const p=resolverProd(it.prod);
+      if(!p) return;
+      if(!ultVenta[p]||b.fecha>ultVenta[p]) ultVenta[p]=b.fecha;
+    });
+  });
+  PRODS.forEach(p=>{
+    if(ultVenta[p]){
+      const dias=Math.round((new Date(hoyStr)-new Date(ultVenta[p]))/(864e5));
+      if(dias>45) alertas.push({t:'az',msg:`📉 <strong>${p}</strong>: sin ventas hace <strong>${dias} días</strong> — baja rotación`});
+    }
+  });
+
+  if(!alertas.length){
+    wrap.innerHTML=`<div style="text-align:center;padding:24px">
+      <div style="font-size:2.5rem">✅</div>
+      <div style="font-size:.82rem;font-weight:700;color:var(--vr);margin-top:10px">Sin alertas activas — todo en orden</div>
+    </div>`; return;
+  }
+
+  const bgC={rojo:'var(--rj2)',am:'var(--am2)',az:'var(--az4)'};
+  const brC={rojo:'var(--rj)',am:'var(--am)',az:'var(--az2)'};
+  wrap.innerHTML=alertas.map(a=>`
+    <div style="background:${bgC[a.t]};border-left:4px solid ${brC[a.t]};border-radius:8px;padding:11px 15px;margin-bottom:8px;font-size:.74rem;color:var(--az);line-height:1.6">
+      ${a.msg}
+    </div>`).join('');
 }
 
 </script>
