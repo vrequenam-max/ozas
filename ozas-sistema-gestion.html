@@ -2298,6 +2298,8 @@ function renderAnalisis(){
   const prodRango={};
   PRODS.forEach(p=>{ prodRango[p]=0; });
   cache.prod.forEach(r=>{
+    // Para producciones históricas (HIST_) usar fecha de producción del item
+    // Para normales, filtrar por rango seleccionado
     if(r.fecha>=desde&&r.fecha<=hasta)
       PRODS.forEach(p=>{ prodRango[p]+=(r.cantidades[p]||0); });
   });
@@ -2305,11 +2307,27 @@ function renderAnalisis(){
   const ventasRango={};
   PRODS.forEach(p=>{ ventasRango[p]=0; });
   cache.bols.forEach(b=>{
-    if(b.fecha>=desde&&b.fecha<=hasta){
+    // Para boletas históricas: usar la fecha de producción del item (no la fecha de salida)
+    // así producción y venta quedan en el mismo período
+    const esHist=b.historico==='SI';
+    if(esHist){
+      // Cada item tiene su propia fecha de producción
       (b.items||[]).forEach(it=>{
         const p=resolverProd(it.prod);
-        if(p) ventasRango[p]+=(it.unidades||it.cant||0);
+        if(!p) return;
+        // Usar fechaProd del item como referencia temporal
+        const fechaRef=it.fechaProd||b.fecha;
+        if(fechaRef>=desde&&fechaRef<=hasta)
+          ventasRango[p]+=(it.unidades||it.cant||0);
       });
+    } else {
+      // Boleta normal: usar fecha de emisión
+      if(b.fecha>=desde&&b.fecha<=hasta){
+        (b.items||[]).forEach(it=>{
+          const p=resolverProd(it.prod);
+          if(p) ventasRango[p]+=(it.unidades||it.cant||0);
+        });
+      }
     }
   });
 
@@ -2364,11 +2382,14 @@ function renderProyeccion(){
   const ventasPorMes={};
   PRODS.forEach(p=>{ ventasPorMes[p]={}; });
   cache.bols.forEach(b=>{
-    if(b.fecha<desde6) return;
-    const mes=b.fecha.slice(0,7);
+    const esHist=b.historico==='SI';
     (b.items||[]).forEach(it=>{
       const p=resolverProd(it.prod);
       if(!p) return;
+      // Históricas: usar fecha de producción del item
+      const fechaRef=esHist?(it.fechaProd||b.fecha):b.fecha;
+      if(fechaRef<desde6) return;
+      const mes=fechaRef.slice(0,7);
       ventasPorMes[p][mes]=(ventasPorMes[p][mes]||0)+(it.unidades||it.cant||0);
     });
   });
@@ -2415,10 +2436,12 @@ function renderAlertasInteligentes(){
   const ventasPM={};
   PRODS.forEach(p=>{ ventasPM[p]={}; });
   cache.bols.forEach(b=>{
-    const mes=b.fecha.slice(0,7);
+    const esHist=b.historico==='SI';
     (b.items||[]).forEach(it=>{
       const p=resolverProd(it.prod);
       if(!p) return;
+      const fechaRef=esHist?(it.fechaProd||b.fecha):b.fecha;
+      const mes=fechaRef.slice(0,7);
       ventasPM[p][mes]=(ventasPM[p][mes]||0)+(it.unidades||it.cant||0);
     });
   });
@@ -2517,9 +2540,18 @@ function renderChartTendencia(){
       PRODS.forEach(p=>{ prodPorMes[m]+=(r.cantidades[p]||0); });
   });
   cache.bols.forEach(b=>{
-    const m=b.fecha?.slice(0,7);
-    if(ventasPorMes.hasOwnProperty(m))
-      (b.items||[]).forEach(it=>{ ventasPorMes[m]+=(it.unidades||it.cant||0); });
+    const esHist=b.historico==='SI';
+    if(esHist){
+      // Históricas: agrupar por fecha de producción del item
+      (b.items||[]).forEach(it=>{
+        const m=(it.fechaProd||b.fecha)?.slice(0,7);
+        if(m&&ventasPorMes.hasOwnProperty(m)) ventasPorMes[m]+=(it.unidades||it.cant||0);
+      });
+    } else {
+      const m=b.fecha?.slice(0,7);
+      if(ventasPorMes.hasOwnProperty(m))
+        (b.items||[]).forEach(it=>{ ventasPorMes[m]+=(it.unidades||it.cant||0); });
+    }
   });
 
   const labels=meses.map(m=>new Date(m+'-15').toLocaleDateString('es-PE',{month:'short',year:'2-digit'}));
