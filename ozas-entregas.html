@@ -332,6 +332,97 @@
   .chevron { transition: transform 0.2s; font-size: 12px; color: var(--gris); }
   .chevron.abierto { transform: rotate(180deg); }
 
+  /* IMPORTAR / ADJUNTOS */
+  .fab-importar {
+    position: fixed;
+    bottom: 20px;
+    left: 16px;
+    background: var(--verde);
+    color: white;
+    border: none;
+    border-radius: 28px;
+    padding: 12px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(22,163,74,0.35);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 50;
+  }
+  .fab-importar:hover { background: #15803d; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal-box {
+    background: var(--blanco);
+    border-radius: 16px 16px 0 0;
+    padding: 20px 16px 32px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-titulo { font-size: 15px; font-weight: 700; color: var(--azul); margin-bottom: 14px; display:flex; justify-content:space-between; align-items:center; }
+  .modal-cerrar { background:none; border:none; font-size:20px; color:var(--gris); cursor:pointer; }
+  .opcion-importar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1.5px solid var(--gris-borde);
+    border-radius: var(--radio);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .opcion-importar:hover { border-color: var(--azul-medio); background: var(--azul-claro); }
+  .opcion-importar .icono { font-size: 24px; width: 36px; text-align: center; flex-shrink:0; }
+  .opcion-importar .texto .titulo { font-size: 13px; font-weight: 600; color: var(--texto); }
+  .opcion-importar .texto .sub { font-size: 11px; color: var(--texto-sec); }
+  .drop-zona {
+    border: 2px dashed var(--azul-borde);
+    border-radius: var(--radio-lg);
+    padding: 28px 16px;
+    text-align: center;
+    color: var(--texto-sec);
+    font-size: 13px;
+    margin-top: 10px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .drop-zona:hover, .drop-zona.dragover { border-color: var(--azul-medio); background: var(--azul-claro); }
+  .drop-zona .icono-drop { font-size: 32px; margin-bottom: 8px; }
+  .preview-importar { margin-top: 10px; font-size: 12px; }
+  .preview-fila { display: flex; justify-content: space-between; padding: 4px 8px; border-radius: 4px; margin-bottom: 3px; background: var(--gris-claro); font-size: 12px; }
+  .preview-fila span { color: var(--texto-sec); }
+
+  /* FOTO POR PARADA */
+  .foto-zona {
+    border: 1.5px dashed var(--gris-borde);
+    border-radius: var(--radio);
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--texto-sec);
+    margin-top: 6px;
+    transition: all 0.15s;
+  }
+  .foto-zona:hover { border-color: var(--azul-medio); background: var(--azul-claro); }
+  .foto-thumb { width:100%; max-height:110px; object-fit:cover; border-radius:6px; margin-top:6px; display:none; }
+  .foto-nombre { font-size:11px; color:var(--verde); margin-top:4px; display:none; }
+
   @media(max-width:480px) {
     .grid-3 { grid-template-columns: 1fr 1fr; }
     .producto-fila { grid-template-columns: 1fr 60px 65px 50px 20px; gap: 4px; }
@@ -435,10 +526,73 @@
 
 </div>
 
-<!-- FAB -->
+<!-- FAB AGREGAR PARADA -->
 <button class="fab" onclick="agregarParada()">
   <span style="font-size:18px">+</span> Parada
 </button>
+
+<!-- FAB IMPORTAR -->
+<button class="fab-importar" id="fab-importar" onclick="abrirModalImportar()">
+  📎 Importar
+</button>
+
+<!-- MODAL IMPORTAR / ADJUNTAR -->
+<div class="modal-overlay" id="modal-importar" onclick="cerrarModalSiOverlay(event)">
+  <div class="modal-box">
+    <div class="modal-titulo">
+      <span>📎 Importar o adjuntar archivo</span>
+      <button class="modal-cerrar" onclick="cerrarModal()">✕</button>
+    </div>
+
+    <div class="opcion-importar" onclick="document.getElementById('input-excel').click()">
+      <div class="icono">📊</div>
+      <div class="texto">
+        <div class="titulo">Importar pedidos desde Excel</div>
+        <div class="sub">Carga las paradas desde tu planilla del día (.xlsx, .xls, .csv)</div>
+      </div>
+    </div>
+    <input type="file" id="input-excel" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarExcel(this)">
+
+    <div class="opcion-importar" onclick="document.getElementById('input-foto-gen').click()">
+      <div class="icono">📷</div>
+      <div class="texto">
+        <div class="titulo">Adjuntar foto de comprobante</div>
+        <div class="sub">Captura o sube imagen del voucher, boleta o factura</div>
+      </div>
+    </div>
+    <input type="file" id="input-foto-gen" accept="image/*" capture="environment" style="display:none" onchange="adjuntarFotoGeneral(this)">
+
+    <div class="opcion-importar" onclick="document.getElementById('input-pdf').click()">
+      <div class="icono">📄</div>
+      <div class="texto">
+        <div class="titulo">Adjuntar documento de referencia</div>
+        <div class="sub">PDF, imagen u otro archivo (.pdf, .jpg, .png)</div>
+      </div>
+    </div>
+    <input type="file" id="input-pdf" accept=".pdf,image/*" style="display:none" onchange="adjuntarDocumento(this)">
+
+    <div class="drop-zona" id="drop-zona"
+      ondragover="event.preventDefault();this.classList.add('dragover')"
+      ondragleave="this.classList.remove('dragover')"
+      ondrop="onDrop(event)">
+      <div class="icono-drop">⬆</div>
+      <div>Arrastra aquí tu planilla Excel o CSV</div>
+      <div style="font-size:11px;margin-top:4px;color:var(--gris)">También puedes usar los botones de arriba</div>
+    </div>
+
+    <div id="preview-importar" class="preview-importar" style="display:none">
+      <div style="font-size:12px;font-weight:600;color:var(--azul);margin-bottom:6px" id="preview-titulo"></div>
+      <div id="preview-filas"></div>
+      <button class="btn btn-verde" style="margin-top:10px" onclick="confirmarImportacion()">✓ Cargar estas paradas</button>
+      <button class="btn btn-secundario btn-sm" style="margin-top:6px;width:100%" onclick="cancelarImportacion()">Cancelar</button>
+    </div>
+
+    <div id="adjuntos-lista" style="margin-top:12px;display:none">
+      <div style="font-size:11px;font-weight:600;color:var(--texto-sec);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Archivos adjuntos del día</div>
+      <div id="adjuntos-items"></div>
+    </div>
+  </div>
+</div>
 
 <script>
 // ======= CONFIGURACIÓN =======
@@ -1085,7 +1239,7 @@ function guardarLocalStorage() {
     despachador: document.getElementById('despachador').value,
     asesorDia: document.getElementById('asesor-dia').value,
     obsDia: document.getElementById('obs-dia').value,
-    paradas, paradaIdCounter
+    paradas, paradaIdCounter, adjuntos
   };
   localStorage.setItem('ozas_entregas', JSON.stringify(estado));
 }
@@ -1102,8 +1256,317 @@ function cargarLocalStorage() {
     if (estado.obsDia) document.getElementById('obs-dia').value = estado.obsDia;
     if (estado.paradas) paradas = estado.paradas;
     if (estado.paradaIdCounter) paradaIdCounter = estado.paradaIdCounter;
+    if (estado.adjuntos) adjuntos = estado.adjuntos;
   } catch(e) { console.error('Error cargando estado:', e); }
 }
+
+// ======= IMPORTAR / ADJUNTAR =======
+
+let paradasPrevias = [];
+let adjuntos = [];
+
+function abrirModalImportar() {
+  document.getElementById('modal-importar').classList.add('visible');
+  renderAdjuntos();
+}
+
+function cerrarModal() {
+  document.getElementById('modal-importar').classList.remove('visible');
+  document.getElementById('preview-importar').style.display = 'none';
+  paradasPrevias = [];
+}
+
+function cerrarModalSiOverlay(e) {
+  if (e.target === document.getElementById('modal-importar')) cerrarModal();
+}
+
+// ── IMPORTAR EXCEL / CSV ────────────────────────────────────
+function importarExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'csv') {
+    const reader = new FileReader();
+    reader.onload = e => procesarCSV(e.target.result, file.name);
+    reader.readAsText(file, 'UTF-8');
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    // Usar SheetJS desde CDN
+    if (typeof XLSX === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = () => leerExcel(file);
+      document.head.appendChild(s);
+    } else {
+      leerExcel(file);
+    }
+  }
+  input.value = '';
+}
+
+function leerExcel(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb   = XLSX.read(e.target.result, {type: 'array'});
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, {defval: ''});
+      procesarFilasImportadas(json, file.name);
+    } catch(err) {
+      alert('Error leyendo Excel: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function procesarCSV(texto, nombre) {
+  const lineas = texto.trim().split(/
+?
+/);
+  if (lineas.length < 2) { alert('El CSV está vacío.'); return; }
+  const sep    = lineas[0].includes(';') ? ';' : ',';
+  const hdrs   = lineas[0].split(sep).map(h => h.trim().replace(/^"|"$/g,''));
+  const filas  = lineas.slice(1).map(l => {
+    const vals = l.split(sep).map(v => v.trim().replace(/^"|"$/g,''));
+    const obj  = {};
+    hdrs.forEach((h,i) => obj[h] = vals[i]||'');
+    return obj;
+  }).filter(f => Object.values(f).some(v => v));
+  procesarFilasImportadas(filas, nombre);
+}
+
+// Mapeo flexible de columnas — detecta nombres comunes
+function mapearCampo(fila, ...opciones) {
+  for (const op of opciones) {
+    const k = Object.keys(fila).find(k =>
+      k.toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e')
+       .replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u')
+       .replace(/[\s_\-]/g,'')
+      === op.toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e')
+          .replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u')
+          .replace(/[\s_\-]/g,'')
+    );
+    if (k && fila[k]) return String(fila[k]).trim();
+  }
+  return '';
+}
+
+function procesarFilasImportadas(filas, nombre) {
+  // Columnas exactas de la planilla OZAS:
+  // Pedido | Cant | Costo | Total | Pago | Nombre Cliente | Documento | Referencia | Contacto | Dirección | Distrito | Ejecutivo | Maps
+  paradasPrevias = filas.map((f, idx) => {
+    const cliente   = mapearCampo(f, 'Nombre Cliente','Cliente','NombreCliente','nombre');
+    const distrito  = mapearCampo(f, 'Distrito','Dist','Distri','zona');
+    const dir       = mapearCampo(f, 'Dirección','Direccion','Direccion_','Dir','Direc','address');
+    const tel       = mapearCampo(f, 'Contacto','Telefono','Tel','Celular','phone','Fono');
+    const doc       = mapearCampo(f, 'Documento','RUC','DNI','doc','Referencia');
+    const pago      = mapearCampo(f, 'Pago','FormaPago','Metodo Pago','Metodo','payment','forma pago');
+    const asesor    = mapearCampo(f, 'Ejecutivo','Asesor','Vendedor','ejecutivo','Exec');
+    const hora      = mapearCampo(f, 'Hora','HoraEntrega','Hora Entrega','hora');
+    // Producto: columna "Pedido" en tu planilla OZAS
+    const productoRaw = mapearCampo(f, 'Pedido','Producto','Product','Descripcion','item','articulo');
+    const cant      = parseFloat(mapearCampo(f, 'Cant','Cantidad','qty','Cant.','cantidad'))||1;
+    const precio    = parseFloat(mapearCampo(f, 'Costo','Precio','Price','P.Unit','costo','PrecioUnit'))||0;
+    // Detectar si es canje desde la columna Referencia
+    const referencia = mapearCampo(f, 'Referencia','Ref','referencia');
+    const esCanje   = referencia.toLowerCase().includes('recoger') || productoRaw.toLowerCase().includes('recarga');
+    return { cliente, distrito, dir, tel, doc, productoRaw, cant, precio, asesor, pago, hora, referencia, esCanje };
+  }).filter(p => p.cliente && p.cliente.trim() !== '');
+
+  if (!paradasPrevias.length) {
+    alert('No se encontraron filas con clientes.\nVerifica que exista una columna llamada "Nombre Cliente" o "Cliente" en tu planilla.');
+    return;
+  }
+
+  // Mostrar preview
+  const prev = document.getElementById('preview-importar');
+  const tit  = document.getElementById('preview-titulo');
+  const cont = document.getElementById('preview-filas');
+  tit.textContent = `Se encontraron ${paradasPrevias.length} parada(s) en "${nombre}"`;
+  cont.innerHTML  = paradasPrevias.slice(0,10).map(p => {
+    const tipo = mapearTipoProducto(p.productoRaw);
+    const esCanje = tipo.includes('CANJE');
+    return `<div class="preview-fila">
+      <span><strong>${p.cliente}</strong>${p.distrito ? ' — '+p.distrito : ''}</span>
+      <span>${p.cant}x ${tipo.replace(' — NUEVO','').replace(' (CANJE)','').substring(0,18)}${esCanje?' ♻':''}</span>
+    </div>`;
+  }).join('') + (paradasPrevias.length > 10 ? `<div class="preview-fila"><span style="color:var(--gris)">...y ${paradasPrevias.length-10} parada(s) más</span></div>` : '');
+  prev.style.display = 'block';
+}
+
+function confirmarImportacion() {
+  if (!paradasPrevias.length) return;
+  paradasPrevias.forEach(p => {
+    const tipoMapeado = mapearTipoProducto(p.productoRaw);
+    const precioFinal = p.precio > 0 ? p.precio : (PRECIOS_BASE[tipoMapeado] || 0);
+    // Detectar forma de pago desde texto de la planilla
+    const formasPago  = detectarFormasPago(p.pago);
+    // Detectar comprobante
+    const comprobante = detectarComprobante(p.pago, p.doc);
+    agregarParada({
+      id: ++paradaIdCounter,
+      cliente:          p.cliente,
+      distrito:         p.distrito,
+      direccion:        p.dir,
+      telefono:         p.tel,
+      documento:        p.doc,
+      comprobante:      comprobante,
+      asesor:           p.asesor,
+      productos:        [{ tipo: tipoMapeado, cantidad: p.cant, precio: precioFinal }],
+      bidonesRecogidos: p.esCanje ? [p.cant] : [],
+      formaPago:        formasPago,
+      diasCredito:      p.pago.toLowerCase().includes('15') ? 15 : p.pago.toLowerCase().includes('30') ? 30 : 30,
+      notaInfluencer:   p.pago.toLowerCase().includes('influencer') ? p.cliente : '',
+      montoCobrado:     0,
+      horaEstimada:     p.hora,
+      horaLlegada:      '',
+      horaSalida:       '',
+      estado:           'pendiente',
+      observaciones:    p.referencia || '',
+      confirmado:       false,
+      quienRecibe:      ''
+    });
+  });
+  const n = paradasPrevias.length;
+  alert('\u2713 ' + n + ' parada(s) cargadas desde la planilla.\nRevisa y completa los datos de cada una.');
+  cerrarModal();
+  // Activar tab paradas
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => t.classList.remove('activo'));
+  tabs[0].classList.add('activo');
+  ['paradas','encabezado','resumen'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = 'none';
+  });
+  document.getElementById('tab-paradas').style.display = 'block';
+  document.querySelector('.fab').style.display = 'flex';
+  document.getElementById('fab-importar').style.display = 'flex';
+  renderParadas();
+  actualizarProgreso();
+}
+
+function detectarFormasPago(texto) {
+  if (!texto) return ['Por confirmar'];
+  const t = texto.toLowerCase();
+  const formas = [];
+  if (t.includes('yape'))          formas.push('Yape');
+  if (t.includes('plin'))          formas.push('Plin');
+  if (t.includes('efectivo'))      formas.push('Efectivo');
+  if (t.includes('transferencia')) formas.push('Transferencia');
+  if (t.includes('credito') || t.includes('crédito') || t.includes('dias') || t.includes('días')) formas.push('Crédito');
+  if (t.includes('influencer') || t.includes('promocion') || t.includes('cortesia')) formas.push('Influencer');
+  if (t.includes('confirmar') || t.includes('x conf')) formas.push('Por confirmar');
+  return formas.length ? formas : ['Por confirmar'];
+}
+
+function detectarComprobante(pago, doc) {
+  if (!doc && !pago) return 'Ninguno';
+  const d = (doc||'').toLowerCase();
+  const p = (pago||'').toLowerCase();
+  if (d.startsWith('20') || d.includes('ruc')) return 'Factura';
+  if (d.startsWith('boleta') || p.includes('boleta')) return 'Boleta Digital';
+  if (d.includes('guia') || d.includes('guía')) return 'Guía de Remisión';
+  if (doc && doc.length >= 8) return 'Factura'; // asume RUC si tiene 11 dígitos
+  return 'Ninguno';
+}
+
+function mapearTipoProducto(texto) {
+  if (!texto) return 'Otro';
+  const t = texto.toLowerCase();
+  if (t.includes('recarga') && t.includes('cano') || t.includes('recarga') && t.includes('caño')) return 'Recarga bidón 20L con caño (CANJE)';
+  if (t.includes('recarga') && t.includes('sin')) return 'Recarga bidón 20L sin caño (CANJE)';
+  if (t.includes('bidon') || t.includes('bidón')) return 'Bidón 20L con caño — NUEVO';
+  if (t.includes('625')) return 'Pack 15 Botellas 625ml + gratis';
+  if (t.includes('1l') || t.includes('1 l') || t.includes('sport')) return 'Pack 12 Botellas 1L tapa sport';
+  if (t.includes('8.7') || t.includes('8,7')) return 'Botella 8.7L';
+  if (t.includes('caja') || t.includes('20')) return 'Caja 20L';
+  return 'Otro';
+}
+
+function cancelarImportacion() {
+  paradasPrevias = [];
+  document.getElementById('preview-importar').style.display = 'none';
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zona').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (['xlsx','xls','csv'].includes(ext)) {
+    const input = document.getElementById('input-excel');
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    importarExcel(input);
+  } else {
+    adjuntarDesdeFile(file);
+  }
+}
+
+// ── ADJUNTOS (foto / PDF) ───────────────────────────────────
+function adjuntarFotoGeneral(input) {
+  const file = input.files[0];
+  if (file) adjuntarDesdeFile(file);
+  input.value = '';
+}
+
+function adjuntarDocumento(input) {
+  const file = input.files[0];
+  if (file) adjuntarDesdeFile(file);
+  input.value = '';
+}
+
+function adjuntarDesdeFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    adjuntos.push({
+      nombre: file.name,
+      tipo:   file.type,
+      size:   (file.size/1024).toFixed(1) + ' KB',
+      data:   e.target.result,
+      ts:     new Date().toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'})
+    });
+    guardarLocalStorage();
+    renderAdjuntos();
+    alert(`✓ "${file.name}" adjuntado correctamente.`);
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderAdjuntos() {
+  const lista = document.getElementById('adjuntos-lista');
+  const items = document.getElementById('adjuntos-items');
+  if (!adjuntos.length) { lista.style.display = 'none'; return; }
+  lista.style.display = 'block';
+  items.innerHTML = adjuntos.map((a, i) => {
+    const esImagen = a.tipo.startsWith('image/');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--gris-claro);border-radius:var(--border-radius-md);margin-bottom:4px">
+      ${esImagen ? `<img src="${a.data}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;cursor:pointer" onclick="verAdjunto(${i})">` : '<div style="font-size:24px;width:40px;text-align:center">📄</div>'}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nombre}</div>
+        <div style="font-size:10px;color:var(--texto-sec)">${a.size} · ${a.ts}</div>
+      </div>
+      <button onclick="eliminarAdjunto(${i})" style="background:none;border:none;color:var(--rojo);cursor:pointer;font-size:16px">×</button>
+    </div>`;
+  }).join('');
+}
+
+function verAdjunto(i) {
+  const a = adjuntos[i];
+  const w = window.open('');
+  w.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh">
+    <img src="${a.data}" style="max-width:100%;max-height:100vh;object-fit:contain">
+    </body></html>`);
+}
+
+function eliminarAdjunto(i) {
+  if (!confirm('¿Eliminar este adjunto?')) return;
+  adjuntos.splice(i, 1);
+  guardarLocalStorage();
+  renderAdjuntos();
+}
+
 </script>
 </body>
 </html>
