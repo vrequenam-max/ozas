@@ -540,46 +540,50 @@
 <div class="modal-overlay" id="modal-importar" onclick="cerrarModalSiOverlay(event)">
   <div class="modal-box">
     <div class="modal-titulo">
-      <span>📎 Importar o adjuntar archivo</span>
+      <span>📎 Importar pedidos</span>
       <button class="modal-cerrar" onclick="cerrarModal()">✕</button>
     </div>
 
+    <!-- Opciones -->
     <div class="opcion-importar" onclick="document.getElementById('input-excel').click()">
       <div class="icono">📊</div>
       <div class="texto">
-        <div class="titulo">Importar pedidos desde Excel</div>
+        <div class="titulo">Desde Excel o CSV</div>
         <div class="sub">Carga las paradas desde tu planilla del día (.xlsx, .xls, .csv)</div>
       </div>
     </div>
     <input type="file" id="input-excel" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarExcel(this)">
 
-    <div class="opcion-importar" onclick="document.getElementById('input-foto-gen').click()">
-      <div class="icono">📷</div>
+    <div class="opcion-importar" onclick="document.getElementById('input-imagen').click()">
+      <div class="icono">📸</div>
       <div class="texto">
-        <div class="titulo">Adjuntar foto de comprobante</div>
-        <div class="sub">Captura o sube imagen del voucher, boleta o factura</div>
+        <div class="titulo">Desde imagen / foto de planilla</div>
+        <div class="sub">Saca foto a tu planilla impresa o captura de pantalla — la IA extrae los pedidos</div>
       </div>
     </div>
-    <input type="file" id="input-foto-gen" accept="image/*" capture="environment" style="display:none" onchange="adjuntarFotoGeneral(this)">
+    <input type="file" id="input-imagen" accept="image/*" capture="environment" style="display:none" onchange="importarImagen(this)">
 
-    <div class="opcion-importar" onclick="document.getElementById('input-pdf').click()">
-      <div class="icono">📄</div>
-      <div class="texto">
-        <div class="titulo">Adjuntar documento de referencia</div>
-        <div class="sub">PDF, imagen u otro archivo (.pdf, .jpg, .png)</div>
-      </div>
-    </div>
-    <input type="file" id="input-pdf" accept=".pdf,image/*" style="display:none" onchange="adjuntarDocumento(this)">
-
+    <!-- Drop zona -->
     <div class="drop-zona" id="drop-zona"
       ondragover="event.preventDefault();this.classList.add('dragover')"
       ondragleave="this.classList.remove('dragover')"
       ondrop="onDrop(event)">
       <div class="icono-drop">⬆</div>
-      <div>Arrastra aquí tu planilla Excel o CSV</div>
-      <div style="font-size:11px;margin-top:4px;color:var(--gris)">También puedes usar los botones de arriba</div>
+      <div>Arrastra aquí tu Excel, CSV o imagen</div>
+      <div style="font-size:11px;margin-top:4px;color:var(--gris)">Formatos: .xlsx .xls .csv .jpg .png</div>
     </div>
 
+    <!-- Estado de procesamiento IA -->
+    <div id="ia-procesando" style="display:none;text-align:center;padding:20px">
+      <div style="font-size:28px;margin-bottom:8px">🤖</div>
+      <div style="font-size:13px;font-weight:600;color:var(--azul)" id="ia-estado">Analizando imagen...</div>
+      <div style="font-size:11px;color:var(--texto-sec);margin-top:4px">La IA está leyendo los pedidos de la planilla</div>
+      <div style="margin-top:12px;height:4px;background:var(--gris-borde);border-radius:2px;overflow:hidden">
+        <div id="ia-barra" style="height:100%;width:0%;background:var(--azul-medio);border-radius:2px;transition:width 0.5s"></div>
+      </div>
+    </div>
+
+    <!-- Preview filas -->
     <div id="preview-importar" class="preview-importar" style="display:none">
       <div style="font-size:12px;font-weight:600;color:var(--azul);margin-bottom:6px" id="preview-titulo"></div>
       <div id="preview-filas"></div>
@@ -587,10 +591,6 @@
       <button class="btn btn-secundario btn-sm" style="margin-top:6px;width:100%" onclick="cancelarImportacion()">Cancelar</button>
     </div>
 
-    <div id="adjuntos-lista" style="margin-top:12px;display:none">
-      <div style="font-size:11px;font-weight:600;color:var(--texto-sec);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Archivos adjuntos del día</div>
-      <div id="adjuntos-items"></div>
-    </div>
   </div>
 </div>
 
@@ -1267,142 +1267,164 @@ let adjuntos = [];
 
 function abrirModalImportar() {
   document.getElementById('modal-importar').classList.add('visible');
-  renderAdjuntos();
 }
-
 function cerrarModal() {
   document.getElementById('modal-importar').classList.remove('visible');
   document.getElementById('preview-importar').style.display = 'none';
+  document.getElementById('ia-procesando').style.display = 'none';
   paradasPrevias = [];
 }
-
 function cerrarModalSiOverlay(e) {
   if (e.target === document.getElementById('modal-importar')) cerrarModal();
 }
 
-// ── IMPORTAR EXCEL / CSV ────────────────────────────────────
+// ── EXCEL / CSV ──────────────────────────────────────────────
 function importarExcel(input) {
   const file = input.files[0];
   if (!file) return;
   const ext = file.name.split('.').pop().toLowerCase();
-
   if (ext === 'csv') {
     const reader = new FileReader();
     reader.onload = e => procesarCSV(e.target.result, file.name);
     reader.readAsText(file, 'UTF-8');
-  } else if (ext === 'xlsx' || ext === 'xls') {
-    // Usar SheetJS desde CDN
-    if (typeof XLSX === 'undefined') {
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-      s.onload = () => leerExcel(file);
-      document.head.appendChild(s);
-    } else {
-      leerExcel(file);
-    }
+  } else {
+    cargarSheetJS(() => leerExcel(file));
   }
   input.value = '';
+}
+
+function cargarSheetJS(cb) {
+  if (typeof XLSX !== 'undefined') { cb(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload = cb;
+  s.onerror = () => alert('Error cargando librería Excel. Verifica tu conexión.');
+  document.head.appendChild(s);
 }
 
 function leerExcel(file) {
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const wb   = XLSX.read(e.target.result, {type: 'array'});
+      const wb   = XLSX.read(e.target.result, {type:'array'});
       const ws   = wb.Sheets[wb.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(ws, {defval: ''});
-      procesarFilasImportadas(json, file.name);
-    } catch(err) {
-      alert('Error leyendo Excel: ' + err.message);
-    }
+      const json = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+      procesarFilasOZAS(json, file.name);
+    } catch(err) { alert('Error leyendo Excel: ' + err.message); }
   };
   reader.readAsArrayBuffer(file);
 }
 
 function procesarCSV(texto, nombre) {
-  const lineas = texto.trim().split(/
-?
-/);
+  const lineas = texto.trim().split(/\r?\n/);
   if (lineas.length < 2) { alert('El CSV está vacío.'); return; }
-  const sep    = lineas[0].includes(';') ? ';' : ',';
-  const hdrs   = lineas[0].split(sep).map(h => h.trim().replace(/^"|"$/g,''));
-  const filas  = lineas.slice(1).map(l => {
+  const sep  = lineas[0].includes(';') ? ';' : ',';
+  const hdrs = lineas[0].split(sep).map(h => h.trim().replace(/^"|"$/g,''));
+  const filas = lineas.slice(1).map(l => {
     const vals = l.split(sep).map(v => v.trim().replace(/^"|"$/g,''));
     const obj  = {};
     hdrs.forEach((h,i) => obj[h] = vals[i]||'');
     return obj;
   }).filter(f => Object.values(f).some(v => v));
-  procesarFilasImportadas(filas, nombre);
+  procesarFilasOZAS(filas, nombre);
 }
 
-// Mapeo flexible de columnas — detecta nombres comunes
-function mapearCampo(fila, ...opciones) {
-  for (const op of opciones) {
-    const k = Object.keys(fila).find(k =>
-      k.toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e')
-       .replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u')
-       .replace(/[\s_\-]/g,'')
-      === op.toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e')
-          .replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u')
-          .replace(/[\s_\-]/g,'')
-    );
-    if (k && fila[k]) return String(fila[k]).trim();
+// ── PARSEO ESPECÍFICO PLANILLA OZAS ──────────────────────────
+// Columnas: Pedido | Cant | Costo | Total | Pago | Nombre Cliente |
+//           Documento | Referencia | Contacto | Dirección | Distrito | Ejecutivo
+function procesarFilasOZAS(filas, nombre) {
+  const resultado = [];
+  let grupoActual = ''; // "Entrega 19/05" etc.
+
+  filas.forEach(f => {
+    // Detectar fila de encabezado de grupo (ej: "Entrega 19/05")
+    const pedido  = cam(f,'Pedido','Descripcion','item','articulo','product');
+    const cliente = cam(f,'Nombre Cliente','Cliente','NombreCliente','nombre');
+
+    // Ignorar filas de subtotales/resumen (sin cliente ni pedido útil)
+    if (!cliente && !pedido) return;
+
+    // Fila de encabezado de fecha (tiene texto en Pedido pero no en Cliente)
+    if (pedido && !cliente) {
+      // Puede ser "Entrega 19/05" → guardar como grupo
+      if (/entrega|despacho|fecha/i.test(pedido)) { grupoActual = pedido; }
+      return; // no es una parada real
+    }
+
+    // La celda "Pago" a veces tiene "Recoger X bidones" en rojo — es referencia, no pago
+    const pagoRaw = cam(f,'Pago','FormaPago','Metodo','payment','forma pago');
+    const refRaw  = cam(f,'Referencia','Ref','referencia');
+
+    // Si "Pago" contiene "Recoger" = es anotación de canje, no forma de pago
+    const esCanje  = /recoger|canje/i.test(pagoRaw) || /recoger|canje/i.test(refRaw) || /recarga/i.test(pedido);
+    const pagoReal = /recoger|canje|promo|promocion/i.test(pagoRaw) ? '' : pagoRaw;
+
+    const cant   = parseFloat(cam(f,'Cant','Cantidad','qty','cantidad'))||1;
+    const precio = parseFloat(cam(f,'Costo','Precio','Price','P.Unit','costo'))||0;
+    const doc    = cam(f,'Documento','RUC','DNI','doc');
+
+    resultado.push({
+      grupo:     grupoActual,
+      cliente,
+      distrito:  cam(f,'Distrito','Dist','zona','distri'),
+      dir:       cam(f,'Dirección','Direccion','Dir','Direc','address','Dirección '),
+      tel:       cam(f,'Contacto','Telefono','Tel','Celular','phone'),
+      doc,
+      productoRaw: pedido,
+      cant,
+      precio,
+      asesor:    cam(f,'Ejecutivo','Asesor','Vendedor','exec'),
+      pagoReal,
+      refRaw,
+      esCanje
+    });
+  });
+
+  paradasPrevias = resultado;
+
+  if (!paradasPrevias.length) {
+    alert('No se encontraron pedidos.\nVerifica que existan columnas "Nombre Cliente" y "Pedido" en tu planilla.');
+    return;
+  }
+  mostrarPreview(nombre);
+}
+
+// Busca un campo por múltiples nombres posibles (case-insensitive, sin tildes)
+function cam(obj, ...keys) {
+  const norm = s => String(s||'').toLowerCase()
+    .replace(/[áàä]/g,'a').replace(/[éèë]/g,'e')
+    .replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u')
+    .replace(/[\s_\-\.]/g,'');
+  for (const k of keys) {
+    const found = Object.keys(obj).find(ok => norm(ok) === norm(k));
+    if (found && obj[found] !== undefined && obj[found] !== '') return String(obj[found]).trim();
   }
   return '';
 }
 
-function procesarFilasImportadas(filas, nombre) {
-  // Columnas exactas de la planilla OZAS:
-  // Pedido | Cant | Costo | Total | Pago | Nombre Cliente | Documento | Referencia | Contacto | Dirección | Distrito | Ejecutivo | Maps
-  paradasPrevias = filas.map((f, idx) => {
-    const cliente   = mapearCampo(f, 'Nombre Cliente','Cliente','NombreCliente','nombre');
-    const distrito  = mapearCampo(f, 'Distrito','Dist','Distri','zona');
-    const dir       = mapearCampo(f, 'Dirección','Direccion','Direccion_','Dir','Direc','address');
-    const tel       = mapearCampo(f, 'Contacto','Telefono','Tel','Celular','phone','Fono');
-    const doc       = mapearCampo(f, 'Documento','RUC','DNI','doc','Referencia');
-    const pago      = mapearCampo(f, 'Pago','FormaPago','Metodo Pago','Metodo','payment','forma pago');
-    const asesor    = mapearCampo(f, 'Ejecutivo','Asesor','Vendedor','ejecutivo','Exec');
-    const hora      = mapearCampo(f, 'Hora','HoraEntrega','Hora Entrega','hora');
-    // Producto: columna "Pedido" en tu planilla OZAS
-    const productoRaw = mapearCampo(f, 'Pedido','Producto','Product','Descripcion','item','articulo');
-    const cant      = parseFloat(mapearCampo(f, 'Cant','Cantidad','qty','Cant.','cantidad'))||1;
-    const precio    = parseFloat(mapearCampo(f, 'Costo','Precio','Price','P.Unit','costo','PrecioUnit'))||0;
-    // Detectar si es canje desde la columna Referencia
-    const referencia = mapearCampo(f, 'Referencia','Ref','referencia');
-    const esCanje   = referencia.toLowerCase().includes('recoger') || productoRaw.toLowerCase().includes('recarga');
-    return { cliente, distrito, dir, tel, doc, productoRaw, cant, precio, asesor, pago, hora, referencia, esCanje };
-  }).filter(p => p.cliente && p.cliente.trim() !== '');
-
-  if (!paradasPrevias.length) {
-    alert('No se encontraron filas con clientes.\nVerifica que exista una columna llamada "Nombre Cliente" o "Cliente" en tu planilla.');
-    return;
-  }
-
-  // Mostrar preview
+function mostrarPreview(nombre) {
   const prev = document.getElementById('preview-importar');
   const tit  = document.getElementById('preview-titulo');
   const cont = document.getElementById('preview-filas');
-  tit.textContent = `Se encontraron ${paradasPrevias.length} parada(s) en "${nombre}"`;
-  cont.innerHTML  = paradasPrevias.slice(0,10).map(p => {
+  tit.textContent = `${paradasPrevias.length} parada(s) encontradas en "${nombre}"`;
+  cont.innerHTML  = paradasPrevias.slice(0,12).map(p => {
     const tipo = mapearTipoProducto(p.productoRaw);
-    const esCanje = tipo.includes('CANJE');
     return `<div class="preview-fila">
-      <span><strong>${p.cliente}</strong>${p.distrito ? ' — '+p.distrito : ''}</span>
-      <span>${p.cant}x ${tipo.replace(' — NUEVO','').replace(' (CANJE)','').substring(0,18)}${esCanje?' ♻':''}</span>
+      <span><strong>${p.cliente}</strong>${p.distrito?' · '+p.distrito:''}</span>
+      <span style="text-align:right">${p.cant}u · S/${p.precio>0?p.precio:'?'}${p.esCanje?' ♻':''}</span>
     </div>`;
-  }).join('') + (paradasPrevias.length > 10 ? `<div class="preview-fila"><span style="color:var(--gris)">...y ${paradasPrevias.length-10} parada(s) más</span></div>` : '');
+  }).join('') + (paradasPrevias.length>12 ? `<div class="preview-fila" style="color:var(--gris)">...y ${paradasPrevias.length-12} más</div>` : '');
   prev.style.display = 'block';
 }
 
 function confirmarImportacion() {
   if (!paradasPrevias.length) return;
   paradasPrevias.forEach(p => {
-    const tipoMapeado = mapearTipoProducto(p.productoRaw);
-    const precioFinal = p.precio > 0 ? p.precio : (PRECIOS_BASE[tipoMapeado] || 0);
-    // Detectar forma de pago desde texto de la planilla
-    const formasPago  = detectarFormasPago(p.pago);
-    // Detectar comprobante
-    const comprobante = detectarComprobante(p.pago, p.doc);
+    const tipo       = mapearTipoProducto(p.productoRaw);
+    const precioFin  = p.precio > 0 ? p.precio : (PRECIOS_BASE[tipo]||0);
+    const formasPago = detectarFormasPago(p.pagoReal);
+    const comprobante= detectarComprobante(p.doc, p.pagoReal);
+    const diasCred   = /15/.test(p.pagoReal) ? 15 : 30;
     agregarParada({
       id: ++paradaIdCounter,
       cliente:          p.cliente,
@@ -1410,76 +1432,33 @@ function confirmarImportacion() {
       direccion:        p.dir,
       telefono:         p.tel,
       documento:        p.doc,
-      comprobante:      comprobante,
+      comprobante,
       asesor:           p.asesor,
-      productos:        [{ tipo: tipoMapeado, cantidad: p.cant, precio: precioFinal }],
+      productos:        [{ tipo, cantidad: p.cant, precio: precioFin }],
       bidonesRecogidos: p.esCanje ? [p.cant] : [],
       formaPago:        formasPago,
-      diasCredito:      p.pago.toLowerCase().includes('15') ? 15 : p.pago.toLowerCase().includes('30') ? 30 : 30,
-      notaInfluencer:   p.pago.toLowerCase().includes('influencer') ? p.cliente : '',
+      diasCredito:      diasCred,
+      notaInfluencer:   '',
       montoCobrado:     0,
-      horaEstimada:     p.hora,
+      horaEstimada:     '',
       horaLlegada:      '',
       horaSalida:       '',
       estado:           'pendiente',
-      observaciones:    p.referencia || '',
+      observaciones:    p.refRaw || '',
       confirmado:       false,
       quienRecibe:      ''
     });
   });
   const n = paradasPrevias.length;
-  alert('\u2713 ' + n + ' parada(s) cargadas desde la planilla.\nRevisa y completa los datos de cada una.');
   cerrarModal();
-  // Activar tab paradas
-  const tabs = document.querySelectorAll('.tab');
-  tabs.forEach(t => t.classList.remove('activo'));
-  tabs[0].classList.add('activo');
-  ['paradas','encabezado','resumen'].forEach(t => {
-    document.getElementById('tab-'+t).style.display = 'none';
-  });
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('activo', i===0));
+  ['encabezado','resumen'].forEach(t => document.getElementById('tab-'+t).style.display='none');
   document.getElementById('tab-paradas').style.display = 'block';
   document.querySelector('.fab').style.display = 'flex';
   document.getElementById('fab-importar').style.display = 'flex';
   renderParadas();
   actualizarProgreso();
-}
-
-function detectarFormasPago(texto) {
-  if (!texto) return ['Por confirmar'];
-  const t = texto.toLowerCase();
-  const formas = [];
-  if (t.includes('yape'))          formas.push('Yape');
-  if (t.includes('plin'))          formas.push('Plin');
-  if (t.includes('efectivo'))      formas.push('Efectivo');
-  if (t.includes('transferencia')) formas.push('Transferencia');
-  if (t.includes('credito') || t.includes('crédito') || t.includes('dias') || t.includes('días')) formas.push('Crédito');
-  if (t.includes('influencer') || t.includes('promocion') || t.includes('cortesia')) formas.push('Influencer');
-  if (t.includes('confirmar') || t.includes('x conf')) formas.push('Por confirmar');
-  return formas.length ? formas : ['Por confirmar'];
-}
-
-function detectarComprobante(pago, doc) {
-  if (!doc && !pago) return 'Ninguno';
-  const d = (doc||'').toLowerCase();
-  const p = (pago||'').toLowerCase();
-  if (d.startsWith('20') || d.includes('ruc')) return 'Factura';
-  if (d.startsWith('boleta') || p.includes('boleta')) return 'Boleta Digital';
-  if (d.includes('guia') || d.includes('guía')) return 'Guía de Remisión';
-  if (doc && doc.length >= 8) return 'Factura'; // asume RUC si tiene 11 dígitos
-  return 'Ninguno';
-}
-
-function mapearTipoProducto(texto) {
-  if (!texto) return 'Otro';
-  const t = texto.toLowerCase();
-  if (t.includes('recarga') && t.includes('cano') || t.includes('recarga') && t.includes('caño')) return 'Recarga bidón 20L con caño (CANJE)';
-  if (t.includes('recarga') && t.includes('sin')) return 'Recarga bidón 20L sin caño (CANJE)';
-  if (t.includes('bidon') || t.includes('bidón')) return 'Bidón 20L con caño — NUEVO';
-  if (t.includes('625')) return 'Pack 15 Botellas 625ml + gratis';
-  if (t.includes('1l') || t.includes('1 l') || t.includes('sport')) return 'Pack 12 Botellas 1L tapa sport';
-  if (t.includes('8.7') || t.includes('8,7')) return 'Botella 8.7L';
-  if (t.includes('caja') || t.includes('20')) return 'Caja 20L';
-  return 'Otro';
+  alert('\u2713 ' + n + ' parada(s) cargadas. Revisa y completa los datos antes de despachar.');
 }
 
 function cancelarImportacion() {
@@ -1487,6 +1466,165 @@ function cancelarImportacion() {
   document.getElementById('preview-importar').style.display = 'none';
 }
 
+function detectarFormasPago(texto) {
+  if (!texto) return ['Por confirmar'];
+  const t = texto.toLowerCase();
+  const f = [];
+  if (t.includes('yape'))          f.push('Yape');
+  if (t.includes('plin'))          f.push('Plin');
+  if (t.includes('efectivo'))      f.push('Efectivo');
+  if (t.includes('transferencia')) f.push('Transferencia');
+  if (/cr[eé]dito|d[ií]as?/.test(t)) f.push('Crédito');
+  if (/influencer|cortesia|promo/.test(t)) f.push('Influencer');
+  if (/confirmar|x conf/.test(t))  f.push('Por confirmar');
+  return f.length ? f : ['Por confirmar'];
+}
+
+function detectarComprobante(doc, pago) {
+  const d = (doc||'').trim();
+  if (/^2\d{10}$/.test(d.replace(/\D/g,''))) return 'Factura'; // RUC 11 dígitos empieza en 2
+  if (/ruc/i.test(d))    return 'Factura';
+  if (/boleta/i.test(d+pago)) return 'Boleta Digital';
+  if (/guia|guía/i.test(d+pago)) return 'Guía de Remisión';
+  return 'Ninguno';
+}
+
+function mapearTipoProducto(texto) {
+  if (!texto) return 'Otro';
+  const t = texto.toLowerCase()
+    .replace(/[áàä]/g,'a').replace(/[éèë]/g,'e')
+    .replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u');
+  if (/recarga.*(con|c[aá][nñ]o)/.test(t)) return 'Recarga bidón 20L con caño (CANJE)';
+  if (/recarga.*(sin|s\/c)/.test(t))        return 'Recarga bidón 20L sin caño (CANJE)';
+  if (/recarga/.test(t))                    return 'Recarga bidón 20L con caño (CANJE)';
+  if (/bid[oó]n.*(con|c[aá][nñ]o)/.test(t))return 'Bidón 20L con caño — NUEVO';
+  if (/bid[oó]n.*(sin|s\/c)/.test(t))       return 'Bidón 20L sin caño — NUEVO';
+  if (/625/.test(t))                        return 'Pack 15 Botellas 625ml + gratis';
+  if (/1\s?l|tapa\s?sport|sport/.test(t))  return 'Pack 12 Botellas 1L tapa sport';
+  if (/8[\.,]7/.test(t))                   return 'Botella 8.7L';
+  if (/caja|bag/.test(t))                  return 'Caja 20L';
+  if (/bid[oó]n|bidon/.test(t))            return 'Bidón 20L con caño — NUEVO';
+  return 'Otro';
+}
+
+// ── IMPORTAR DESDE IMAGEN (IA) ───────────────────────────────
+function importarImagen(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => procesarImagenConIA(e.target.result, file.type);
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+async function procesarImagenConIA(dataUrl, mimeType) {
+  // Mostrar estado de carga
+  document.getElementById('drop-zona').style.display = 'none';
+  document.querySelectorAll('.opcion-importar').forEach(el => el.style.display='none');
+  const proc = document.getElementById('ia-procesando');
+  const barr = document.getElementById('ia-barra');
+  const est  = document.getElementById('ia-estado');
+  proc.style.display = 'block';
+
+  // Animación de barra
+  let pct = 0;
+  const anim = setInterval(() => {
+    pct = Math.min(pct + 3, 85);
+    barr.style.width = pct + '%';
+  }, 300);
+
+  try {
+    est.textContent = 'Enviando imagen a la IA...';
+    const base64 = dataUrl.split(',')[1];
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: mimeType, data: base64 }
+            },
+            {
+              type: 'text',
+              text: `Analiza esta planilla de pedidos de agua OZAS y extrae SOLO las filas de clientes reales (ignora filas de encabezado como "Entrega 19/05", filas de totales, filas vacías y filas con solo nombres de columna).
+
+Para cada fila de pedido real devuelve un JSON array con objetos así:
+{"cliente":"nombre","pedido":"descripcion producto","cant":3,"precio":18,"pago":"forma pago","doc":"RUC o DNI","referencia":"texto referencia","contacto":"telefono","direccion":"direccion","distrito":"distrito","ejecutivo":"nombre asesor"}
+
+Reglas:
+- "pedido" es la columna Pedido (ej: "Recarga Bidón de 20 Lt sin caño")
+- Si "Pago" dice "Recoger X bidones" es una anotación de canje, no forma de pago real
+- Si "Referencia" dice "Factura" o "Boleta" incluirlo en doc o referencia
+- Ignora filas donde Nombre Cliente está vacío
+- Devuelve SOLO el JSON array, sin texto adicional, sin markdown`
+            }
+          ]
+        }]
+      })
+    });
+
+    est.textContent = 'Procesando respuesta...';
+    barr.style.width = '90%';
+
+    const data = await response.json();
+    clearInterval(anim);
+    barr.style.width = '100%';
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Error de API');
+    }
+
+    const texto = data.content?.[0]?.text || '';
+    // Limpiar posibles backticks de markdown
+    const jsonLimpio = texto.replace(/```json|```/g,'').trim();
+    const filas = JSON.parse(jsonLimpio);
+
+    if (!Array.isArray(filas) || !filas.length) {
+      throw new Error('No se encontraron pedidos en la imagen');
+    }
+
+    // Convertir al formato interno
+    paradasPrevias = filas.map(f => ({
+      cliente:     f.cliente || '',
+      distrito:    f.distrito || '',
+      dir:         f.direccion || '',
+      tel:         f.contacto || '',
+      doc:         f.doc || f.referencia || '',
+      productoRaw: f.pedido || '',
+      cant:        parseFloat(f.cant)||1,
+      precio:      parseFloat(f.precio)||0,
+      asesor:      f.ejecutivo || '',
+      pagoReal:    /recoger|canje/i.test(f.pago||'') ? '' : (f.pago||''),
+      refRaw:      f.referencia || '',
+      esCanje:     /recarga|recoger|canje/i.test((f.pedido||'')+(f.pago||'')+(f.referencia||''))
+    })).filter(p => p.cliente);
+
+    proc.style.display = 'none';
+    document.getElementById('drop-zona').style.display = 'block';
+    document.querySelectorAll('.opcion-importar').forEach(el => el.style.display='flex');
+
+    if (!paradasPrevias.length) {
+      alert('La IA no encontró pedidos con clientes en la imagen. Intenta con una imagen más nítida.');
+      return;
+    }
+    mostrarPreview('imagen');
+
+  } catch(err) {
+    clearInterval(anim);
+    proc.style.display = 'none';
+    document.getElementById('drop-zona').style.display = 'block';
+    document.querySelectorAll('.opcion-importar').forEach(el => el.style.display='flex');
+    alert('Error procesando imagen: ' + err.message + '\n\nIntenta con Excel o CSV si el problema persiste.');
+  }
+}
+
+// ── DRAG & DROP ──────────────────────────────────────────────
 function onDrop(e) {
   e.preventDefault();
   document.getElementById('drop-zona').classList.remove('dragover');
@@ -1495,78 +1633,13 @@ function onDrop(e) {
   const ext = file.name.split('.').pop().toLowerCase();
   if (['xlsx','xls','csv'].includes(ext)) {
     const input = document.getElementById('input-excel');
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    input.files = dt.files;
+    const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
     importarExcel(input);
-  } else {
-    adjuntarDesdeFile(file);
+  } else if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = e2 => procesarImagenConIA(e2.target.result, file.type);
+    reader.readAsDataURL(file);
   }
 }
 
-// ── ADJUNTOS (foto / PDF) ───────────────────────────────────
-function adjuntarFotoGeneral(input) {
-  const file = input.files[0];
-  if (file) adjuntarDesdeFile(file);
-  input.value = '';
-}
 
-function adjuntarDocumento(input) {
-  const file = input.files[0];
-  if (file) adjuntarDesdeFile(file);
-  input.value = '';
-}
-
-function adjuntarDesdeFile(file) {
-  const reader = new FileReader();
-  reader.onload = e => {
-    adjuntos.push({
-      nombre: file.name,
-      tipo:   file.type,
-      size:   (file.size/1024).toFixed(1) + ' KB',
-      data:   e.target.result,
-      ts:     new Date().toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'})
-    });
-    guardarLocalStorage();
-    renderAdjuntos();
-    alert(`✓ "${file.name}" adjuntado correctamente.`);
-  };
-  reader.readAsDataURL(file);
-}
-
-function renderAdjuntos() {
-  const lista = document.getElementById('adjuntos-lista');
-  const items = document.getElementById('adjuntos-items');
-  if (!adjuntos.length) { lista.style.display = 'none'; return; }
-  lista.style.display = 'block';
-  items.innerHTML = adjuntos.map((a, i) => {
-    const esImagen = a.tipo.startsWith('image/');
-    return `<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--gris-claro);border-radius:var(--border-radius-md);margin-bottom:4px">
-      ${esImagen ? `<img src="${a.data}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;cursor:pointer" onclick="verAdjunto(${i})">` : '<div style="font-size:24px;width:40px;text-align:center">📄</div>'}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nombre}</div>
-        <div style="font-size:10px;color:var(--texto-sec)">${a.size} · ${a.ts}</div>
-      </div>
-      <button onclick="eliminarAdjunto(${i})" style="background:none;border:none;color:var(--rojo);cursor:pointer;font-size:16px">×</button>
-    </div>`;
-  }).join('');
-}
-
-function verAdjunto(i) {
-  const a = adjuntos[i];
-  const w = window.open('');
-  w.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh">
-    <img src="${a.data}" style="max-width:100%;max-height:100vh;object-fit:contain">
-    </body></html>`);
-}
-
-function eliminarAdjunto(i) {
-  if (!confirm('¿Eliminar este adjunto?')) return;
-  adjuntos.splice(i, 1);
-  guardarLocalStorage();
-  renderAdjuntos();
-}
-
-</script>
-</body>
-</html>
