@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OZAS – Sistema Comercial</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --c1:#0077B6;--c2:#00B4D8;--c3:#90E0EF;
+    --bg-primary:#ffffff;--bg-secondary:#F0F4F8;--bg-tertiary:#E8EEF4;
+    --text-primary:#1a1a2e;--text-secondary:#6b7280;--text-muted:#9ca3af;
+    --border:#e5e7eb;--border-hover:#d1d5db;
+    --success-bg:#EAF3DE;--success-text:#3B6D11;
+    --warning-bg:#FAEEDA;--warning-text:#854F0B;
+    --danger-bg:#FCEBEB;--danger-text:#A32D2D;
+    --info-bg:#E6F1FB;--info-text:#185FA5;
+    --gray-bg:#F1EFE8;--gray-text:#5F5E5A;
+    --cyan-bg:#E0F7FA;--cyan-text:#006064;
+    --radius-sm:6px;--radius-md:8px;--radius-lg:12px;
+    --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+    --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
+  }
+  html,body{height:100%;overflow:hidden}
+  body{font-family:'DM Sans',system-ui,sans-serif;font-size:14px;background:var(--bg-secondary);color:var(--text-primary)}
+  /* LAYOUT */
+  .layout{display:flex;height:100vh}
+  /* SIDEBAR */
+  .sidebar{width:210px;min-width:210px;background:var(--bg-primary);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+  .sidebar-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+  .logo-mark{display:flex;align-items:center;gap:10px}
+  .logo-icon{width:34px;height:34px;background:var(--c1);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center}
+  .logo-icon svg{width:20px;height:20px;fill:white}
+  .logo-text{font-size:20px;font-weight:700;color:var(--c1);letter-spacing:1px;line-height:1}
+  .logo-sub{font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;margin-top:1px}
+  .nav-section{padding:10px 8px 4px;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;margin:1px 6px;cursor:pointer;border-radius:var(--radius-md);color:var(--text-secondary);font-size:13px;transition:all .15s;border-left:3px solid transparent;position:relative}
+  .nav-item:hover{background:var(--bg-secondary);color:var(--text-primary)}
+  .nav-item.active{background:var(--info-bg);color:var(--c1);font-weight:500;border-left-color:var(--c1)}
+  .nav-item i{font-size:17px;flex-shrink:0}
+  .nav-badge{margin-left:auto;background:var(--c1);color:#fff;font-size:10px;border-radius:10px;padding:1px 7px;font-weight:600;min-width:20px;text-align:center}
+  .sidebar-footer{padding:12px 14px;border-top:1px solid var(--border);margin-top:auto}
+  .user-pill{display:flex;align-items:center;gap:8px}
+  .user-avatar{width:28px;height:28px;border-radius:50%;background:var(--c1);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+  .user-info{flex:1;min-width:0}
+  .user-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .user-role{font-size:10px;color:var(--text-secondary)}
+  /* MAIN */
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+  .topbar{padding:12px 20px;background:var(--bg-primary);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+  .topbar-left{display:flex;align-items:center;gap:12px}
+  .page-title{font-size:16px;font-weight:600}
+  .page-subtitle{font-size:12px;color:var(--text-secondary)}
+  .topbar-actions{display:flex;gap:8px;align-items:center}
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-md);border:1px solid var(--border-hover);background:var(--bg-primary);cursor:pointer;font-size:13px;color:var(--text-primary);font-family:inherit;transition:all .15s;font-weight:400;white-space:nowrap}
+  .btn:hover{background:var(--bg-secondary)}
+  .btn:active{transform:scale(.98)}
+  .btn-primary{background:var(--c1);color:#fff;border-color:var(--c1)}
+  .btn-primary:hover{background:#005f92;border-color:#005f92}
+  .btn-danger{background:var(--danger-bg);color:var(--danger-text);border-color:transparent}
+  .btn-danger:hover{background:#f7c1c1}
+  .btn-sm{padding:5px 10px;font-size:12px}
+  .btn-icon{padding:6px;border-radius:var(--radius-sm)}
+  /* CONTENT */
+  .content{flex:1;overflow-y:auto;padding:18px 22px}
+  /* KPI */
+  .kpi-grid{display:grid;gap:10px;margin-bottom:16px}
+  .kpi-grid-5{grid-template-columns:repeat(5,1fr)}
+  .kpi-grid-3{grid-template-columns:repeat(3,1fr)}
+  .kpi-grid-4{grid-template-columns:repeat(4,1fr)}
+  .kpi-card{background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;box-shadow:var(--shadow)}
+  .kpi-label{font-size:11px;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+  .kpi-val{font-size:24px;font-weight:600;line-height:1}
+  .kpi-val.blue{color:var(--c1)}
+  .kpi-val.green{color:#1D9E75}
+  .kpi-val.amber{color:#BA7517}
+  .kpi-val.red{color:#A32D2D}
+  .kpi-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+  /* CARD */
+  .card{background:var(--bg-primary);border-radius:var(--radius-lg);border:1px solid var(--border);padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+  .card-flush{padding:0;overflow:hidden}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .card-title{font-size:14px;font-weight:600}
+  /* FILTERS */
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+  .filters input,.filters select{padding:7px 11px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-family:inherit;outline:none;transition:border .15s}
+  .filters input:focus,.filters select:focus{border-color:var(--c1)}
+  .filter-label{font-size:12px;color:var(--text-secondary);font-weight:500}
+  /* TABLE */
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:9px 12px;color:var(--text-secondary);font-weight:600;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.4px;background:var(--bg-secondary);white-space:nowrap}
+  td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover td{background:var(--bg-secondary)}
+  td.actions{display:flex;gap:4px;align-items:center}
+  /* BADGES */
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.2px}
+  .badge.verde{background:var(--success-bg);color:var(--success-text)}
+  .badge.azul{background:var(--info-bg);color:var(--info-text)}
+  .badge.amarillo{background:var(--warning-bg);color:var(--warning-text)}
+  .badge.rojo{background:var(--danger-bg);color:var(--danger-text)}
+  .badge.gris{background:var(--gray-bg);color:var(--gray-text)}
+  .badge.cyan{background:var(--cyan-bg);color:var(--cyan-text)}
+  /* STATUS CHIPS ROW */
+  .status-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .status-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .15s}
+  .status-chip:hover{opacity:.8}
+  /* MODAL */
+  .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal{background:var(--bg-primary);border-radius:var(--radius-lg);padding:22px;width:540px;max-width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-md)}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+  .modal-title{font-size:15px;font-weight:600}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-group{display:flex;flex-direction:column;gap:5px}
+  .form-group.full{grid-column:1/-1}
+  .form-group label{font-size:12px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+  .form-group input,.form-group select,.form-group textarea{padding:8px 11px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-family:inherit;outline:none;transition:border .15s}
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--c1)}
+  .form-group textarea{resize:vertical;min-height:70px}
+  .form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
+  /* PRODUCCIÓN */
+  .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+  .prod-card{background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;box-shadow:var(--shadow)}
+  .prod-product{font-weight:600;font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:7px;color:var(--c1)}
+  .prod-row{display:flex;justify-content:space-between;font-size:12px;color:var(--text-secondary);padding:4px 0;border-bottom:1px solid var(--border)}
+  .prod-row:last-of-type{border-bottom:none}
+  .prod-row span:last-child{font-weight:600;color:var(--text-primary)}
+  .prod-clients{margin-top:8px;font-size:11px;color:var(--text-muted);line-height:1.4}
+  /* PROGRESS BAR */
+  .progress-wrap{background:var(--bg-tertiary);border-radius:4px;height:8px;overflow:hidden;min-width:80px}
+  .progress-bar{background:var(--c1);height:100%;border-radius:4px;transition:width .3s}
+  .progress-label{font-size:11px;color:var(--text-secondary);margin-top:2px}
+  /* EMPTY STATE */
+  .empty-state{text-align:center;padding:40px 20px;color:var(--text-secondary)}
+  .empty-state i{font-size:36px;display:block;margin-bottom:10px;color:var(--text-muted)}
+  .empty-state p{font-size:13px}
+  /* ALERT */
+  .alert-row td{background:#fff5f5 !important}
+  .alert-info{background:var(--info-bg);border:1px solid #b5d4f4;border-radius:var(--radius-md);padding:10px 14px;font-size:12px;color:var(--info-text);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  /* LOGIN */
+  .login-wrap{height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#EEF4FF 0%,#E0F2FF 100%)}
+  .login-card{background:#fff;border-radius:var(--radius-lg);border:1px solid var(--border);padding:36px;width:360px;box-shadow:var(--shadow-md)}
+  .login-logo{text-align:center;margin-bottom:28px}
+  .login-logo-icon{width:56px;height:56px;background:var(--c1);border-radius:var(--radius-lg);display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px}
+  .login-logo-text{font-size:26px;font-weight:700;color:var(--c1);letter-spacing:2px}
+  .login-logo-sub{font-size:12px;color:var(--text-secondary)}
+  .login-form{display:flex;flex-direction:column;gap:14px}
+  .login-form label{font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px}
+  .login-form input{width:100%;padding:10px 12px;border-radius:var(--radius-md);border:1px solid var(--border);font-size:14px;font-family:inherit;outline:none;transition:border .15s}
+  .login-form input:focus{border-color:var(--c1)}
+  .login-error{background:var(--danger-bg);color:var(--danger-text);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;display:none}
+  /* RESPONSIVE */
+  @media(max-width:768px){
+    .sidebar{width:50px;min-width:50px}
+    .nav-item span,.logo-sub,.logo-text,.user-info,.nav-badge,.nav-section{display:none}
+    .logo-mark{justify-content:center}
+    .nav-item{justify-content:center;padding:10px}
+    .kpi-grid-5{grid-template-columns:repeat(2,1fr)}
+    .kpi-grid-3{grid-template-columns:repeat(2,1fr)}
+    .form-grid{grid-template-columns:1fr}
+    .form-group.full{grid-column:auto}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+      </div>
+      <div class="login-logo-text">OZAS</div>
+      <div class="login-logo-sub">Sistema Comercial · Puriguass S.A.C.</div>
+    </div>
+    <div class="login-form">
+      <div><label>Usuario</label><input type="text" id="login-user" placeholder="admin" value="admin"></div>
+      <div><label>Contraseña</label><input type="password" id="login-pass" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div id="login-error" class="login-error">Usuario o contraseña incorrectos</div>
+      <button class="btn btn-primary" onclick="doLogin()" style="width:100%;justify-content:center;padding:10px">
+        <i class="ti ti-login"></i> Ingresar
+      </button>
+    </div>
+    <div style="margin-top:16px;font-size:11px;color:var(--text-muted);text-align:center">
+      Usuarios: admin/admin · supervisor/1234 · operador/1234
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="layout" style="display:none">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+        </div>
+        <div>
+          <div class="logo-text">OZAS</div>
+          <div class="logo-sub">Puriguass S.A.C.</div>
+        </div>
+      </div>
+    </div>
+    <nav style="padding:6px 0;flex:1">
+      <div class="nav-section">General</div>
+      <div class="nav-item active" onclick="showModule('dashboard')" id="nav-dashboard">
+        <i class="ti ti-layout-dashboard"></i><span>Dashboard</span>
+      </div>
+      <div class="nav-section">Comercial</div>
+      <div class="nav-item" onclick="showModule('prospeccion')" id="nav-prospeccion">
+        <i class="ti ti-users"></i><span>Prospección</span><span class="nav-badge" id="badge-prospeccion">0</span>
+      </div>
+      <div class="nav-item" onclick="showModule('seguimiento')" id="nav-seguimiento">
+        <i class="ti ti-phone-call"></i><span>Seguimiento</span>
+      </div>
+      <div class="nav-item" onclick="showModule('clientes')" id="nav-clientes">
+        <i class="ti ti-building-store"></i><span>Clientes</span><span class="nav-badge" id="badge-clientes">0</span>
+      </div>
+      <div class="nav-section">Operaciones</div>
+      <div class="nav-item" onclick="showModule('produccion')" id="nav-produccion">
+        <i class="ti ti-package"></i><span>Producción</span>
+      </div>
+      <div class="nav-item" onclick="showModule('facturacion')" id="nav-facturacion">
+        <i class="ti ti-receipt-2"></i><span>Facturación</span>
+      </div>
+      <div class="nav-item" onclick="showModule('despacho')" id="nav-despacho">
+        <i class="ti ti-truck-delivery"></i><span>Despacho</span>
+      </div>
+      <div class="nav-item" onclick="showModule('validacion')" id="nav-validacion">
+        <i class="ti ti-clipboard-check"></i><span>Validación</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-pill">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div class="user-info">
+          <div class="user-name" id="user-name">Admin</div>
+          <div class="user-role" id="user-role">Administrador</div>
+        </div>
+        <button class="btn btn-icon btn-sm" onclick="doLogout()" title="Cerrar sesión" style="margin-left:auto">
+          <i class="ti ti-logout" style="font-size:15px"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div>
+          <div class="page-title" id="page-title">Dashboard</div>
+          <div class="page-subtitle" id="page-subtitle">Vista general del sistema</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-sm" onclick="exportExcel()">
+          <i class="ti ti-table-export"></i> Exportar Excel
+        </button>
+        <button class="btn btn-primary btn-sm" id="btn-nuevo" onclick="openModal()" style="display:none">
+          <i class="ti ti-plus"></i> <span id="btn-nuevo-label">Nuevo</span>
+        </button>
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<!-- MODAL CONTAINER -->
+<div id="modal-container"></div>
+
+<script>
+// ─── AUTH ───────────────────────────────────────────────
+const USERS = {
+  admin:      {password:'admin',     role:'Administrador', modules:['all']},
+  supervisor: {password:'1234',      role:'Supervisor',    modules:['all']},
+  operador:   {password:'1234',      role:'Operador',      modules:['produccion','despacho']}
+};
+let currentUser = null;
+let currentModule = 'dashboard';
+let editId = null;
+
+function doLogin(){
+  const u = document.getElementById('login-user').value.trim().toLowerCase();
+  const p = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+  if(USERS[u] && USERS[u].password === p){
+    currentUser = {username:u, ...USERS[u]};
+    err.style.display='none';
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    document.getElementById('user-avatar').textContent = u[0].toUpperCase();
+    document.getElementById('user-name').textContent = u.charAt(0).toUpperCase()+u.slice(1);
+    document.getElementById('user-role').textContent = USERS[u].role;
+    seedData();
+    showModule('dashboard');
+  } else {
+    err.style.display='block';
+  }
+}
+
+function doLogout(){
+  currentUser=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-pass').value='';
+}
+
+// ─── STORAGE ─────────────────────────────────────────────
+function getStore(k){try{return JSON.parse(localStorage.getItem('ozas_'+k)||'[]')}catch(e){return[]}}
+function setStore(k,v){localStorage.setItem('ozas_'+k,JSON.stringify(v))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+// ─── SEED DATA ───────────────────────────────────────────
+function seedData(){
+  if(getStore('prospeccion').length) return;
+  setStore('prospeccion',[
+    {id:uid(),fecha:'2025-05-05',empresa:'Clínica Santa Rosa',contacto:'Dra. Carmen Huanca',telefono:'987654321',correo:'carmen@clinicasantarosa.pe',distrito:'Miraflores',tipo:'Corporativo',estado:'Seguimiento'},
+    {id:uid(),fecha:'2025-05-08',empresa:'Hotel Casa Andina',contacto:'Marco Reyes',telefono:'956789012',correo:'marco@casaandina.pe',distrito:'San Isidro',tipo:'Corporativo',estado:'Cotización enviada'},
+    {id:uid(),fecha:'2025-05-10',empresa:'Gym Iron Club',contacto:'Luis Farfán',telefono:'945678901',correo:'lfarfan@ironclub.pe',distrito:'Surco',tipo:'Retail',estado:'Nuevo Lead'},
+    {id:uid(),fecha:'2025-05-12',empresa:'Colegio San Ignacio',contacto:'Dir. Patricia Vega',telefono:'934567890',correo:'pvega@sanignacio.pe',distrito:'La Molina',tipo:'Institución',estado:'Cliente activo'},
+    {id:uid(),fecha:'2025-05-15',empresa:'Farmacia MediSalud',contacto:'Jorge Campos',telefono:'923456789',correo:'jcampos@medisalud.pe',distrito:'Jesús María',tipo:'Retail',estado:'Contactado'}
+  ]);
+  setStore('seguimiento',[
+    {id:uid(),cliente:'Clínica Santa Rosa',asesor:'Carlos Mendoza',fechaContacto:'2025-05-18',medio:'WhatsApp',resultado:'Evaluando precio',proximoSeguimiento:'2025-05-25',observaciones:'Solicitan descuento por volumen mayor a 50 bidones mensuales'},
+    {id:uid(),cliente:'Hotel Casa Andina',asesor:'Ana Quispe',fechaContacto:'2025-05-19',medio:'Visita',resultado:'Interesado',proximoSeguimiento:'2025-05-26',observaciones:'Reunión con gerente de logística programada para el viernes'},
+    {id:uid(),cliente:'Gym Iron Club',asesor:'Carlos Mendoza',fechaContacto:'2025-05-20',medio:'Llamada',resultado:'Solicita muestra',proximoSeguimiento:'2025-05-27',observaciones:'Enviar muestras de botellón 20L y botella 1L esta semana'},
+    {id:uid(),cliente:'Farmacia MediSalud',asesor:'Ana Quispe',fechaContacto:'2025-05-21',medio:'Correo',resultado:'Requiere seguimiento',proximoSeguimiento:'2025-05-28',observaciones:'Espera confirmación de la gerencia antes de decidir'}
+  ]);
+  setStore('clientes',[
+    {id:uid(),empresa:'Colegio San Ignacio',ruc:'20512345678',contacto:'Dir. Patricia Vega',telefono:'934567890',correo:'pvega@sanignacio.pe',direccion:'Av. La Molina 1234, La Molina',producto:'Bidón 20L',cantidad:20,frecuencia:'Semanal',condicionPago:'15 días',estado:'Activo'},
+    {id:uid(),empresa:'Restaurante El Huerto',ruc:'20498765432',contacto:'Chef Rodrigo Pinto',telefono:'912345678',correo:'rpinto@elhuerto.pe',direccion:'Calle Los Pinos 567, Miraflores',producto:'Botella 625ml x24',cantidad:10,frecuencia:'Quincenal',condicionPago:'Contado',estado:'Activo'},
+    {id:uid(),empresa:'Oficinas Cowork Lima',ruc:'20567891234',contacto:'Mgr. Sofía Torres',telefono:'923456789',correo:'storres@coworklima.pe',direccion:'Av. Javier Prado 789, San Isidro',producto:'Botella 1L x12',cantidad:15,frecuencia:'Mensual',condicionPago:'30 días',estado:'Activo'}
+  ]);
+  setStore('facturacion',[
+    {id:uid(),numeroPedido:'PED-001',numeroFactura:'F001-0123',cliente:'Colegio San Ignacio',fechaEmision:'2025-05-01',monto:480,fechaVencimiento:'2025-05-16',metodoPago:'Transferencia',estado:'Pagado'},
+    {id:uid(),numeroPedido:'PED-002',numeroFactura:'F001-0124',cliente:'Restaurante El Huerto',fechaEmision:'2025-05-10',monto:350,fechaVencimiento:'2025-05-10',metodoPago:'Efectivo',estado:'Vencido'},
+    {id:uid(),numeroPedido:'PED-003',numeroFactura:'F001-0125',cliente:'Oficinas Cowork Lima',fechaEmision:'2025-05-15',monto:720,fechaVencimiento:'2025-06-14',metodoPago:'Transferencia',estado:'Pendiente'},
+    {id:uid(),numeroPedido:'PED-004',numeroFactura:'F001-0126',cliente:'Colegio San Ignacio',fechaEmision:'2025-05-20',monto:480,fechaVencimiento:'2025-06-04',metodoPago:'Transferencia',estado:'Pendiente'}
+  ]);
+  setStore('despacho',[
+    {id:uid(),cliente:'Colegio San Ignacio',direccion:'Av. La Molina 1234',distrito:'La Molina',referencia:'Frente al parque, puerta principal',maps:'https://maps.google.com',personaRecibe:'Conserje Juan',telefonoRecepcion:'934567890',fechaEntrega:'2025-05-22',horaEntrega:'09:00',estado:'Programado'},
+    {id:uid(),cliente:'Restaurante El Huerto',direccion:'Calle Los Pinos 567',distrito:'Miraflores',referencia:'Puerta lateral cocina',maps:'',personaRecibe:'Chef Rodrigo',telefonoRecepcion:'912345678',fechaEntrega:'2025-05-22',horaEntrega:'11:00',estado:'En ruta'},
+    {id:uid(),cliente:'Oficinas Cowork Lima',direccion:'Av. Javier Prado 789',distrito:'San Isidro',referencia:'Recepción, piso 3',maps:'',personaRecibe:'Sofía Torres',telefonoRecepcion:'923456789',fechaEntrega:'2025-05-23',horaEntrega:'10:00',estado:'Pendiente'}
+  ]);
+  setStore('validacion',[
+    {id:uid(),numeroPedido:'PED-001',cliente:'Colegio San Ignacio',valComercial:'Aprobado',valProduccion:'Aprobado',valFacturacion:'Aprobado',valDespacho:'Aprobado'},
+    {id:uid(),numeroPedido:'PED-002',cliente:'Restaurante El Huerto',valComercial:'Aprobado',valProduccion:'Aprobado',valFacturacion:'Observado',valDespacho:'Pendiente'},
+    {id:uid(),numeroPedido:'PED-003',cliente:'Oficinas Cowork Lima',valComercial:'Aprobado',valProduccion:'Pendiente',valFacturacion:'Pendiente',valDespacho:'Pendiente'}
+  ]);
+}
+
+// ─── HELPERS ─────────────────────────────────────────────
+const BADGE_MAP = {
+  'Activo':'verde','Cliente activo':'verde','Pagado':'verde','Entregado':'verde','Aprobado':'verde',
+  'Nuevo Lead':'azul','Programado':'azul','Contactado':'azul','Solicita muestra':'azul',
+  'En ruta':'cyan','Interesado':'verde',
+  'Seguimiento':'amarillo','Cotización enviada':'amarillo','Pendiente':'amarillo',
+  'Evaluando precio':'amarillo','Requiere seguimiento':'amarillo',
+  'Vencido':'rojo','Descartado':'rojo','No interesado':'rojo','Inactivo':'rojo',
+  'Observado':'rojo','Ya tiene proveedor':'gris'
+};
+function badgeClass(v){return BADGE_MAP[v]||'gris'}
+function badge(v){return `<span class="badge ${badgeClass(v)}">${v||'—'}</span>`}
+
+function updateBadges(){
+  document.getElementById('badge-prospeccion').textContent = getStore('prospeccion').length;
+  document.getElementById('badge-clientes').textContent = getStore('clientes').length;
+}
+
+const MODULE_META = {
+  dashboard:   {title:'Dashboard',         subtitle:'Vista general del sistema',           nuevo:false},
+  prospeccion: {title:'Prospección Comercial', subtitle:'Registro y seguimiento de leads', nuevo:true,  label:'Nuevo prospecto'},
+  seguimiento: {title:'Seguimiento Comercial', subtitle:'Interacciones con prospectos',    nuevo:true,  label:'Nuevo seguimiento'},
+  clientes:    {title:'Clientes Activos',   subtitle:'Clientes con pedidos vigentes',       nuevo:true,  label:'Nuevo cliente'},
+  produccion:  {title:'Producción',         subtitle:'Proyección de stock por frecuencia',  nuevo:false},
+  facturacion: {title:'Facturación',        subtitle:'Control de pedidos y cobranza',       nuevo:true,  label:'Nueva factura'},
+  despacho:    {title:'Despacho y Logística',subtitle:'Gestión de entregas',               nuevo:true,  label:'Nuevo despacho'},
+  validacion:  {title:'Validación Interna', subtitle:'Flujo de aprobaciones por área',     nuevo:false}
+};
+
+function showModule(mod){
+  currentModule = mod;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const navEl = document.getElementById('nav-'+mod);
+  if(navEl) navEl.classList.add('active');
+  const meta = MODULE_META[mod];
+  document.getElementById('page-title').textContent = meta.title;
+  document.getElementById('page-subtitle').textContent = meta.subtitle;
+  const btnN = document.getElementById('btn-nuevo');
+  if(meta.nuevo){
+    btnN.style.display='inline-flex';
+    document.getElementById('btn-nuevo-label').textContent = meta.label;
+  } else {
+    btnN.style.display='none';
+  }
+  renderModule(mod);
+  updateBadges();
+}
+
+function renderModule(mod){
+  const c = document.getElementById('content');
+  const renders = {
+    dashboard:   renderDashboard,
+    prospeccion: renderProspeccion,
+    seguimiento: renderSeguimiento,
+    clientes:    renderClientes,
+    produccion:  renderProduccion,
+    facturacion: renderFacturacion,
+    despacho:    renderDespacho,
+    validacion:  renderValidacion
+  };
+  if(renders[mod]) c.innerHTML = renders[mod]();
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────
+function renderDashboard(){
+  const prosp = getStore('prospeccion');
+  const cli   = getStore('clientes');
+  const fact  = getStore('facturacion');
+  const desp  = getStore('despacho');
+  const hoy   = new Date().toISOString().slice(0,10);
+  const activos    = prosp.filter(p=>p.estado==='Cliente activo').length;
+  const pendFact   = fact.filter(f=>f.estado==='Pendiente').length;
+  const vencidas   = fact.filter(f=>f.estado==='Vencido').length;
+  const despHoy    = desp.filter(d=>d.fechaEntrega===hoy).length;
+  const cobrado    = fact.filter(f=>f.estado==='Pagado').reduce((a,b)=>a+Number(b.monto||0),0);
+  const porCobrar  = fact.filter(f=>f.estado!=='Pagado').reduce((a,b)=>a+Number(b.monto||0),0);
+
+  // estados prospectos
+  const estados = ['Nuevo Lead','Contactado','Seguimiento','Cotización enviada'];
+  const estadoRows = estados.map(e=>{
+    const n = prosp.filter(p=>p.estado===e).length;
+    const pct = prosp.length ? Math.round(n/prosp.length*100) : 0;
+    return `<tr><td>${badge(e)}</td><td style="width:120px"><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div></td><td style="text-align:right;font-weight:600">${n}</td></tr>`;
+  }).join('');
+
+  // últimas facturas pendientes
+  const factPend = fact.filter(f=>f.estado==='Pendiente'||f.estado==='Vencido').slice(-3).reverse();
+  const factRows = factPend.map(f=>`<tr><td>${f.numeroFactura||'—'}</td><td>${f.cliente}</td><td>S/ ${Number(f.monto||0).toLocaleString('es-PE')}</td><td>${f.fechaVencimiento}</td><td>${badge(f.estado)}</td></tr>`).join('') ||
+    `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:16px">Sin facturas pendientes</td></tr>`;
+
+  // despachos de hoy
+  const despRows = desp.filter(d=>d.fechaEntrega===hoy).map(d=>`<tr><td>${d.cliente}</td><td>${d.distrito}</td><td>${d.horaEntrega}</td><td>${badge(d.estado)}</td></tr>`).join('') ||
+    `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px">Sin despachos programados hoy</td></tr>`;
+
+  return `
+  <div class="kpi-grid kpi-grid-5">
+    <div class="kpi-card"><div class="kpi-label">Prospectos totales</div><div class="kpi-val blue">${prosp.length}</div><div class="kpi-sub">${activos} convertidos a clientes</div></div>
+    <div class="kpi-card"><div class="kpi-label">Clientes activos</div><div class="kpi-val green">${cli.length}</div><div class="kpi-sub">Con pedidos vigentes</div></div>
+    <div class="kpi-card"><div class="kpi-label">Pedidos pendientes</div><div class="kpi-val amber">${pendFact}</div><div class="kpi-sub">Por facturar / cobrar</div></div>
+    <div class="kpi-card"><div class="kpi-label">Facturas vencidas</div><div class="kpi-val red">${vencidas}</div><div class="kpi-sub">Requieren gestión</div></div>
+    <div class="kpi-card"><div class="kpi-label">Despachos hoy</div><div class="kpi-val blue">${despHoy}</div><div class="kpi-sub">Programados / en ruta</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="card">
+      <div class="card-header"><div class="card-title"><i class="ti ti-chart-pie" style="vertical-align:-3px;margin-right:6px"></i>Pipeline comercial</div></div>
+      <table><tbody>${estadoRows}</tbody></table>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+        <span style="font-size:12px;color:var(--text-secondary)">Total prospectos activos</span>
+        <span style="font-size:14px;font-weight:600">${prosp.filter(p=>!['Cliente activo','Descartado'].includes(p.estado)).length}</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title"><i class="ti ti-cash" style="vertical-align:-3px;margin-right:6px"></i>Resumen financiero</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="background:var(--success-bg);border-radius:var(--radius-md);padding:10px 12px">
+          <div style="font-size:10px;color:var(--success-text);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:4px">Cobrado</div>
+          <div style="font-size:18px;font-weight:700;color:#1D9E75">S/ ${cobrado.toLocaleString('es-PE')}</div>
+        </div>
+        <div style="background:var(--warning-bg);border-radius:var(--radius-md);padding:10px 12px">
+          <div style="font-size:10px;color:var(--warning-text);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:4px">Por cobrar</div>
+          <div style="font-size:18px;font-weight:700;color:#BA7517">S/ ${porCobrar.toLocaleString('es-PE')}</div>
+        </div>
+      </div>
+      <div class="card-title" style="margin-bottom:10px;font-size:12px;color:var(--text-secondary)">Facturas por gestionar</div>
+      <table><thead><tr><th>Factura</th><th>Cliente</th><th>Monto</th><th>Vence</th><th>Estado</th></tr></thead><tbody>${factRows}</tbody></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title"><i class="ti ti-truck" style="vertical-align:-3px;margin-right:6px"></i>Despachos del día · ${new Date().toLocaleDateString('es-PE',{weekday:'long',day:'numeric',month:'long'})}</div></div>
+    <table><thead><tr><th>Cliente</th><th>Distrito</th><th>Hora</th><th>Estado</th></tr></thead><tbody>${despRows}</tbody></table>
+  </div>`;
+}
+
+// ─── PROSPECCIÓN ─────────────────────────────────────────
+function renderProspeccion(){
+  const data = getStore('prospeccion');
+  const estados = ['Nuevo Lead','Contactado','Seguimiento','Cotización enviada','Cliente activo','Descartado'];
+  const counts = estados.map(e=>({e, n:data.filter(d=>d.estado===e).length}));
+  const chips = counts.map(c=>`<span class="badge ${badgeClass(c.e)}" style="padding:5px 12px;font-size:12px">${c.e} (${c.n})</span>`).join('');
+
+  let rows = '';
+  data.forEach(p=>{
+    rows+=`<tr>
+      <td>${p.fecha||'—'}</td>
+      <td><strong>${p.empresa}</strong></td>
+      <td>${p.contacto||'—'}</td>
+      <td>${p.telefono||'—'}</td>
+      <td>${p.correo||'—'}</td>
+      <td>${p.distrito||'—'}</td>
+      <td>${p.tipo||'—'}</td>
+      <td>${badge(p.estado)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-icon btn-sm" onclick="editRecord('prospeccion','${p.id}')" title="Editar"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-icon btn-sm" onclick="deleteRecord('prospeccion','${p.id}')" title="Eliminar" style="color:var(--danger-text)"><i class="ti ti-trash"></i></button>
+      </td></tr>`;
+  });
+
+  return `<div class="status-bar">${chips}</div>
+  <div class="filters">
+    <span class="filter-label"><i class="ti ti-filter"></i></span>
+    <input type="text" id="f-empresa" placeholder="Buscar empresa o contacto..." style="width:220px">
+    <select id="f-estado"><option value="">Todos los estados</option>${estados.map(e=>`<option>${e}</option>`).join('')}</select>
+    <select id="f-distrito"><option value="">Todos los distritos</option>${[...new Set(data.map(d=>d.distrito).filter(Boolean))].sort().map(d=>`<option>${d}</option>`).join('')}</select>
+  </div>
+  <div class="card card-flush">
+    <div class="table-wrap">
+    <table><thead><tr><th>Fecha</th><th>Empresa</th><th>Contacto</th><th>Teléfono</th><th>Correo</th><th>Distrito</th><th>Tipo</th><th>Estado</th><th></th></tr></thead>
+    <tbody id="tbody-prospeccion">${rows||emptyRow(9,'ti-users','Sin prospectos registrados')}</tbody></table>
+    </div>
+  </div>`;
+}
+
+// ─── SEGUIMIENTO ─────────────────────────────────────────
+function renderSeguimiento(){
+  const data = getStore('seguimiento');
+  let rows = '';
+  data.forEach(s=>{
+    rows+=`<tr>
+      <td><strong>${s.cliente}</strong></td>
+      <td>${s.asesor||'—'}</td>
+      <td>${s.fechaContacto||'—'}</td>
+      <td><span class="badge azul">${s.medio||'—'}</span></td>
+      <td>${badge(s.resultado)}</td>
+      <td>${s.proximoSeguimiento||'—'}</td>
+      <td style="max-width:180px;font-size:12px;color:var(--text-secondary)">${s.observaciones||'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-icon btn-sm" onclick="editRecord('seguimiento','${s.id}')" title="Editar"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-icon btn-sm" onclick="deleteRecord('seguimiento','${s.id}')" title="Eliminar" style="color:var(--danger-text)"><i class="ti ti-trash"></i></button>
+      </td></tr>`;
+  });
+  return `<div class="card card-flush"><div class="table-wrap">
+  <table><thead><tr><th>Cliente</th><th>Asesor</th><th>Último contacto</th><th>Medio</th><th>Resultado</th><th>Próximo</th><th>Observaciones</th><th></th></tr></thead>
+  <tbody>${rows||emptyRow(8,'ti-phone','Sin seguimientos registrados')}</tbody></table></div></div>`;
+}
+
+// ─── CLIENTES ACTIVOS ────────────────────────────────────
+function renderClientes(){
+  const data = getStore('clientes');
+  let rows = '';
+  data.forEach(c=>{
+    rows+=`<tr>
+      <td><strong>${c.empresa}</strong></td>
+      <td style="font-size:12px;color:var(--text-secondary)">${c.ruc||'—'}</td>
+      <td>${c.contacto||'—'}</td>
+      <td>${c.telefono||'—'}</td>
+      <td>${c.producto||'—'}</td>
+      <td style="text-align:center">${c.cantidad||0}</td>
+      <td>${badge(c.frecuencia)}</td>
+      <td><span class="badge azul">${c.condicionPago||'—'}</span></td>
+      <td>${badge(c.estado)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-icon btn-sm" onclick="editRecord('clientes','${c.id}')" title="Editar"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-icon btn-sm" onclick="deleteRecord('clientes','${c.id}')" title="Eliminar" style="color:var(--danger-text)"><i class="ti ti-trash"></i></button>
+      </td></tr>`;
+  });
+  return `<div class="card card-flush"><div class="table-wrap">
+  <table><thead><tr><th>Empresa</th><th>RUC</th><th>Contacto</th><th>Teléfono</th><th>Producto</th><th>Cant.</th><th>Frecuencia</th><th>Pago</th><th>Estado</th><th></th></tr></thead>
+  <tbody>${rows||emptyRow(10,'ti-building-store','Sin clientes activos')}</tbody></table></div></div>`;
+}
+
+// ─── PRODUCCIÓN ──────────────────────────────────────────
+function renderProduccion(){
+  const clientes = getStore('clientes').filter(c=>c.estado==='Activo');
+  const productos = {};
+  clientes.forEach(c=>{
+    const k = c.producto||'Sin especificar';
+    if(!productos[k]) productos[k]={semanal:0,quincenal:0,mensual:0,clientes:[]};
+    const qty = Number(c.cantidad)||0;
+    if(c.frecuencia==='Semanal')    {productos[k].semanal+=qty; productos[k].mensual+=qty*4;}
+    if(c.frecuencia==='Quincenal')  {productos[k].quincenal+=qty; productos[k].mensual+=qty*2;}
+    if(c.frecuencia==='Mensual')    {productos[k].mensual+=qty;}
+    productos[k].clientes.push(c.empresa);
+  });
+  const icons = {'Bidón 20L':'ti-bucket','Botella 625ml x24':'ti-bottle','Botella 1L x12':'ti-droplet','Botella 8.7L x4':'ti-droplets','Pack variado':'ti-package'};
+  let cards = '';
+  for(const [prod,v] of Object.entries(productos)){
+    const icon = icons[prod]||'ti-package';
+    cards+=`<div class="prod-card">
+      <div class="prod-product"><i class="ti ${icon}"></i>${prod}</div>
+      <div class="prod-row"><span>Semanal</span><span>${v.semanal} un.</span></div>
+      <div class="prod-row"><span>Quincenal</span><span>${v.quincenal} un.</span></div>
+      <div class="prod-row"><span>Mensual</span><span>${v.mensual} un.</span></div>
+      <div class="prod-clients">${v.clientes.join(' · ')}</div>
+    </div>`;
+  }
+  const detRows = clientes.map(c=>{
+    const qty=Number(c.cantidad||0);
+    const m=c.frecuencia==='Semanal'?qty*4:c.frecuencia==='Quincenal'?qty*2:qty;
+    return `<tr><td><strong>${c.empresa}</strong></td><td>${c.producto||'—'}</td><td style="text-align:center">${qty}</td><td>${badge(c.frecuencia)}</td><td style="text-align:center;font-weight:600">${m} un.</td></tr>`;
+  }).join('');
+
+  return `
+  <div class="alert-info"><i class="ti ti-info-circle"></i>Proyección calculada automáticamente desde los clientes activos. Actualiza las cantidades en el módulo <strong>Clientes</strong>.</div>
+  <div style="margin-bottom:8px;font-size:13px;color:var(--text-secondary);font-weight:500">Proyección por producto (${clientes.length} clientes activos)</div>
+  <div class="prod-grid">${cards||'<div style="color:var(--text-muted);font-size:13px;padding:20px">Sin clientes activos aún</div>'}</div>
+  <div class="card"><div class="card-header"><div class="card-title">Detalle por cliente</div></div>
+  <table><thead><tr><th>Empresa</th><th>Producto</th><th>Cantidad pedido</th><th>Frecuencia</th><th>Proyección mensual</th></tr></thead>
+  <tbody>${detRows||emptyRow(5,'ti-package','Sin clientes activos')}</tbody></table></div>`;
+}
+
+// ─── FACTURACIÓN ─────────────────────────────────────────
+function renderFacturacion(){
+  const data = getStore('facturacion');
+  const hoy = new Date().toISOString().slice(0,10);
+  const total    = data.reduce((a,b)=>a+Number(b.monto||0),0);
+  const cobrado  = data.filter(f=>f.estado==='Pagado').reduce((a,b)=>a+Number(b.monto||0),0);
+  const vencido  = data.filter(f=>f.estado==='Vencido').reduce((a,b)=>a+Number(b.monto||0),0);
+  let rows='';
+  data.forEach(f=>{
+    const isVenc = f.fechaVencimiento < hoy && f.estado==='Pendiente';
+    const est = isVenc ? 'Vencido' : f.estado;
+    rows+=`<tr class="${est==='Vencido'?'alert-row':''}">
+      <td>${f.numeroPedido||'—'}</td>
+      <td>${f.numeroFactura||'—'}</td>
+      <td><strong>${f.cliente}</strong></td>
+      <td>${f.fechaEmision||'—'}</td>
+      <td style="font-weight:600">S/ ${Number(f.monto||0).toLocaleString('es-PE')}</td>
+      <td>${f.fechaVencimiento||'—'}</td>
+      <td>${f.metodoPago||'—'}</td>
+      <td>${badge(est)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-icon btn-sm" onclick="editRecord('facturacion','${f.id}')" title="Editar"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-icon btn-sm" onclick="deleteRecord('facturacion','${f.id}')" title="Eliminar" style="color:var(--danger-text)"><i class="ti ti-trash"></i></button>
+      </td></tr>`;
+  });
+  return `<div class="kpi-grid kpi-grid-3">
+    <div class="kpi-card"><div class="kpi-label">Total facturado</div><div class="kpi-val blue">S/ ${total.toLocaleString('es-PE')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Cobrado</div><div class="kpi-val green">S/ ${cobrado.toLocaleString('es-PE')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Vencido / pendiente</div><div class="kpi-val red">S/ ${(total-cobrado).toLocaleString('es-PE')}</div></div>
+  </div>
+  <div class="card card-flush"><div class="table-wrap">
+  <table><thead><tr><th>N° Pedido</th><th>N° Factura</th><th>Cliente</th><th>Emisión</th><th>Monto</th><th>Vencimiento</th><th>Método</th><th>Estado</th><th></th></tr></thead>
+  <tbody>${rows||emptyRow(9,'ti-receipt-2','Sin facturas registradas')}</tbody></table></div></div>`;
+}
+
+// ─── DESPACHO ────────────────────────────────────────────
+function renderDespacho(){
+  const data = getStore('despacho');
+  let rows='';
+  data.forEach(d=>{
+    rows+=`<tr>
+      <td><strong>${d.cliente}</strong></td>
+      <td style="font-size:12px">${d.direccion||'—'}<br><span style="color:var(--text-muted)">${d.distrito||''}</span></td>
+      <td style="font-size:12px;color:var(--text-secondary)">${d.referencia||'—'}</td>
+      <td>${d.personaRecibe||'—'}</td>
+      <td>${d.telefonoRecepcion||'—'}</td>
+      <td>${d.fechaEntrega||'—'}</td>
+      <td>${d.horaEntrega||'—'}</td>
+      <td>${badge(d.estado)}</td>
+      <td>${d.maps?`<a href="${d.maps}" target="_blank" style="color:var(--c1);font-size:13px"><i class="ti ti-map-pin"></i> Ver</a>`:'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-icon btn-sm" onclick="editRecord('despacho','${d.id}')" title="Editar"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-icon btn-sm" onclick="deleteRecord('despacho','${d.id}')" title="Eliminar" style="color:var(--danger-text)"><i class="ti ti-trash"></i></button>
+      </td></tr>`;
+  });
+  return `<div class="card card-flush"><div class="table-wrap">
+  <table><thead><tr><th>Cliente</th><th>Dirección</th><th>Referencia</th><th>Recibe</th><th>Teléfono</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Maps</th><th></th></tr></thead>
+  <tbody>${rows||emptyRow(10,'ti-truck-delivery','Sin despachos registrados')}</tbody></table></div></div>`;
+}
+
+// ─── VALIDACIÓN ──────────────────────────────────────────
+function renderValidacion(){
+  const data = getStore('validacion');
+  let rows='';
+  data.forEach(v=>{
+    const pasos=[v.valComercial,v.valProduccion,v.valFacturacion,v.valDespacho];
+    const aprobados=pasos.filter(p=>p==='Aprobado').length;
+    const pct=Math.round((aprobados/4)*100);
+    rows+=`<tr>
+      <td><strong>${v.numeroPedido||'—'}</strong></td>
+      <td>${v.cliente||'—'}</td>
+      <td>${badge(v.valComercial)}</td>
+      <td>${badge(v.valProduccion)}</td>
+      <td>${badge(v.valFacturacion)}</td>
+      <td>${badge(v.valDespacho)}</td>
+      <td style="min-width:100px"><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div><div class="progress-label">${pct}% (${aprobados}/4)</div></td>
+      <td><button class="btn btn-icon btn-sm" onclick="editRecord('validacion','${v.id}')" title="Editar"><i class="ti ti-edit"></i></button></td></tr>`;
+  });
+  return `<div class="card card-flush"><div class="table-wrap">
+  <table><thead><tr><th>N° Pedido</th><th>Cliente</th><th>Comercial</th><th>Producción</th><th>Facturación</th><th>Despacho</th><th>Progreso</th><th></th></tr></thead>
+  <tbody>${rows||emptyRow(8,'ti-clipboard-check','Sin registros de validación')}</tbody></table></div></div>`;
+}
+
+// ─── EMPTY ROW ───────────────────────────────────────────
+function emptyRow(cols,icon,msg){
+  return `<tr><td colspan="${cols}"><div class="empty-state"><i class="ti ${icon}"></i><p>${msg}</p></div></td></tr>`;
+}
+
+// ─── FORM FIELDS ─────────────────────────────────────────
+const FORM_FIELDS = {
+  prospeccion:[
+    {name:'fecha',      label:'Fecha de registro', type:'date',   required:true},
+    {name:'empresa',    label:'Empresa',            type:'text',   required:true},
+    {name:'contacto',   label:'Nombre contacto',    type:'text'},
+    {name:'telefono',   label:'Teléfono',           type:'text'},
+    {name:'correo',     label:'Correo electrónico', type:'email'},
+    {name:'distrito',   label:'Distrito',           type:'text'},
+    {name:'tipo',       label:'Tipo de cliente',    type:'select', options:['Corporativo','Retail','Institución','Otro']},
+    {name:'estado',     label:'Estado comercial',   type:'select', options:['Nuevo Lead','Contactado','Seguimiento','Cotización enviada','Cliente activo','Descartado']}
+  ],
+  seguimiento:[
+    {name:'cliente',            label:'Cliente',            type:'text', required:true},
+    {name:'asesor',             label:'Asesor asignado',    type:'text'},
+    {name:'fechaContacto',      label:'Fecha contacto',     type:'date'},
+    {name:'medio',              label:'Medio de contacto',  type:'select', options:['WhatsApp','Llamada','Correo','Visita']},
+    {name:'resultado',          label:'Resultado',          type:'select', options:['Interesado','Solicita muestra','Evaluando precio','Ya tiene proveedor','Requiere seguimiento','No interesado']},
+    {name:'proximoSeguimiento', label:'Próximo seguimiento',type:'date'},
+    {name:'observaciones',      label:'Observaciones',      type:'textarea', full:true}
+  ],
+  clientes:[
+    {name:'empresa',       label:'Empresa',           type:'text',    required:true},
+    {name:'ruc',           label:'RUC',               type:'text'},
+    {name:'contacto',      label:'Nombre contacto',   type:'text'},
+    {name:'telefono',      label:'Teléfono',          type:'text'},
+    {name:'correo',        label:'Correo electrónico',type:'email'},
+    {name:'estado',        label:'Estado',            type:'select',  options:['Activo','Inactivo']},
+    {name:'direccion',     label:'Dirección fiscal',  type:'text',    full:true},
+    {name:'producto',      label:'Producto principal',type:'select',  options:['Bidón 20L','Botella 625ml x24','Botella 1L x12','Botella 8.7L x4','Pack variado']},
+    {name:'cantidad',      label:'Cantidad por pedido',type:'number'},
+    {name:'frecuencia',    label:'Frecuencia',        type:'select',  options:['Semanal','Quincenal','Mensual']},
+    {name:'condicionPago', label:'Condición de pago', type:'select',  options:['Contado','7 días','15 días','30 días']}
+  ],
+  facturacion:[
+    {name:'numeroPedido',   label:'N° de pedido',      type:'text'},
+    {name:'numeroFactura',  label:'N° de factura',     type:'text'},
+    {name:'cliente',        label:'Cliente',           type:'text',   required:true},
+    {name:'fechaEmision',   label:'Fecha de emisión',  type:'date'},
+    {name:'monto',          label:'Monto (S/)',         type:'number'},
+    {name:'fechaVencimiento',label:'Fecha vencimiento',type:'date'},
+    {name:'metodoPago',     label:'Método de pago',    type:'select', options:['Efectivo','Transferencia','Yape/Plin','Crédito']},
+    {name:'estado',         label:'Estado',            type:'select', options:['Pendiente','Pagado','Vencido']}
+  ],
+  despacho:[
+    {name:'cliente',           label:'Cliente',              type:'text', required:true},
+    {name:'distrito',          label:'Distrito',             type:'text'},
+    {name:'direccion',         label:'Dirección de entrega', type:'text', full:true},
+    {name:'referencia',        label:'Referencia',           type:'text', full:true},
+    {name:'maps',              label:'Link Google Maps',     type:'text', full:true},
+    {name:'personaRecibe',     label:'Persona que recibe',   type:'text'},
+    {name:'telefonoRecepcion', label:'Teléfono recepción',   type:'text'},
+    {name:'fechaEntrega',      label:'Fecha de entrega',     type:'date'},
+    {name:'horaEntrega',       label:'Hora de entrega',      type:'time'},
+    {name:'estado',            label:'Estado despacho',      type:'select', options:['Pendiente','Programado','En ruta','Entregado']}
+  ],
+  validacion:[
+    {name:'numeroPedido',   label:'N° de pedido',          type:'text'},
+    {name:'cliente',        label:'Cliente',               type:'text'},
+    {name:'valComercial',   label:'Validación comercial',  type:'select', options:['Aprobado','Pendiente','Observado']},
+    {name:'valProduccion',  label:'Validación producción', type:'select', options:['Aprobado','Pendiente','Observado']},
+    {name:'valFacturacion', label:'Validación facturación',type:'select', options:['Aprobado','Pendiente','Observado']},
+    {name:'valDespacho',    label:'Validación despacho',   type:'select', options:['Aprobado','Pendiente','Observado']}
+  ]
+};
+
+// ─── MODAL ───────────────────────────────────────────────
+function openModal(id){
+  const mod = currentModule;
+  const fields = FORM_FIELDS[mod];
+  if(!fields) return;
+  const record = id ? getStore(mod).find(r=>r.id===id) : null;
+  editId = id || null;
+  let formHTML = '<div class="form-grid">';
+  fields.forEach(f=>{
+    const val = record ? (record[f.name]||'') : '';
+    formHTML += `<div class="form-group ${f.full?'full':''}"><label>${f.label}</label>`;
+    if(f.type==='select'){
+      formHTML += `<select name="${f.name}">${f.options.map(o=>`<option value="${o}"${val===o?' selected':''}>${o}</option>`).join('')}</select>`;
+    } else if(f.type==='textarea'){
+      formHTML += `<textarea name="${f.name}">${val}</textarea>`;
+    } else {
+      formHTML += `<input type="${f.type}" name="${f.name}" value="${val}"${f.required?' required':''}>`;
+    }
+    formHTML += '</div>';
+  });
+  formHTML += '</div>';
+  const title = id ? 'Editar registro' : MODULE_META[mod]?.label || 'Nuevo registro';
+  document.getElementById('modal-container').innerHTML=`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title"><i class="ti ${id?'ti-edit':'ti-plus'}" style="vertical-align:-2px;margin-right:6px;color:var(--c1)"></i>${title}</div>
+          <button class="btn btn-icon btn-sm" onclick="closeModal()"><i class="ti ti-x"></i></button>
+        </div>
+        ${formHTML}
+        <div class="form-actions">
+          <button class="btn" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveRecord('${mod}')"><i class="ti ti-check"></i> Guardar</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function editRecord(mod, id){
+  currentModule = mod;
+  openModal(id);
+}
+
+function closeModal(){
+  document.getElementById('modal-container').innerHTML='';
+  editId = null;
+}
+
+function saveRecord(mod){
+  const fields = FORM_FIELDS[mod];
+  const data = getStore(mod);
+  const obj = {id: editId || uid()};
+  let valid = true;
+  fields.forEach(f=>{
+    const el = document.querySelector(`.modal [name="${f.name}"]`);
+    if(el){
+      obj[f.name] = el.value;
+      if(f.required && !el.value.trim()){valid=false; el.style.borderColor='var(--danger-text)';}
+    }
+  });
+  if(!valid){alert('Por favor complete los campos requeridos.');return;}
+  if(editId){
+    const i = data.findIndex(r=>r.id===editId);
+    if(i>=0) data[i]=obj; else data.push(obj);
+  } else {
+    data.push(obj);
+  }
+  setStore(mod, data);
+  // Auto-migrar prospecto a cliente activo
+  if(mod==='prospeccion' && obj.estado==='Cliente activo'){
+    const cli = getStore('clientes');
+    if(!cli.find(c=>c.empresa===obj.empresa)){
+      cli.push({id:uid(),empresa:obj.empresa,ruc:'',contacto:obj.contacto||'',telefono:obj.telefono||'',correo:obj.correo||'',direccion:obj.distrito||'',producto:'Bidón 20L',cantidad:1,frecuencia:'Mensual',condicionPago:'Contado',estado:'Activo'});
+      setStore('clientes',cli);
+    }
+  }
+  closeModal();
+  renderModule(mod);
+  updateBadges();
+}
+
+function deleteRecord(mod, id){
+  if(!confirm('¿Está seguro de eliminar este registro? Esta acción no se puede deshacer.')) return;
+  setStore(mod, getStore(mod).filter(r=>r.id!==id));
+  renderModule(mod);
+  updateBadges();
+}
+
+// ─── EXPORT EXCEL ────────────────────────────────────────
+function exportExcel(){
+  if(currentModule==='dashboard'){alert('Seleccione un módulo específico para exportar.');return;}
+  const data = getStore(currentModule);
+  if(!data||!data.length){alert('No hay datos para exportar en este módulo.');return;}
+  if(typeof XLSX==='undefined'){alert('La librería de Excel aún no ha cargado. Intente en unos segundos.');return;}
+  const exportData = data.map(row=>{
+    const clean={};
+    Object.entries(row).forEach(([k,v])=>{if(k!=='id') clean[k]=v;});
+    return clean;
+  });
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, currentModule);
+  const fecha = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `OZAS_${currentModule}_${fecha}.xlsx`);
+}
+</script>
+</body>
+</html>
