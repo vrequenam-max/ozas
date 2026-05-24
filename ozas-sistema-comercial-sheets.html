@@ -154,6 +154,25 @@ tbody tr:hover td{background:var(--bg-secondary)}
 .login-form input{width:100%;padding:10px 12px;border-radius:var(--radius-md);border:1px solid var(--border);font-size:14px;font-family:inherit;outline:none;transition:border .15s}
 .login-form input:focus{border-color:var(--c1)}
 .login-error{background:var(--danger-bg);color:var(--danger-text);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;display:none}
+/* STOCK */
+.stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:16px}
+.stock-card{background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;box-shadow:var(--shadow);position:relative}
+.stock-card.ok{border-left:4px solid #1D9E75}
+.stock-card.warn{border-left:4px solid #EF9F27}
+.stock-card.danger{border-left:4px solid #E24B4A}
+.stock-card.sin-registro{border-left:4px solid var(--text-muted);opacity:.75}
+.stock-prod{font-weight:600;font-size:12px;color:var(--text-primary);margin-bottom:10px;line-height:1.3;padding-right:28px}
+.stock-num{font-size:26px;font-weight:700;line-height:1}
+.stock-num.ok{color:#1D9E75}.stock-num.warn{color:#EF9F27}.stock-num.danger{color:#E24B4A}.stock-num.gray{color:var(--text-muted)}
+.stock-sub{font-size:11px;color:var(--text-secondary);margin-top:3px}
+.stock-bar-wrap{background:var(--bg-tertiary);border-radius:4px;height:6px;margin-top:10px;overflow:hidden}
+.stock-bar{height:100%;border-radius:4px;transition:width .4s}
+.stock-bar.ok{background:#1D9E75}.stock-bar.warn{background:#EF9F27}.stock-bar.danger{background:#E24B4A}.stock-bar.gray{background:var(--text-muted)}
+.stock-deadline{position:absolute;top:10px;right:10px;font-size:10px;color:var(--text-muted)}
+.despacho-stock-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px}
+.despacho-stock-pill.ok{background:var(--success-bg);color:var(--success-text)}
+.despacho-stock-pill.warn{background:var(--warning-bg);color:var(--warning-text)}
+.despacho-stock-pill.danger{background:var(--danger-bg);color:var(--danger-text)}
 .toast{position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--text-primary);color:white;padding:10px 16px;border-radius:var(--radius-md);font-size:13px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow-md);opacity:0;transform:translateY(10px);transition:all .25s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.ok{background:#1D9E75}.toast.err{background:#A32D2D}.toast.warn{background:#BA7517}
@@ -181,7 +200,7 @@ tbody tr:hover td{background:var(--bg-secondary)}
         <svg width="30" height="30" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
       </div>
       <div class="login-logo-text">OZAS</div>
-      <div class="login-logo-sub">Sistema Comercial · CHOQUIM S.A.C.</div>
+      <div class="login-logo-sub">Sistema Comercial · Puriguass S.A.C.</div>
     </div>
     <div class="login-form">
       <div><label>Usuario</label><input type="text" id="login-user" placeholder="admin" autocomplete="username"></div>
@@ -201,7 +220,7 @@ tbody tr:hover td{background:var(--bg-secondary)}
     <div class="sidebar-logo">
       <div class="logo-mark">
         <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg></div>
-        <div><div class="logo-text">OZAS</div><div class="logo-sub">CHOQUIM S.A.C.</div></div>
+        <div><div class="logo-text">OZAS</div><div class="logo-sub">Puriguass S.A.C.</div></div>
       </div>
     </div>
     <nav style="padding:6px 0;flex:1">
@@ -213,6 +232,7 @@ tbody tr:hover td{background:var(--bg-secondary)}
       <div class="nav-item" onclick="showModule('clientes')" id="nav-clientes"><i class="ti ti-building-store"></i><span>Clientes</span><span class="nav-badge" id="badge-clientes">0</span></div>
       <div class="nav-section">Operaciones</div>
       <div class="nav-item" onclick="showModule('produccion')" id="nav-produccion"><i class="ti ti-package"></i><span>Producción</span></div>
+      <div class="nav-item" onclick="showModule('stock')" id="nav-stock"><i class="ti ti-stack-2"></i><span>Stock Diario</span><span class="nav-badge" id="badge-stock" style="background:#EF9F27">!</span></div>
       <div class="nav-item" onclick="showModule('facturacion')" id="nav-facturacion"><i class="ti ti-receipt-2"></i><span>Facturación</span></div>
       <div class="nav-item" onclick="showModule('despacho')" id="nav-despacho"><i class="ti ti-truck-delivery"></i><span>Despacho</span></div>
       <div class="nav-item" onclick="showModule('validacion')" id="nav-validacion"><i class="ti ti-clipboard-check"></i><span>Validación</span></div>
@@ -343,7 +363,7 @@ async function syncModule(){
   const mod = currentModule;
   if(mod==='dashboard'||mod==='produccion'||mod==='configuracion'||mod==='logmodule'){
     // sync todos los módulos de datos
-    const mods=['prospeccion','seguimiento','clientes','facturacion','despacho','validacion'];
+    const mods=['prospeccion','seguimiento','clientes','facturacion','despacho','validacion','stock'];
     for(const m of mods){
       const res = await apiCall('getAll', m);
       if(res && res.ok && res.data) setStore(m, res.data);
@@ -436,6 +456,7 @@ function emptyRow(cols,icon,msg){return `<tr><td colspan="${cols}"><div class="e
 function updateBadges(){
   document.getElementById('badge-prospeccion').textContent=getStore('prospeccion').length;
   document.getElementById('badge-clientes').textContent=getStore('clientes').length;
+  updateStockBadge();
 }
 
 const MODULE_META={
@@ -444,6 +465,7 @@ const MODULE_META={
   seguimiento:    {title:'Seguimiento Comercial', subtitle:'Interacciones con prospectos',       nuevo:true, label:'Nuevo seguimiento'},
   clientes:       {title:'Clientes Activos',      subtitle:'Clientes con pedidos vigentes',      nuevo:true, label:'Nuevo cliente'},
   produccion:     {title:'Producción',            subtitle:'Proyección de stock por frecuencia', nuevo:false},
+  stock:          {title:'Stock Diario',          subtitle:'Registro de producción del día · límite 6:00 PM', nuevo:false},
   facturacion:    {title:'Facturación',           subtitle:'Control de pedidos y cobranza',      nuevo:true, label:'Nueva factura'},
   despacho:       {title:'Despacho y Logística',  subtitle:'Gestión de entregas',                nuevo:true, label:'Nuevo despacho'},
   validacion:     {title:'Validación Interna',    subtitle:'Flujo de aprobaciones por área',     nuevo:false},
@@ -469,7 +491,7 @@ function showModule(mod){
 function renderModule(mod){
   const c=document.getElementById('content');
   const renders={dashboard:renderDashboard,prospeccion:renderProspeccion,seguimiento:renderSeguimiento,
-    clientes:renderClientes,produccion:renderProduccion,facturacion:renderFacturacion,
+    clientes:renderClientes,produccion:renderProduccion,stock:renderStock,facturacion:renderFacturacion,
     despacho:renderDespacho,validacion:renderValidacion,configuracion:renderConfiguracion,logmodule:renderLog};
   if(renders[mod]) c.innerHTML=renders[mod]();
 }
@@ -561,11 +583,205 @@ function renderFacturacion(){
   <div class="card card-flush"><div class="table-wrap"><table><thead><tr><th>N° Pedido</th><th>N° Factura</th><th>Cliente</th><th>Emisión</th><th>Monto</th><th>Vencimiento</th><th>Método</th><th>Estado</th><th></th></tr></thead><tbody>${rows||emptyRow(9,'ti-receipt-2','Sin facturas')}</tbody></table></div></div>`;
 }
 
+function renderProduccion(){
+  const clientes=getStore('clientes').filter(c=>c.estado==='Activo');
+  const stockHoy=getStockHoy();
+  const productos={};
+  clientes.forEach(c=>{const k=c.producto||'Sin especificar';if(!productos[k])productos[k]={semanal:0,quincenal:0,mensual:0,clientes:[]};const qty=Number(c.cantidad)||0;if(c.frecuencia==='Semanal'){productos[k].semanal+=qty;productos[k].mensual+=qty*4;}if(c.frecuencia==='Quincenal'){productos[k].quincenal+=qty;productos[k].mensual+=qty*2;}if(c.frecuencia==='Mensual'){productos[k].mensual+=qty;}productos[k].clientes.push(c.empresa);});
+  const icons={'BIDON CON CAÑO DE 20 L':'ti-bucket','BIDON SIN CAÑO DE 20 L':'ti-bucket','RECARGA DE BIDON CON CAÑO DE 20 L':'ti-refresh','RECARGA DE BIDON SIN CAÑO DE 20 L':'ti-refresh','BOTELLON DE 8.7 L':'ti-droplets','PACK DE 625 ml TAPA ROSCA (PQ x 15 UND.)':'ti-package','PACK DE 1 L CON TAPA SPORT (PQ x 12 UND.)':'ti-package','CAJA DE 20 L CON CAÑO':'ti-box','BOTELLA DE 625 ml CON TAPA ROSCA':'ti-bottle','BOTELLA DE 1L CON TAPA SPORT':'ti-droplet'};
+  let cards='';
+  for(const [prod,v] of Object.entries(productos)){const icon=icons[prod]||'ti-package';const st=stockHoy[prod]||0;cards+=`<div class="prod-card"><div class="prod-product"><i class="ti ${icon}"></i>${prod}</div><div class="prod-row"><span>Semanal</span><span>${v.semanal} un.</span></div><div class="prod-row"><span>Quincenal</span><span>${v.quincenal} un.</span></div><div class="prod-row"><span>Mensual</span><span>${v.mensual} un.</span></div>${st?`<div class="prod-row" style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px"><span style="font-weight:600;color:var(--c1)">Stock hoy</span><span style="font-weight:700;color:var(--c1)">${st} un.</span></div>`:'<div style="font-size:11px;color:var(--text-muted);margin-top:6px">Sin stock registrado hoy</div>'}<div class="prod-clients">${v.clientes.join(' · ')}</div></div>`;}
+  const detRows=clientes.map(c=>{const qty=Number(c.cantidad||0);const m=c.frecuencia==='Semanal'?qty*4:c.frecuencia==='Quincenal'?qty*2:qty;return`<tr><td><strong>${c.empresa}</strong></td><td>${c.producto||'—'}</td><td style="text-align:center">${qty}</td><td>${badge(c.frecuencia)}</td><td style="text-align:center;font-weight:600">${m} un.</td></tr>`;}).join('');
+  return `<div class="alert-info"><i class="ti ti-info-circle"></i>Proyección calculada desde clientes activos (${clientes.length}). El stock diario se registra en <strong>Stock Diario</strong> antes de las 6 PM.</div><div class="prod-grid">${cards||'<div style="color:var(--text-muted);padding:20px;font-size:13px">Sin clientes activos</div>'}</div><div class="card"><div class="card-header"><div class="card-title">Detalle por cliente</div></div><table><thead><tr><th>Empresa</th><th>Producto</th><th>Cantidad pedido</th><th>Frecuencia</th><th>Proyección mensual</th></tr></thead><tbody>${detRows||emptyRow(5,'ti-package','Sin clientes activos')}</tbody></table></div>`;
+}
+
+// ── STOCK HELPERS ─────────────────────────────────────────
+const PRODUCTOS_OZAS=['BIDON CON CAÑO DE 20 L','BIDON SIN CAÑO DE 20 L','RECARGA DE BIDON CON CAÑO DE 20 L','RECARGA DE BIDON SIN CAÑO DE 20 L','BOTELLON DE 8.7 L','PACK DE 625 ml TAPA ROSCA (PQ x 15 UND.)','PACK DE 1 L CON TAPA SPORT (PQ x 12 UND.)','CAJA DE 20 L CON CAÑO','BOTELLA DE 625 ml CON TAPA ROSCA','BOTELLA DE 1L CON TAPA SPORT'];
+
+function getStockHoy(){
+  const hoy=new Date().toISOString().slice(0,10);
+  const ayer=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  const stocks=getStore('stock');
+  // Buscar registro de hoy; si no existe usar ayer
+  let reg=stocks.find(s=>s.fecha===hoy);
+  if(!reg) reg=stocks.find(s=>s.fecha===ayer);
+  if(!reg) return {};
+  const result={};
+  PRODUCTOS_OZAS.forEach(p=>{if(reg[p]!==undefined&&reg[p]!=='') result[p]=Number(reg[p])||0;});
+  return result;
+}
+
+function getStockDisponible(producto){
+  const stockTotal=getStockHoy()[producto]||0;
+  const hoy=new Date().toISOString().slice(0,10);
+  // Descontar despachos ya programados/en ruta/entregados hoy con ese producto
+  const despachado=getStore('despacho')
+    .filter(d=>d.fechaEntrega===hoy&&d.producto===producto&&['Programado','En ruta','Entregado'].includes(d.estado))
+    .reduce((a,b)=>a+Number(b.cantidad||0),0);
+  return stockTotal-despachado;
+}
+
+function stockSemaforoClass(disponible,requerido){
+  if(!requerido) return 'ok';
+  const pct=disponible/requerido;
+  if(pct>=1) return 'ok';
+  if(pct>=0.5) return 'warn';
+  return 'danger';
+}
+
+function renderStock(){
+  const hoy=new Date().toISOString().slice(0,10);
+  const ahora=new Date();
+  const limite=new Date();limite.setHours(18,0,0,0);
+  const pasoCierre=ahora>limite;
+  const stocks=getStore('stock');
+  const regHoy=stocks.find(s=>s.fecha===hoy);
+  const regAyer=stocks.find(s=>s.fecha===new Date(Date.now()-86400000).toISOString().slice(0,10));
+  // Calcular demanda del día (despachos programados para hoy)
+  const despHoy=getStore('despacho').filter(d=>d.fechaEntrega===hoy);
+  const demandaHoy={};
+  despHoy.forEach(d=>{if(d.producto) demandaHoy[d.producto]=(demandaHoy[d.producto]||0)+Number(d.cantidad||0);});
+
+  const alertaCierre=pasoCierre&&!regHoy?`<div class="alert-warn" style="margin-bottom:14px"><i class="ti ti-alert-triangle"></i><strong>Pasaron las 6:00 PM</strong> sin registro de stock. Se usará el stock del día anterior como referencia.</div>`:'';
+  const alertaFaltante=!regHoy&&!regAyer?`<div class="alert-warn" style="margin-bottom:14px"><i class="ti ti-alert-triangle"></i>No hay stock registrado hoy ni ayer. Registra el stock para habilitar la validación de despachos.</div>`:'';
+
+  let cards='';
+  PRODUCTOS_OZAS.forEach(prod=>{
+    const stockVal=regHoy?Number(regHoy[prod]||0):(regAyer?Number(regAyer[prod]||0):null);
+    const dem=demandaHoy[prod]||0;
+    const disponible=stockVal!==null?Math.max(0,stockVal-dem):null;
+    const cls=stockVal===null?'sin-registro':stockSemaforoClass(disponible,dem>0?dem:1);
+    const numCls=stockVal===null?'gray':stockSemaforoClass(disponible,dem>0?dem:1);
+    const pct=stockVal&&dem?Math.min(100,Math.round((disponible/dem)*100)):stockVal?100:0;
+    cards+=`<div class="stock-card ${cls}">
+      <div class="stock-deadline">${regHoy?'hoy':regAyer?'ayer':'—'}</div>
+      <div class="stock-prod">${prod}</div>
+      <div class="stock-num ${numCls}">${stockVal!==null?stockVal:'—'}</div>
+      <div class="stock-sub">Disponible: <strong>${disponible!==null?disponible:'—'}</strong> · Demanda hoy: <strong>${dem}</strong></div>
+      <div class="stock-bar-wrap"><div class="stock-bar ${cls}" style="width:${pct}%"></div></div>
+    </div>`;
+  });
+
+  // Tabla histórica
+  const histRows=stocks.slice(-10).reverse().map(s=>{
+    const total=PRODUCTOS_OZAS.reduce((a,p)=>a+Number(s[p]||0),0);
+    return`<tr><td>${s.fecha}</td><td>${s.registradoPor||'—'}</td><td style="font-weight:600">${total} un. totales</td><td style="font-size:12px;color:var(--text-secondary)">${PRODUCTOS_OZAS.filter(p=>Number(s[p]||0)>0).map(p=>`${p.split(' ').slice(0,2).join(' ')}: ${s[p]}`).join(' · ')}</td></tr>`;
+  }).join('');
+
+  return `${alertaCierre}${alertaFaltante}
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="font-size:13px;color:var(--text-secondary)">Stock del <strong>${regHoy?'día (hoy)':regAyer?'día anterior (referencia)':'—'}</strong> · Cierre de registro: <strong style="color:${pasoCierre&&!regHoy?'var(--danger-text)':'inherit'}">6:00 PM</strong></div>
+    <button class="btn btn-primary btn-sm" onclick="openStockModal()"><i class="ti ti-plus"></i> Registrar stock hoy</button>
+  </div>
+  <div class="stock-grid">${cards}</div>
+  <div class="card"><div class="card-header"><div class="card-title"><i class="ti ti-history" style="vertical-align:-2px;margin-right:6px"></i>Historial de stock</div></div>
+  <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Registrado por</th><th>Total</th><th>Detalle</th></tr></thead>
+  <tbody>${histRows||emptyRow(4,'ti-stack-2','Sin registros de stock')}</tbody></table></div></div>`;
+}
+
+function openStockModal(){
+  const hoy=new Date().toISOString().slice(0,10);
+  const ahora=new Date();
+  const limite=new Date();limite.setHours(18,0,0,0);
+  if(ahora>limite&&currentUser.role!=='Administrador'){
+    toast('Pasaron las 6:00 PM. Solo el administrador puede registrar stock fuera de hora.','warn');
+    if(currentUser.role!=='Administrador') return;
+  }
+  const stocks=getStore('stock');
+  const regHoy=stocks.find(s=>s.fecha===hoy)||{};
+  let fields='';
+  PRODUCTOS_OZAS.forEach(p=>{
+    const val=regHoy[p]||'';
+    fields+=`<div class="form-group"><label style="font-size:11px">${p}</label><input type="number" name="stock_${p}" value="${val}" min="0" placeholder="0" style="padding:6px 10px"></div>`;
+  });
+  document.getElementById('modal-container').innerHTML=`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="width:580px;max-width:95vw">
+        <div class="modal-header">
+          <div class="modal-title"><i class="ti ti-stack-2" style="vertical-align:-2px;margin-right:6px;color:var(--c1)"></i>Registro de Stock · ${hoy}</div>
+          <button class="btn btn-icon btn-sm" onclick="closeModal()"><i class="ti ti-x"></i></button>
+        </div>
+        <div style="background:var(--info-bg);border-radius:var(--radius-md);padding:8px 12px;font-size:12px;color:var(--info-text);margin-bottom:14px"><i class="ti ti-clock"></i> Ingresa las unidades producidas/disponibles por producto. Límite: <strong>6:00 PM</strong>. Si no registras, se usará el stock del día anterior.</div>
+        <div class="form-grid">${fields}</div>
+        <div class="form-actions">
+          <button class="btn" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveStock()"><i class="ti ti-check"></i> Guardar stock</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function saveStock(){
+  const hoy=new Date().toISOString().slice(0,10);
+  const stocks=getStore('stock');
+  const obj={id:uid(),fecha:hoy,registradoPor:currentUser.username};
+  PRODUCTOS_OZAS.forEach(p=>{
+    const el=document.querySelector(`.modal [name="stock_${p}"]`);
+    obj[p]=el?el.value:'0';
+  });
+  const idx=stocks.findIndex(s=>s.fecha===hoy);
+  if(idx>=0) stocks[idx]=obj; else stocks.push(obj);
+  setStore('stock',stocks);
+  updateStockBadge();
+  closeModal();
+  await pushRecord('stock',obj);
+  renderModule('stock');
+  toast('Stock registrado correctamente','ok');
+}
+
+function updateStockBadge(){
+  const hoy=new Date().toISOString().slice(0,10);
+  const stocks=getStore('stock');
+  const regHoy=stocks.find(s=>s.fecha===hoy);
+  const badge=document.getElementById('badge-stock');
+  if(!badge) return;
+  if(regHoy){badge.textContent='✓';badge.style.background='#1D9E75';}
+  else{badge.textContent='!';badge.style.background='#EF9F27';}
+}
+
 function renderDespacho(){
   const data=getStore('despacho');
+  const hoy=new Date().toISOString().slice(0,10);
+  const ahora=new Date();
+  const limiteDespHora=new Date();limiteDespHora.setHours(20,0,0,0);
+  const pasoCierreDsp=ahora>limiteDespHora;
+  let alertas='';
+  if(pasoCierreDsp) alertas+=`<div class="alert-warn" style="margin-bottom:12px"><i class="ti ti-alert-triangle"></i>Pasaron las <strong>8:00 PM</strong>. No se pueden registrar nuevos despachos para hoy.</div>`;
+  // Verificar stock insuficiente en despachos pendientes de hoy
+  const despHoyPend=data.filter(d=>d.fechaEntrega===hoy&&d.estado==='Pendiente'&&d.producto);
+  let alertaStock='';
+  despHoyPend.forEach(d=>{
+    const disp=getStockDisponible(d.producto);
+    if(disp<Number(d.cantidad||0)){
+      alertaStock+=`<div style="font-size:12px;padding:3px 0">⚠ <strong>${d.cliente}</strong>: ${d.producto} — necesita ${d.cantidad}, disponible: ${disp}</div>`;
+    }
+  });
+  if(alertaStock) alertas+=`<div class="alert-warn" style="margin-bottom:12px"><i class="ti ti-alert-triangle"></i><div><strong>Stock insuficiente para despachos de hoy:</strong>${alertaStock}</div></div>`;
   let rows='';
-  data.forEach(d=>{rows+=`<tr><td><strong>${d.cliente}</strong></td><td style="font-size:12px">${d.direccion||'—'}<br><span style="color:var(--text-muted)">${d.distrito||''}</span></td><td style="font-size:12px;color:var(--text-secondary)">${d.referencia||'—'}</td><td>${d.personaRecibe||'—'}</td><td>${d.fechaEntrega||'—'}</td><td>${d.horaEntrega||'—'}</td><td>${badge(d.estado)}</td><td>${d.maps?`<a href="${d.maps}" target="_blank" style="color:var(--c1);font-size:13px"><i class="ti ti-map-pin"></i> Ver</a>`:'—'}</td><td style="white-space:nowrap"><button class="btn btn-icon btn-sm" onclick="editRecord('despacho','${d.id}')"><i class="ti ti-edit"></i></button><button class="btn btn-icon btn-sm" onclick="deleteRecord('despacho','${d.id}')" style="color:var(--danger-text)"><i class="ti ti-trash"></i></button></td></tr>`;});
-  return `<div class="card card-flush"><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Dirección</th><th>Referencia</th><th>Recibe</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Maps</th><th></th></tr></thead><tbody>${rows||emptyRow(9,'ti-truck-delivery','Sin despachos')}</tbody></table></div></div>`;
+  data.forEach(d=>{
+    const esHoy=d.fechaEntrega===hoy;
+    let stockPill='';
+    if(esHoy&&d.producto){
+      const disp=getStockDisponible(d.producto);
+      const req=Number(d.cantidad||0);
+      const cls=disp>=req?'ok':disp>0?'warn':'danger';
+      stockPill=`<span class="despacho-stock-pill ${cls}"><i class="ti ti-stack-2"></i>${disp} disp.</span>`;
+    }
+    rows+=`<tr>
+      <td><strong>${d.cliente}</strong>${stockPill}</td>
+      <td style="font-size:12px">${d.direccion||'—'}<br><span style="color:var(--text-muted)">${d.distrito||''}</span></td>
+      <td style="font-size:12px;color:var(--text-secondary)">${d.referencia||'—'}</td>
+      <td>${d.personaRecibe||'—'}</td>
+      <td>${d.fechaEntrega||'—'}</td>
+      <td>${d.horaEntrega||'—'}</td>
+      <td>${badge(d.estado)}</td>
+      <td>${d.maps?`<a href="${d.maps}" target="_blank" style="color:var(--c1);font-size:13px"><i class="ti ti-map-pin"></i> Ver</a>`:'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-icon btn-sm" onclick="editRecord('despacho','${d.id}')"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-icon btn-sm" onclick="deleteRecord('despacho','${d.id}')" style="color:var(--danger-text)"><i class="ti ti-trash"></i></button>
+      </td></tr>`;
+  });
+  return `${alertas}<div class="card card-flush"><div class="table-wrap"><table><thead><tr><th>Cliente / Stock</th><th>Dirección</th><th>Referencia</th><th>Recibe</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Maps</th><th></th></tr></thead><tbody>${rows||emptyRow(9,'ti-truck-delivery','Sin despachos')}</tbody></table></div></div>`;
 }
 
 function renderValidacion(){
@@ -667,6 +883,8 @@ const FORM_FIELDS={
   ],
   despacho:[
     {name:'cliente',label:'Cliente',type:'text',required:true},{name:'distrito',label:'Distrito',type:'text'},
+    {name:'producto',label:'Producto a despachar',type:'select',full:true,options:['BIDON CON CAÑO DE 20 L','BIDON SIN CAÑO DE 20 L','RECARGA DE BIDON CON CAÑO DE 20 L','RECARGA DE BIDON SIN CAÑO DE 20 L','BOTELLON DE 8.7 L','PACK DE 625 ml TAPA ROSCA (PQ x 15 UND.)','PACK DE 1 L CON TAPA SPORT (PQ x 12 UND.)','CAJA DE 20 L CON CAÑO','BOTELLA DE 625 ml CON TAPA ROSCA','BOTELLA DE 1L CON TAPA SPORT']},
+    {name:'cantidad',label:'Cantidad',type:'number'},
     {name:'direccion',label:'Dirección de entrega',type:'text',full:true},{name:'referencia',label:'Referencia',type:'text',full:true},
     {name:'maps',label:'Link Google Maps',type:'text',full:true},
     {name:'personaRecibe',label:'Persona que recibe',type:'text'},{name:'telefonoRecepcion',label:'Teléfono recepción',type:'text'},
