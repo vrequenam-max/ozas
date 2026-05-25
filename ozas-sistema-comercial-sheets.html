@@ -196,11 +196,11 @@ tbody tr:hover td{background:var(--bg-secondary)}
 <div id="login-screen" class="login-wrap">
   <div class="login-card">
     <div class="login-logo">
-      <div class="login-logo-icon">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+      <div class="login-logo-icon" style="background:white;border:2px solid #e5e7eb;padding:4px">
+        <img src="https://ozas.pe/wp-content/uploads/2025/08/logo-c-R-copia.png" style="width:48px;height:48px;object-fit:contain" alt="OZAS Logo">
       </div>
-      <div class="login-logo-text">OZAS</div>
-      <div class="login-logo-sub">Sistema Comercial · Puriguass S.A.C.</div>
+      <div class="login-logo-text">OZÁS</div>
+      <div class="login-logo-sub">Sistema Comercial · CHOQUIM S.A.C.</div>
     </div>
     <div class="login-form">
       <div><label>Usuario</label><input type="text" id="login-user" placeholder="admin" autocomplete="username"></div>
@@ -219,8 +219,10 @@ tbody tr:hover td{background:var(--bg-secondary)}
   <div class="sidebar">
     <div class="sidebar-logo">
       <div class="logo-mark">
-        <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg></div>
-        <div><div class="logo-text">OZAS</div><div class="logo-sub">Puriguass S.A.C.</div></div>
+        <div class="logo-icon" style="background:white;border:1px solid var(--border);padding:2px">
+          <img src="https://ozas.pe/wp-content/uploads/2025/08/logo-c-R-copia.png" style="width:28px;height:28px;object-fit:contain" alt="OZAS">
+        </div>
+        <div><div class="logo-text">OZÁS</div><div class="logo-sub">CHOQUIM S.A.C.</div></div>
       </div>
     </div>
     <nav style="padding:6px 0;flex:1">
@@ -739,24 +741,70 @@ function updateStockBadge(){
   else{badge.textContent='!';badge.style.background='#EF9F27';}
 }
 
+// estado de filtros de despacho (persiste mientras el módulo está abierto)
+let despachoFiltros={fechaDesde:'',fechaHasta:'',estado:'',cliente:''};
+
 function renderDespacho(){
-  const data=getStore('despacho');
+  const allData=getStore('despacho');
   const hoy=new Date().toISOString().slice(0,10);
   const ahora=new Date();
   const limiteDespHora=new Date();limiteDespHora.setHours(20,0,0,0);
   const pasoCierreDsp=ahora>limiteDespHora;
+
+  // Leer filtros del DOM si ya existen, si no usar los guardados
+  const elDesde=document.getElementById('f-desp-desde');
+  const elHasta=document.getElementById('f-desp-hasta');
+  const elEst=document.getElementById('f-desp-estado');
+  const elCli=document.getElementById('f-desp-cliente');
+  if(elDesde) despachoFiltros.fechaDesde=elDesde.value;
+  if(elHasta) despachoFiltros.fechaHasta=elHasta.value;
+  if(elEst)   despachoFiltros.estado=elEst.value;
+  if(elCli)   despachoFiltros.cliente=elCli.value.toLowerCase();
+
+  // Aplicar filtros
+  let data=allData.filter(d=>{
+    if(despachoFiltros.fechaDesde && d.fechaEntrega < despachoFiltros.fechaDesde) return false;
+    if(despachoFiltros.fechaHasta && d.fechaEntrega > despachoFiltros.fechaHasta) return false;
+    if(despachoFiltros.estado && d.estado !== despachoFiltros.estado) return false;
+    if(despachoFiltros.cliente && !d.cliente.toLowerCase().includes(despachoFiltros.cliente)) return false;
+    return true;
+  });
+
+  // Alertas de hoy
   let alertas='';
-  if(pasoCierreDsp) alertas+=`<div class="alert-warn" style="margin-bottom:12px"><i class="ti ti-alert-triangle"></i>Pasaron las <strong>8:00 PM</strong>. No se pueden registrar nuevos despachos para hoy.</div>`;
-  // Verificar stock insuficiente en despachos pendientes de hoy
-  const despHoyPend=data.filter(d=>d.fechaEntrega===hoy&&d.estado==='Pendiente'&&d.producto);
+  if(pasoCierreDsp) alertas+=`<div class="alert-warn" style="margin-bottom:12px"><i class="ti ti-alert-triangle"></i>Pasaron las <strong>8:00 PM</strong>. Hora límite de despachos superada.</div>`;
+  const despHoyPend=allData.filter(d=>d.fechaEntrega===hoy&&d.estado==='Pendiente'&&d.producto);
   let alertaStock='';
   despHoyPend.forEach(d=>{
     const disp=getStockDisponible(d.producto);
-    if(disp<Number(d.cantidad||0)){
-      alertaStock+=`<div style="font-size:12px;padding:3px 0">⚠ <strong>${d.cliente}</strong>: ${d.producto} — necesita ${d.cantidad}, disponible: ${disp}</div>`;
-    }
+    if(disp<Number(d.cantidad||0)) alertaStock+=`<div style="font-size:12px;padding:3px 0">⚠ <strong>${d.cliente}</strong>: ${d.producto} — necesita ${d.cantidad}, disponible: ${disp}</div>`;
   });
   if(alertaStock) alertas+=`<div class="alert-warn" style="margin-bottom:12px"><i class="ti ti-alert-triangle"></i><div><strong>Stock insuficiente para despachos de hoy:</strong>${alertaStock}</div></div>`;
+
+  // KPIs del filtro actual
+  const totFiltro=data.length;
+  const entregados=data.filter(d=>d.estado==='Entregado').length;
+  const pendientes=data.filter(d=>d.estado==='Pendiente'||d.estado==='Programado').length;
+  const enRuta=data.filter(d=>d.estado==='En ruta').length;
+
+  // Opciones únicas de estado y cliente para filtros
+  const estadosUnicos=['Pendiente','Programado','En ruta','Entregado'];
+  const clientesUnicos=[...new Set(allData.map(d=>d.cliente).filter(Boolean))].sort();
+
+  // Detectar rango activo para label
+  let rangoLabel='Todos los despachos';
+  if(despachoFiltros.fechaDesde&&despachoFiltros.fechaHasta) rangoLabel=`${despachoFiltros.fechaDesde} → ${despachoFiltros.fechaHasta}`;
+  else if(despachoFiltros.fechaDesde) rangoLabel=`Desde ${despachoFiltros.fechaDesde}`;
+  else if(despachoFiltros.fechaHasta) rangoLabel=`Hasta ${despachoFiltros.fechaHasta}`;
+
+  // Alerta bidones pendientes de devolución
+  const pendDevolucion=allData.filter(d=>d.devuelveBidon==='Pendiente devolución');
+  if(pendDevolucion.length){
+    const lista=pendDevolucion.map(d=>`<span style="display:inline-block;margin-right:8px">🪣 <strong>${d.cliente}</strong> (${d.cantidadBidonesDev||1} bidón${Number(d.cantidadBidonesDev||1)>1?'es':''})</span>`).join('');
+    alertas+=`<div class="alert-warn" style="margin-bottom:12px"><i class="ti ti-rotate-clockwise-2"></i><div><strong>Bidones pendientes de devolución (${pendDevolucion.length}):</strong><div style="margin-top:4px">${lista}</div></div></div>`;
+  }
+
+  // Filas tabla
   let rows='';
   data.forEach(d=>{
     const esHoy=d.fechaEntrega===hoy;
@@ -767,21 +815,86 @@ function renderDespacho(){
       const cls=disp>=req?'ok':disp>0?'warn':'danger';
       stockPill=`<span class="despacho-stock-pill ${cls}"><i class="ti ti-stack-2"></i>${disp} disp.</span>`;
     }
+    const esRecarga=d.producto&&(d.producto.includes('RECARGA'));
+    let devBadge='';
+    if(esRecarga&&d.devuelveBidon&&d.devuelveBidon!=='No aplica'){
+      const devCls=d.devuelveBidon==='Bidón devuelto'?'verde':d.devuelveBidon==='No devolvió'?'rojo':'amarillo';
+      devBadge=`<br><span class="badge ${devCls}" style="font-size:10px;margin-top:2px"><i class="ti ti-rotate-clockwise-2"></i> ${d.devuelveBidon}${d.cantidadBidonesDev?' ('+d.cantidadBidonesDev+')':''}</span>`;
+    }
     rows+=`<tr>
-      <td><strong>${d.cliente}</strong>${stockPill}</td>
-      <td style="font-size:12px">${d.direccion||'—'}<br><span style="color:var(--text-muted)">${d.distrito||''}</span></td>
-      <td style="font-size:12px;color:var(--text-secondary)">${d.referencia||'—'}</td>
+      <td><strong>${d.cliente}</strong>${stockPill}${devBadge}</td>
+      <td style="font-size:12px;color:var(--text-secondary);max-width:120px">${d.producto||'—'}</td>
+      <td style="text-align:center">${d.cantidad||'—'}</td>
+      <td style="font-size:12px">${d.direccion||'—'} <span style="color:var(--text-muted)">${d.distrito||''}</span></td>
       <td>${d.personaRecibe||'—'}</td>
-      <td>${d.fechaEntrega||'—'}</td>
+      <td><strong>${d.fechaEntrega||'—'}</strong></td>
       <td>${d.horaEntrega||'—'}</td>
       <td>${badge(d.estado)}</td>
-      <td>${d.maps?`<a href="${d.maps}" target="_blank" style="color:var(--c1);font-size:13px"><i class="ti ti-map-pin"></i> Ver</a>`:'—'}</td>
+      <td>${d.maps?`<a href="${d.maps}" target="_blank" style="color:var(--c1)"><i class="ti ti-map-pin"></i></a>`:'—'}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-icon btn-sm" onclick="editRecord('despacho','${d.id}')"><i class="ti ti-edit"></i></button>
         <button class="btn btn-icon btn-sm" onclick="deleteRecord('despacho','${d.id}')" style="color:var(--danger-text)"><i class="ti ti-trash"></i></button>
       </td></tr>`;
   });
-  return `${alertas}<div class="card card-flush"><div class="table-wrap"><table><thead><tr><th>Cliente / Stock</th><th>Dirección</th><th>Referencia</th><th>Recibe</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Maps</th><th></th></tr></thead><tbody>${rows||emptyRow(9,'ti-truck-delivery','Sin despachos')}</tbody></table></div></div>`;
+
+  return `${alertas}
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
+    <div class="kpi-card"><div class="kpi-label">Total filtrado</div><div class="kpi-val blue">${totFiltro}</div><div class="kpi-sub">${rangoLabel}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Entregados</div><div class="kpi-val green">${entregados}</div></div>
+    <div class="kpi-card"><div class="kpi-label">En ruta</div><div class="kpi-val amber">${enRuta}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Pendientes</div><div class="kpi-val red">${pendientes}</div></div>
+  </div>
+
+  <div class="filters" style="background:var(--bg-primary);padding:10px 14px;border-radius:var(--radius-md);border:1px solid var(--border);margin-bottom:12px">
+    <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-right:4px;align-self:center">FILTROS:</div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <label style="font-size:10px;color:var(--text-muted);font-weight:600">DESDE</label>
+      <input type="date" id="f-desp-desde" value="${despachoFiltros.fechaDesde}" onchange="renderModule('despacho')" style="width:140px">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <label style="font-size:10px;color:var(--text-muted);font-weight:600">HASTA</label>
+      <input type="date" id="f-desp-hasta" value="${despachoFiltros.fechaHasta}" onchange="renderModule('despacho')" style="width:140px">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <label style="font-size:10px;color:var(--text-muted);font-weight:600">ESTADO</label>
+      <select id="f-desp-estado" onchange="renderModule('despacho')" style="width:130px">
+        <option value="">Todos</option>${estadosUnicos.map(e=>`<option value="${e}"${despachoFiltros.estado===e?' selected':''}>${e}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <label style="font-size:10px;color:var(--text-muted);font-weight:600">CLIENTE</label>
+      <input type="text" id="f-desp-cliente" value="${despachoFiltros.cliente}" oninput="renderModule('despacho')" placeholder="Buscar..." style="width:150px">
+    </div>
+    <button class="btn btn-sm" onclick="despachoFiltros={fechaDesde:'',fechaHasta:'',estado:'',cliente:''};renderModule('despacho')" style="align-self:flex-end"><i class="ti ti-x"></i> Limpiar</button>
+    <button class="btn btn-sm" onclick="exportDespachoFiltrado()" style="align-self:flex-end"><i class="ti ti-table-export"></i> Exportar filtrado</button>
+    <button class="btn btn-sm" onclick="despachoFiltros={fechaDesde:'${hoy}',fechaHasta:'${hoy}',estado:'',cliente:''};renderModule('despacho')" style="align-self:flex-end;background:var(--info-bg);color:var(--info-text);border-color:var(--info-text)"><i class="ti ti-calendar-today"></i> Solo hoy</button>
+  </div>
+
+  <div class="card card-flush"><div class="table-wrap">
+  <table><thead><tr><th>Cliente / Stock</th><th>Producto</th><th>Cant.</th><th>Dirección</th><th>Recibe</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Maps</th><th></th></tr></thead>
+  <tbody>${rows||emptyRow(10,'ti-truck-delivery','Sin despachos para el filtro seleccionado')}</tbody></table></div></div>`;
+}
+
+function exportDespachoFiltrado(){
+  const allData=getStore('despacho');
+  const data=allData.filter(d=>{
+    if(despachoFiltros.fechaDesde && d.fechaEntrega < despachoFiltros.fechaDesde) return false;
+    if(despachoFiltros.fechaHasta && d.fechaEntrega > despachoFiltros.fechaHasta) return false;
+    if(despachoFiltros.estado && d.estado !== despachoFiltros.estado) return false;
+    if(despachoFiltros.cliente && !d.cliente.toLowerCase().includes(despachoFiltros.cliente)) return false;
+    return true;
+  });
+  if(!data.length){toast('No hay datos para exportar con los filtros actuales','warn');return;}
+  if(typeof XLSX==='undefined'){toast('Librería Excel cargando, intente de nuevo','warn');return;}
+  const exportData=data.map(row=>{const c={};Object.entries(row).forEach(([k,v])=>{if(k!=='id')c[k]=v;});return c;});
+  const ws=XLSX.utils.json_to_sheet(exportData);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Despachos');
+  const sufijo=despachoFiltros.fechaDesde&&despachoFiltros.fechaHasta
+    ?`${despachoFiltros.fechaDesde}_${despachoFiltros.fechaHasta}`
+    :new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`OZAS_Despachos_${sufijo}.xlsx`);
+  toast('Reporte de despachos exportado','ok');
 }
 
 function renderValidacion(){
@@ -885,6 +998,8 @@ const FORM_FIELDS={
     {name:'cliente',label:'Cliente',type:'text',required:true},{name:'distrito',label:'Distrito',type:'text'},
     {name:'producto',label:'Producto a despachar',type:'select',full:true,options:['BIDON CON CAÑO DE 20 L','BIDON SIN CAÑO DE 20 L','RECARGA DE BIDON CON CAÑO DE 20 L','RECARGA DE BIDON SIN CAÑO DE 20 L','BOTELLON DE 8.7 L','PACK DE 625 ml TAPA ROSCA (PQ x 15 UND.)','PACK DE 1 L CON TAPA SPORT (PQ x 12 UND.)','CAJA DE 20 L CON CAÑO','BOTELLA DE 625 ml CON TAPA ROSCA','BOTELLA DE 1L CON TAPA SPORT']},
     {name:'cantidad',label:'Cantidad',type:'number'},
+    {name:'devuelveBidon',label:'¿Cliente devuelve bidón vacío? (solo recargas)',type:'select',options:['No aplica','Pendiente devolución','Bidón devuelto','No devolvió']},
+    {name:'cantidadBidonesDev',label:'Cantidad bidones a devolver',type:'number'},
     {name:'direccion',label:'Dirección de entrega',type:'text',full:true},{name:'referencia',label:'Referencia',type:'text',full:true},
     {name:'maps',label:'Link Google Maps',type:'text',full:true},
     {name:'personaRecibe',label:'Persona que recibe',type:'text'},{name:'telefonoRecepcion',label:'Teléfono recepción',type:'text'},
