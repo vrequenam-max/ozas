@@ -598,28 +598,42 @@ function renderProduccion(){
 }
 
 // ── STOCK HELPERS ─────────────────────────────────────────
+// Productos que se registran en stock (no incluye recargas — se descuentan de bidones)
+const PRODUCTOS_STOCK=['BIDON CON CAÑO DE 20 L','BIDON SIN CAÑO DE 20 L','BOTELLON DE 8.7 L','PACK DE 625 ml TAPA ROSCA (PQ x 15 UND.)','PACK DE 1 L CON TAPA SPORT (PQ x 12 UND.)','CAJA DE 20 L CON CAÑO','BOTELLA DE 625 ml CON TAPA ROSCA','BOTELLA DE 1L CON TAPA SPORT'];
+
+// Todos los productos (para formularios de despacho y clientes)
 const PRODUCTOS_OZAS=['BIDON CON CAÑO DE 20 L','BIDON SIN CAÑO DE 20 L','RECARGA DE BIDON CON CAÑO DE 20 L','RECARGA DE BIDON SIN CAÑO DE 20 L','BOTELLON DE 8.7 L','PACK DE 625 ml TAPA ROSCA (PQ x 15 UND.)','PACK DE 1 L CON TAPA SPORT (PQ x 12 UND.)','CAJA DE 20 L CON CAÑO','BOTELLA DE 625 ml CON TAPA ROSCA','BOTELLA DE 1L CON TAPA SPORT'];
+
+// Las recargas consumen stock del bidón correspondiente
+const RECARGA_PARENT={
+  'RECARGA DE BIDON CON CAÑO DE 20 L': 'BIDON CON CAÑO DE 20 L',
+  'RECARGA DE BIDON SIN CAÑO DE 20 L': 'BIDON SIN CAÑO DE 20 L'
+};
 
 function getStockHoy(){
   const hoy=new Date().toISOString().slice(0,10);
   const ayer=new Date(Date.now()-86400000).toISOString().slice(0,10);
   const stocks=getStore('stock');
-  // Buscar registro de hoy; si no existe usar ayer
   let reg=stocks.find(s=>s.fecha===hoy);
   if(!reg) reg=stocks.find(s=>s.fecha===ayer);
   if(!reg) return {};
   const result={};
-  PRODUCTOS_OZAS.forEach(p=>{if(reg[p]!==undefined&&reg[p]!=='') result[p]=Number(reg[p])||0;});
+  // Solo leer productos de stock (sin recargas)
+  PRODUCTOS_STOCK.forEach(p=>{if(reg[p]!==undefined&&reg[p]!=='') result[p]=Number(reg[p])||0;});
   return result;
 }
 
 function getStockDisponible(producto){
-  const stockTotal=getStockHoy()[producto]||0;
+  // Si es una recarga, consultar el bidón padre
+  const productoReal=RECARGA_PARENT[producto]||producto;
+  const stockTotal=getStockHoy()[productoReal]||0;
   const hoy=new Date().toISOString().slice(0,10);
-  // Descontar despachos ya programados/en ruta/entregados hoy con ese producto
-  const despachado=getStore('despacho')
-    .filter(d=>d.fechaEntrega===hoy&&d.producto===producto&&['Programado','En ruta','Entregado'].includes(d.estado))
-    .reduce((a,b)=>a+Number(b.cantidad||0),0);
+  const despachos=getStore('despacho').filter(d=>d.fechaEntrega===hoy&&['Programado','En ruta','Entregado'].includes(d.estado));
+  // Descontar despachos directos del producto real + recargas que consumen ese bidón
+  const despachado=despachos.reduce((a,d)=>{
+    const pReal=RECARGA_PARENT[d.producto]||d.producto;
+    return pReal===productoReal?a+Number(d.cantidad||0):a;
+  },0);
   return stockTotal-despachado;
 }
 
@@ -642,24 +656,38 @@ function renderStock(){
   // Calcular demanda del día (despachos programados para hoy)
   const despHoy=getStore('despacho').filter(d=>d.fechaEntrega===hoy);
   const demandaHoy={};
-  despHoy.forEach(d=>{if(d.producto) demandaHoy[d.producto]=(demandaHoy[d.producto]||0)+Number(d.cantidad||0);});
+  despHoy.forEach(d=>{
+    if(!d.producto) return;
+    // Las recargas se contabilizan en su bidón padre
+    const prod=d.producto;
+    demandaHoy[prod]=(demandaHoy[prod]||0)+Number(d.cantidad||0);
+  });
 
   const alertaCierre=pasoCierre&&!regHoy?`<div class="alert-warn" style="margin-bottom:14px"><i class="ti ti-alert-triangle"></i><strong>Pasaron las 6:00 PM</strong> sin registro de stock. Se usará el stock del día anterior como referencia.</div>`:'';
   const alertaFaltante=!regHoy&&!regAyer?`<div class="alert-warn" style="margin-bottom:14px"><i class="ti ti-alert-triangle"></i>No hay stock registrado hoy ni ayer. Registra el stock para habilitar la validación de despachos.</div>`:'';
 
   let cards='';
-  PRODUCTOS_OZAS.forEach(prod=>{
+  PRODUCTOS_STOCK.forEach(prod=>{
     const stockVal=regHoy?Number(regHoy[prod]||0):(regAyer?Number(regAyer[prod]||0):null);
-    const dem=demandaHoy[prod]||0;
+    // Demanda directa + demanda de recargas que consumen este bidón
+    const dem=(demandaHoy[prod]||0)+Object.entries(RECARGA_PARENT).filter(([,v])=>v===prod).reduce((a,[k])=>a+(demandaHoy[k]||0),0);
     const disponible=stockVal!==null?Math.max(0,stockVal-dem):null;
     const cls=stockVal===null?'sin-registro':stockSemaforoClass(disponible,dem>0?dem:1);
     const numCls=stockVal===null?'gray':stockSemaforoClass(disponible,dem>0?dem:1);
     const pct=stockVal&&dem?Math.min(100,Math.round((disponible/dem)*100)):stockVal?100:0;
+    // Mostrar sub-info de recargas si aplica
+    let recargaInfo='';
+    const recargasDelBidon=Object.entries(RECARGA_PARENT).filter(([,v])=>v===prod);
+    if(recargasDelBidon.length){
+      const totalRec=recargasDelBidon.reduce((a,[k])=>a+(demandaHoy[k]||0),0);
+      if(totalRec>0) recargaInfo=`<div style="font-size:10px;color:var(--text-secondary);margin-top:4px;background:var(--bg-secondary);border-radius:4px;padding:3px 6px">+ ${totalRec} recarga(s) descontadas</div>`;
+    }
     cards+=`<div class="stock-card ${cls}">
       <div class="stock-deadline">${regHoy?'hoy':regAyer?'ayer':'—'}</div>
       <div class="stock-prod">${prod}</div>
       <div class="stock-num ${numCls}">${stockVal!==null?stockVal:'—'}</div>
       <div class="stock-sub">Disponible: <strong>${disponible!==null?disponible:'—'}</strong> · Demanda hoy: <strong>${dem}</strong></div>
+      ${recargaInfo}
       <div class="stock-bar-wrap"><div class="stock-bar ${cls}" style="width:${pct}%"></div></div>
     </div>`;
   });
@@ -692,7 +720,7 @@ function openStockModal(){
   const stocks=getStore('stock');
   const regHoy=stocks.find(s=>s.fecha===hoy)||{};
   let fields='';
-  PRODUCTOS_OZAS.forEach(p=>{
+  PRODUCTOS_STOCK.forEach(p=>{
     const val=regHoy[p]||'';
     fields+=`<div class="form-group"><label style="font-size:11px">${p}</label><input type="number" name="stock_${p}" value="${val}" min="0" placeholder="0" style="padding:6px 10px"></div>`;
   });
@@ -717,7 +745,7 @@ async function saveStock(){
   const hoy=new Date().toISOString().slice(0,10);
   const stocks=getStore('stock');
   const obj={id:uid(),fecha:hoy,registradoPor:currentUser.username};
-  PRODUCTOS_OZAS.forEach(p=>{
+  PRODUCTOS_STOCK.forEach(p=>{
     const el=document.querySelector(`.modal [name="stock_${p}"]`);
     obj[p]=el?el.value:'0';
   });
@@ -876,25 +904,40 @@ function renderDespacho(){
 }
 
 function exportDespachoFiltrado(){
+  // Leer valores actuales del DOM antes de filtrar
+  const elDesde=document.getElementById('f-desp-desde');
+  const elHasta=document.getElementById('f-desp-hasta');
+  const elEst=document.getElementById('f-desp-estado');
+  const elCli=document.getElementById('f-desp-cliente');
+  if(elDesde) despachoFiltros.fechaDesde=elDesde.value;
+  if(elHasta) despachoFiltros.fechaHasta=elHasta.value;
+  if(elEst)   despachoFiltros.estado=elEst.value;
+  if(elCli)   despachoFiltros.cliente=elCli.value.toLowerCase();
+
   const allData=getStore('despacho');
   const data=allData.filter(d=>{
     if(despachoFiltros.fechaDesde && d.fechaEntrega < despachoFiltros.fechaDesde) return false;
     if(despachoFiltros.fechaHasta && d.fechaEntrega > despachoFiltros.fechaHasta) return false;
     if(despachoFiltros.estado && d.estado !== despachoFiltros.estado) return false;
-    if(despachoFiltros.cliente && !d.cliente.toLowerCase().includes(despachoFiltros.cliente)) return false;
+    if(despachoFiltros.cliente && !((d.cliente||'').toLowerCase().includes(despachoFiltros.cliente))) return false;
     return true;
   });
   if(!data.length){toast('No hay datos para exportar con los filtros actuales','warn');return;}
   if(typeof XLSX==='undefined'){toast('Librería Excel cargando, intente de nuevo','warn');return;}
-  const exportData=data.map(row=>{const c={};Object.entries(row).forEach(([k,v])=>{if(k!=='id')c[k]=v;});return c;});
+  const cols=['cliente','producto','cantidad','devuelveBidon','cantidadBidonesDev','direccion','distrito','referencia','personaRecibe','telefonoRecepcion','fechaEntrega','horaEntrega','estado','maps'];
+  const exportData=data.map(row=>{const c={};cols.forEach(k=>{c[k]=row[k]||'';});return c;});
   const ws=XLSX.utils.json_to_sheet(exportData);
+  // Ancho de columnas
+  ws['!cols']=[{wch:22},{wch:35},{wch:8},{wch:20},{wch:8},{wch:30},{wch:14},{wch:20},{wch:18},{wch:14},{wch:12},{wch:8},{wch:12},{wch:30}];
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Despachos');
   const sufijo=despachoFiltros.fechaDesde&&despachoFiltros.fechaHasta
-    ?`${despachoFiltros.fechaDesde}_${despachoFiltros.fechaHasta}`
+    ?`${despachoFiltros.fechaDesde}_al_${despachoFiltros.fechaHasta}`
+    :despachoFiltros.fechaDesde?`desde_${despachoFiltros.fechaDesde}`
+    :despachoFiltros.fechaHasta?`hasta_${despachoFiltros.fechaHasta}`
     :new Date().toISOString().slice(0,10);
   XLSX.writeFile(wb,`OZAS_Despachos_${sufijo}.xlsx`);
-  toast('Reporte de despachos exportado','ok');
+  toast(`Excel exportado: ${data.length} despachos`,'ok');
 }
 
 function renderValidacion(){
